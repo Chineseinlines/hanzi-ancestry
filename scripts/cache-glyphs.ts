@@ -10,6 +10,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DICT_PATH = path.resolve(__dirname, '../public/hanzi-dict.json');
 const CACHE_DIR = path.resolve(__dirname, '../public/glyphs');
@@ -30,8 +34,8 @@ const SCRIPT_TO_ZDIC: Record<string, string[]> = {
 };
 
 const SCRIPTS = Object.keys(SCRIPT_TO_ZDIC);
-const CONCURRENCY = 3;
-const REQUEST_DELAY = 800; // ms between characters to avoid rate limiting
+const CONCURRENCY = 6;
+const REQUEST_DELAY = 300; // ms between batches to avoid rate limiting
 
 function fetchText(url: string, timeoutMs = 12000): Promise<string | null> {
   return new Promise((resolve) => {
