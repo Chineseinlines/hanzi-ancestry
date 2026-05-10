@@ -161,7 +161,7 @@ export function getTraditional(_char: string): string | null {
   return null; // New data source doesn't include traditional forms
 }
 
-export function getTraditionalComponents(char: string): string[] {
+export function getTraditionalComponents(_char: string): string[] {
   return []; // New data source doesn't include traditional components
 }
 
@@ -208,12 +208,6 @@ export function preloadStrokeData(chars: string[]): void {
 }
 
 // ── Cognitive network ──────────────────────────────────────────────
-
-function isStandaloneMeaningful(comp: string): boolean {
-  const entry = charMap?.get(comp);
-  if (!entry) return false;
-  return entry.definition.length > 3;
-}
 
 export function getComponentCognates(component: string, maxResults: number = 30): ComponentCognateResult[] {
   if (!charMap || !reverseIndex) return [];

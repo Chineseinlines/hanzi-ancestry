@@ -103,11 +103,6 @@ export default function Explore() {
     [currentChar]
   );
 
-  const traditionalDecomposition: DecompositionNode | null = useMemo(
-    () => (traditionalChar ? decomposeCharacter(traditionalChar) : null),
-    [traditionalChar]
-  );
-
   const traditionalComponents: string[] = useMemo(
     () => (currentChar ? getTraditionalComponents(currentChar) : []),
     [currentChar]
