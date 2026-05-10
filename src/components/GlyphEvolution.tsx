@@ -27,14 +27,14 @@ const SCRIPT_STYLES: ScriptStyle[] = [
 /** Build image URL(s) for a script style. Returns an array to try in order. */
 function buildImageUrls(_char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
   if (style.useLocalGlyph) {
-    // Primary: local cache via Vite glyph plugin (fetches + caches from zdic.net)
-    return [`/glyph/${style.key}/${hexUpper}`];
+    return [`${import.meta.env.BASE_URL}glyph/${style.key}/${hexUpper}`];
   }
-  // Regular script: GlyphWiki SVG via proxy, then direct
-  return [
-    `/api/glyphwiki/glyph/u${hex}.svg`,
-    `https://glyphwiki.org/glyph/u${hex}.svg`,
-  ];
+  // Regular script: GlyphWiki SVG (use proxy in dev, direct in production)
+  const glyphwikiUrl = `https://glyphwiki.org/glyph/u${hex}.svg`;
+  if (import.meta.env.DEV) {
+    return [`/api/glyphwiki/glyph/u${hex}.svg`, glyphwikiUrl];
+  }
+  return [glyphwikiUrl];
 }
 
 export default function GlyphEvolution({ character, traditional }: GlyphEvolutionProps) {
