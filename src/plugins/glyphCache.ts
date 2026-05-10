@@ -34,8 +34,8 @@ export function glyphCachePlugin(): Plugin {
       server.middlewares.use(async (req, res, next) => {
         if (!req.url?.startsWith('/glyphs/')) return next();
 
-        // Parse path: /glyphs/oracle/4E00
-        const match = req.url.match(/^\/glyph\/(\w+)\/([0-9A-Fa-f]+)/);
+        // Parse path: /glyphs/oracle/4E00.svg (extension optional for compat)
+        const match = req.url.match(/^\/glyphs\/(\w+)\/([0-9A-Fa-f]+)(\.svg)?/);
         if (!match) return next();
 
         const [, script, hex] = match;

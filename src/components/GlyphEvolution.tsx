@@ -27,7 +27,7 @@ const SCRIPT_STYLES: ScriptStyle[] = [
 /** Build image URL(s) for a script style. Returns an array to try in order. */
 function buildImageUrls(_char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
   if (style.useLocalGlyph) {
-    return [`${import.meta.env.BASE_URL}glyphs/${style.key}/${hexUpper}`];
+    return [`${import.meta.env.BASE_URL}glyphs/${style.key}/${hexUpper}.svg`];
   }
   // Regular script: GlyphWiki SVG (use proxy in dev, direct in production)
   const glyphwikiUrl = `https://glyphwiki.org/glyph/u${hex}.svg`;
