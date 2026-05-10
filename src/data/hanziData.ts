@@ -28,8 +28,8 @@ export async function loadData(): Promise<void> {
   dataLoadPromise = (async () => {
     try {
       const [dictRes, indexRes] = await Promise.all([
-        fetch('/hanzi-dict.json'),
-        fetch('/hanzi-index.json'),
+        fetch(`${import.meta.env.BASE_URL}hanzi-dict.json`),
+        fetch(`${import.meta.env.BASE_URL}hanzi-index.json`),
       ]);
 
       if (!dictRes.ok) throw new Error(`hanzi-dict.json: ${dictRes.status}`);
@@ -309,7 +309,7 @@ export async function loadCulturalData(): Promise<void> {
 
   culturalPromise = (async () => {
     try {
-      const res = await fetch('/cultural.json');
+      const res = await fetch(`${import.meta.env.BASE_URL}cultural.json`);
       if (!res.ok) throw new Error(`cultural.json: ${res.status}`);
       const data = await res.json() as Record<string, CulturalData>;
       culturalMap = new Map(Object.entries(data));
