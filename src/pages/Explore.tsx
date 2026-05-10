@@ -15,7 +15,6 @@ import {
   getCognates,
   hasCharacter,
   loadData,
-  getTraditional,
   getTraditionalComponents,
 } from '../data/hanziData';
 import DecompositionGraph from '../components/DecompositionGraph';
@@ -95,11 +94,6 @@ export default function Explore() {
 
   const decomposition: DecompositionNode | null = useMemo(
     () => (currentChar ? decomposeCharacter(currentChar) : null),
-    [currentChar]
-  );
-
-  const traditionalChar: string | null = useMemo(
-    () => (currentChar ? getTraditional(currentChar) : null),
     [currentChar]
   );
 
