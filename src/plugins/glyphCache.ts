@@ -1,7 +1,7 @@
 /**
  * Vite plugin: Glyph Image Cache Proxy
  *
- * Intercepts `/glyph/{script}/{hex}` requests, scrapes the zdic.net character
+ * Intercepts `/glyphs/{script}/{hex}` requests, scrapes the zdic.net character
  * page to find ancient script SVG images, and caches them to disk.
  *
  * On first request: fetches zdic page → extracts image URLs → downloads image
@@ -32,9 +32,9 @@ export function glyphCachePlugin(): Plugin {
 
       // NOTE: do NOT mount at '/glyph' — connect strips the prefix from req.url
       server.middlewares.use(async (req, res, next) => {
-        if (!req.url?.startsWith('/glyph/')) return next();
+        if (!req.url?.startsWith('/glyphs/')) return next();
 
-        // Parse path: /glyph/oracle/4E00
+        // Parse path: /glyphs/oracle/4E00
         const match = req.url.match(/^\/glyph\/(\w+)\/([0-9A-Fa-f]+)/);
         if (!match) return next();
 
