@@ -102,9 +102,7 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
     );
   }
 
-  const pad = 12;
   const viewSize = 1024;
-  const scale = (size - pad * 2) / viewSize;
 
   // Coordinates are in 1024 space with inverted Y; flip and adjust
   return (

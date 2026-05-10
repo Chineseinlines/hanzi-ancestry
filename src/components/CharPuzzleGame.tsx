@@ -1,6 +1,6 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shuffle, Check, X, ArrowRight, Trophy, Sparkles } from 'lucide-react';
+import { Check, X, ArrowRight, Trophy, Sparkles } from 'lucide-react';
 import type { GameMode, GameState, PuzzleRound } from '../data/types';
 import { getCharacter, getCognates, getCharactersWithComponent } from '../data/hanziData';
 
@@ -154,7 +154,7 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
   }
 }
 
-export default function CharPuzzleGame({ targetChar, onNavigate }: CharPuzzleGameProps) {
+export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate }: CharPuzzleGameProps) {
   const [gameState, setGameState] = useState<GameState>({
     score: 0,
     streak: 0,

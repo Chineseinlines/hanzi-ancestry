@@ -25,7 +25,7 @@ const SCRIPT_STYLES: ScriptStyle[] = [
 ];
 
 /** Build image URL(s) for a script style. Returns an array to try in order. */
-function buildImageUrls(char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
+function buildImageUrls(_char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
   if (style.useLocalGlyph) {
     // Primary: local cache via Vite glyph plugin (fetches + caches from zdic.net)
     return [`/glyph/${style.key}/${hexUpper}`];

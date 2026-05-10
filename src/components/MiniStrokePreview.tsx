@@ -60,7 +60,6 @@ export default function MiniStrokePreview({ character }: MiniStrokePreviewProps)
   }
 
   const size = 100;
-  const pad = 6;
   const viewSize = 1024;
 
   return (

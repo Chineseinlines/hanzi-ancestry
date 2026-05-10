@@ -38,8 +38,8 @@ const GraphTooltip = memo(function GraphTooltip({
     // Decide quadrant: which side of the node has more space?
     const spaceRight = vw - x - nodeRadius;
     const spaceLeft = x - nodeRadius;
-    const spaceBottom = vh - y - nodeRadius;
-    const spaceTop = y - nodeRadius;
+    const _spaceBottom = vh - y - nodeRadius;
+    const _spaceTop = y - nodeRadius;
 
     let left: number;
     let top: number;

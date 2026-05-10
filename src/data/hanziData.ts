@@ -54,7 +54,7 @@ export async function loadData(): Promise<void> {
         };
         if (raw.etymology?.type) {
           entry.etymology = {
-            type: raw.etymology.type as HanziEntry['etymology']['type'],
+            type: raw.etymology.type as 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic',
             phonetic: raw.etymology.phonetic,
             semantic: raw.etymology.semantic,
             hint: raw.etymology.hint,
@@ -157,7 +157,7 @@ export function getCharacterLeaves(char: string): string[] {
   return node.children.map(c => c.character);
 }
 
-export function getTraditional(char: string): string | null {
+export function getTraditional(_char: string): string | null {
   return null; // New data source doesn't include traditional forms
 }
 
