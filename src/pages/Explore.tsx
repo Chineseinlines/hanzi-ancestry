@@ -19,6 +19,7 @@ import {
 } from '../data/hanziData';
 import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
+import { getAnnotation, getMoonAnnotationByDefinition } from '../data/componentAnnotations';
 
 const QUICK_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语', '尊', '界'];
 
@@ -748,27 +749,37 @@ export default function Explore() {
                                   : 'text-charcoal';
 
                           const indentPx = line.depth * 24;
+                          const ann = getAnnotation(line.character);
+                          const isMoonBody = line.character === '月' && getMoonAnnotationByDefinition(charData?.definition ?? '');
+                          const variantBadge = ann || isMoonBody;
 
                           return (
                             <div
                               key={`${line.character}-${i}`}
                               className={`${indentClass}`}
-                              style={{ paddingLeft: `${indentPx}px` }}
+                              style={{ paddingLeft: `${indentPx}px`, display: 'flex', alignItems: 'baseline', gap: '6px' }}
                             >
-                              <span className="text-charcoal/50">
-                                {line.prefix}
-                                {line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}
-                              </span>
-                              {line.decomposition && line.decomposition !== '？' && (
-                                <span className="text-charcoal/60">
-                                  {line.decomposition}{' '}
+                              <span>
+                                <span className="text-charcoal/50">
+                                  {line.prefix}
+                                  {line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}
                                 </span>
-                              )}
-                              <span className="font-semibold">{line.character}</span>
-                              {line.definition && (
-                                <span className="text-charcoal/60">
-                                  {' '}
-                                  — {line.definition}
+                                {line.decomposition && line.decomposition !== '？' && (
+                                  <span className="text-charcoal/60">
+                                    {line.decomposition}{' '}
+                                  </span>
+                                )}
+                                <span className="font-semibold">{line.character}</span>
+                                {line.definition && (
+                                  <span className="text-charcoal/60">
+                                    {' '}
+                                    — {line.definition}
+                                  </span>
+                                )}
+                              </span>
+                              {variantBadge && (
+                                <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
+                                  {variantBadge.name}
                                 </span>
                               )}
                             </div>

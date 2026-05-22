@@ -18,6 +18,7 @@ import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
+import { getAnnotation, getMoonAnnotationByDefinition, type ComponentAnnotation } from '../data/componentAnnotations';
 
 const TABS = [
   { id: 'card', label: '知识卡片', icon: BookOpen },
@@ -92,6 +93,33 @@ export default function CharacterDetail() {
     if (!decomposition) return [];
     return collectIDSLines(decomposition);
   }, [decomposition]);
+
+  // Collect component annotations from decomposition tree
+  const componentAnnotations = useMemo(() => {
+    if (!decomposition) return [];
+    const results: { component: string; annotation: ComponentAnnotation }[] = [];
+    const seen = new Set<string>();
+
+    function walk(node: DecompositionNode) {
+      for (const child of node.children) {
+        if (seen.has(child.character)) continue;
+        seen.add(child.character);
+
+        const ann = getAnnotation(child.character);
+        if (ann) {
+          results.push({ component: child.character, annotation: ann });
+        } else if (child.character === '月') {
+          const moonAnn = getMoonAnnotationByDefinition(entry?.definition ?? '');
+          if (moonAnn) {
+            results.push({ component: child.character, annotation: moonAnn });
+          }
+        }
+        walk(child);
+      }
+    }
+    walk(decomposition);
+    return results;
+  }, [decomposition, entry]);
 
   const goToDetail = (c: string) => {
     navigate(`/detail?char=${encodeURIComponent(c)}`);
@@ -292,6 +320,38 @@ export default function CharacterDetail() {
                 </div>
               )}
 
+              {/* Component Annotations */}
+              {componentAnnotations.length > 0 && (
+                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.06em] mb-4" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                    Component Notes
+                    <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>部件注释</span>
+                  </h2>
+                  <div className="flex flex-col gap-3">
+                    {componentAnnotations.map(({ component, annotation }) => (
+                      <div key={component} className="flex items-start gap-3 rounded-xl p-4 transition-all hover:shadow-md" style={{ background: 'rgba(196,162,101,0.08)', border: '1px solid rgba(196,162,101,0.15)' }}>
+                        <span className="font-display-cn text-2xl flex-shrink-0" style={{ color: '#C23B2A', fontFamily: '"Ma Shan Zheng", cursive' }}>
+                          {component}
+                        </span>
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold" style={{ color: '#1A1A18', fontFamily: 'Inter' }}>
+                              {annotation.name}
+                            </span>
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
+                              {component} → {annotation.original}
+                            </span>
+                          </div>
+                          <p className="text-xs leading-relaxed" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                            {annotation.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* IDS Text Tree */}
               {idsLines.length > 0 && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
@@ -306,12 +366,22 @@ export default function CharacterDetail() {
                           {idsLines.map((line, i) => {
                             const indentPx = line.depth * 24;
                             const color = line.depth === 0 ? '#1A1A18' : line.depth === 1 ? '#2D5F8A' : line.depth === 2 ? 'rgba(45,95,138,0.7)' : '#8B6914';
+                            const ann = getAnnotation(line.character);
+                            const isMoonBody = line.character === '月' && getMoonAnnotationByDefinition(entry?.definition ?? '');
+                            const variantBadge = ann || isMoonBody;
                             return (
-                              <div key={`${line.character}-${i}`} style={{ color, paddingLeft: `${indentPx}px` }}>
-                                <span style={{ color: 'rgba(139,105,20,0.5)' }}>{line.prefix}{line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}</span>
-                                {line.decomposition && line.decomposition !== '？' && <span style={{ color: 'rgba(139,105,20,0.6)' }}>{line.decomposition} </span>}
-                                <span className="font-semibold">{line.character}</span>
-                                {line.definition && <span style={{ color: 'rgba(139,105,20,0.6)' }}> — {line.definition}</span>}
+                              <div key={`${line.character}-${i}`} style={{ color, paddingLeft: `${indentPx}px`, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                <span>
+                                  <span style={{ color: 'rgba(139,105,20,0.5)' }}>{line.prefix}{line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}</span>
+                                  {line.decomposition && line.decomposition !== '？' && <span style={{ color: 'rgba(139,105,20,0.6)' }}>{line.decomposition} </span>}
+                                  <span className="font-semibold">{line.character}</span>
+                                  {line.definition && <span style={{ color: 'rgba(139,105,20,0.6)' }}> — {line.definition}</span>}
+                                </span>
+                                {variantBadge && (
+                                  <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
+                                    {variantBadge.name}
+                                  </span>
+                                )}
                               </div>
                             );
                           })}
