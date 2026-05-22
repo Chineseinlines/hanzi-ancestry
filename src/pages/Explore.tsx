@@ -20,7 +20,7 @@ import {
 import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
 
-const QUICK_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语'];
+const QUICK_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语', '尊', '界'];
 
 const EASE_INK = [0.25, 0.1, 0.25, 1.0] as [number, number, number, number];
 const EASE_SPRING = [0.34, 1.56, 0.64, 1] as [number, number, number, number];
@@ -425,7 +425,7 @@ export default function Explore() {
                 Enter a character above to begin your exploration
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {['国', '明', '好'].map((c) => (
+                {['国', '明', '好', '尊', '界'].map((c) => (
                   <button
                     key={c}
                     onClick={() => processSearch(c)}

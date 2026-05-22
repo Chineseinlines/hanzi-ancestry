@@ -6,7 +6,7 @@ import { glyphCachePlugin } from "./src/plugins/glyphCache"
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base: '/hanzi-ancestry/',
   plugins: [inspectAttr(), react(), glyphCachePlugin()],
   server: {
     port: 3000,

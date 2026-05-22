@@ -47,7 +47,7 @@ export default function PageHeader() {
           animate="visible"
           custom={0.2}
         >
-          关于字源
+          关于字里行间
         </motion.h1>
 
         {/* English title */}
@@ -59,7 +59,7 @@ export default function PageHeader() {
           animate="visible"
           custom={0.5}
         >
-          About Hanzi Ancestry
+          About LINES
         </motion.h2>
 
         {/* Description */}

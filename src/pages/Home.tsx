@@ -123,7 +123,7 @@ function HeroSection() {
           animate="visible"
           custom={0.6}
         >
-          汉字溯源
+          字里行间
         </motion.h1>
 
         {/* English title */}
@@ -135,7 +135,7 @@ function HeroSection() {
           animate="visible"
           custom={1.0}
         >
-          Hanzi Ancestry
+          LINES
         </motion.h2>
 
         {/* Tagline */}
@@ -320,7 +320,7 @@ function FeaturedCard({ char, index }: FeaturedCardProps) {
 /* ─────────────────── Featured Character Showcase ───────────────────────── */
 
 function FeaturedShowcase() {
-  const featuredChars = ['国', '森', '明', '好'];
+  const featuredChars = ['国', '森', '明', '好', '尊', '界'];
 
   return (
     <section className="bg-rice-paper py-24 md:py-32">

@@ -9,9 +9,9 @@ export default function Footer() {
           {/* Column 1: Logo + tagline */}
           <div>
             <div className="mb-4 flex items-center gap-2">
-              <span className="font-display-cn text-2xl text-rice-paper">字源</span>
+              <span className="font-display-cn text-2xl text-rice-paper">字里行间</span>
               <span className="text-[0.625rem] font-semibold uppercase tracking-[0.15em] text-rice-paper/60">
-                Hanzi Ancestry
+                LINES
               </span>
             </div>
             <p className="text-sm leading-relaxed text-rice-paper/50">
@@ -80,7 +80,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 border-t border-rice-paper/10 pt-6 text-center">
           <p className="text-xs text-rice-paper/40">
-            &copy; {new Date().getFullYear()} Hanzi Ancestry. Built with care for the love of characters.
+            &copy; {new Date().getFullYear()} 字里行间 LINES. Built with care for the love of characters.
           </p>
         </div>
       </div>

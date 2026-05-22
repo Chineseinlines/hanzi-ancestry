@@ -39,9 +39,9 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 no-underline">
-          <span className="font-display-cn text-2xl text-ink-black">字源</span>
+          <span className="font-display-cn text-2xl text-ink-black">字里行间</span>
           <span className="hidden text-[0.625rem] font-semibold uppercase tracking-[0.15em] text-charcoal sm:inline">
-            Hanzi Ancestry
+            LINES
           </span>
         </Link>
 
