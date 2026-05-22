@@ -34,14 +34,14 @@ interface TreeLink {
 
 const CORE_COLOR = '#C23B2A';
 const SEMANTIC_COLOR = '#2D5F8A';
-const PHONETIC_COLOR = '#6B7F5E';
+const PHONETIC_COLOR = '#C47B2A';
 const IDEOGRAPHIC_COLOR = '#8B6914';
 
 const LEGEND_ITEMS = [
-  { color: CORE_COLOR, label: 'Target character' },
-  { color: SEMANTIC_COLOR, label: 'Semantic (meaning)' },
-  { color: PHONETIC_COLOR, label: 'Phonetic (sound)' },
-  { color: IDEOGRAPHIC_COLOR, label: 'Ideographic component' },
+  { color: CORE_COLOR, label: 'Target character', shape: 'circle' as const },
+  { color: SEMANTIC_COLOR, label: 'Semantic (meaning) 表意', shape: 'circle' as const },
+  { color: PHONETIC_COLOR, label: 'Phonetic (sound) 表音', shape: 'diamond' as const },
+  { color: IDEOGRAPHIC_COLOR, label: 'Ideographic component', shape: 'circle' as const },
 ];
 
 function decompToTree(node: DecompositionNode, depth = 0): TreeNode {
@@ -274,13 +274,32 @@ const DecompositionGraph = memo(function DecompositionGraph({
       return highlightedComponent === d.character && d.depth > 0;
     };
 
-    // Circles
-    nodeGroup.append('circle')
-      .attr('r', (d) => getNodeRadius(d.type))
-      .attr('fill', (d) => getNodeColor(d.type, isNodeHighlighted(d)))
-      .attr('stroke', (d) => isNodeHighlighted(d) ? '#C23B2A' : '#1A1A18')
-      .attr('stroke-width', (d) => isNodeHighlighted(d) ? 3 : d.type === 'core' ? 3 : 2)
-      .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.18))');
+    // Node shapes — phonetic uses diamond for color-blind friendliness
+    nodeGroup.each(function (d) {
+      const el = d3.select(this);
+      const r = getNodeRadius(d.type);
+      const hl = isNodeHighlighted(d);
+      const color = getNodeColor(d.type, hl);
+      const strokeClr = hl ? '#C23B2A' : '#1A1A18';
+      const strokeW = hl ? 3 : d.type === 'core' ? 3 : 2;
+
+      if (d.type === 'phonetic') {
+        // Diamond shape (rotated square) for phonetic nodes
+        el.append('polygon')
+          .attr('points', `0,${-r} ${r},0 0,${r} ${-r},0`)
+          .attr('fill', color)
+          .attr('stroke', strokeClr)
+          .attr('stroke-width', strokeW)
+          .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.18))');
+      } else {
+        el.append('circle')
+          .attr('r', r)
+          .attr('fill', color)
+          .attr('stroke', strokeClr)
+          .attr('stroke-width', strokeW)
+          .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.18))');
+      }
+    });
 
     // Character labels
     nodeGroup.append('text')
@@ -336,14 +355,19 @@ const DecompositionGraph = memo(function DecompositionGraph({
     // Interactivity
     nodeGroup
       .on('mouseenter', function (_event, d) {
-        d3.select(this).select('circle')
-          .transition().duration(200)
-          .attr('r', getNodeRadius(d.type) * 1.15);
-
-        const circleEl = d3.select(this).select('circle').node() as SVGCircleElement | null;
         const r = getNodeRadius(d.type);
-        if (circleEl && d.entry) {
-          const cr = circleEl.getBoundingClientRect();
+        const shapeEl = d3.select(this).select('circle, polygon');
+        if (d.type === 'phonetic') {
+          shapeEl.transition().duration(200)
+            .attr('points', `0,${-r * 1.15} ${r * 1.15},0 0,${r * 1.15} ${-r * 1.15},0`);
+        } else {
+          shapeEl.transition().duration(200)
+            .attr('r', r * 1.15);
+        }
+
+        const nodeEl = d3.select(this).select('circle').node() as SVGCircleElement | null;
+        if (nodeEl && d.entry) {
+          const cr = nodeEl.getBoundingClientRect();
           setTooltip({
             visible: true,
             x: cr.left + cr.width / 2,
@@ -354,9 +378,15 @@ const DecompositionGraph = memo(function DecompositionGraph({
         }
       })
       .on('mouseleave', function (_event, d) {
-        d3.select(this).select('circle')
-          .transition().duration(200)
-          .attr('r', getNodeRadius(d.type));
+        const r = getNodeRadius(d.type);
+        const shapeEl = d3.select(this).select('circle, polygon');
+        if (d.type === 'phonetic') {
+          shapeEl.transition().duration(200)
+            .attr('points', `0,${-r} ${r},0 0,${r} ${-r},0`);
+        } else {
+          shapeEl.transition().duration(200)
+            .attr('r', r);
+        }
         setTooltip({ visible: false, x: 0, y: 0, entry: null, nodeRadius: 22 });
       })
       .on('click', (_event, d) => {

@@ -64,7 +64,17 @@ function HeroSection() {
 
   const handleSearch = () => {
     if (!searchChar.trim()) return;
-    const char = searchChar.trim()[0];
+    // Extract CJK chars from input (filter spaces/punctuation/pinyin)
+    const hanzi: string[] = [];
+    for (const ch of searchChar) {
+      const cp = ch.codePointAt(0);
+      if (cp && cp >= 0x4E00 && cp <= 0x9FFF) hanzi.push(ch);
+    }
+    if (hanzi.length === 0) {
+      setSearchError('Please enter a Chinese character.');
+      return;
+    }
+    const char = hanzi[0];
     if (!hasCharacter(char)) {
       setSearchError(`"${char}" is not in our database. Try another character.`);
       return;
@@ -161,14 +171,14 @@ function HeroSection() {
           <div className="relative">
             <input
               type="text"
-              maxLength={1}
+              maxLength={10}
               value={searchChar}
               onChange={(e) => {
                 setSearchChar(e.target.value);
                 setSearchError('');
               }}
               onKeyDown={handleKeyDown}
-              placeholder="输入一个汉字..."
+              placeholder="输入汉字或粘贴文本..."
               className="h-14 w-full rounded-full border px-6 text-center font-serif-cn text-2xl outline-none transition-all duration-300 focus:border-cinnabar"
               style={{
                 backgroundColor: 'rgba(245, 240, 232, 0.08)',

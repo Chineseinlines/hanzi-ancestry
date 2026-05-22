@@ -22,6 +22,16 @@ import CognateGraph from '../components/CognateGraph';
 
 const QUICK_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语', '尊', '界'];
 
+/** Extract CJK characters from raw input, filtering spaces/punctuation/symbols. */
+function extractHanzi(raw: string): string[] {
+  const result: string[] = [];
+  for (const ch of raw) {
+    const cp = ch.codePointAt(0);
+    if (cp && cp >= 0x4E00 && cp <= 0x9FFF) result.push(ch);
+  }
+  return result;
+}
+
 const EASE_INK = [0.25, 0.1, 0.25, 1.0] as [number, number, number, number];
 const EASE_SPRING = [0.34, 1.56, 0.64, 1] as [number, number, number, number];
 const EASE_GENTLE = [0.4, 0, 0.2, 1] as [number, number, number, number];
@@ -114,18 +124,17 @@ export default function Explore() {
     loadData();
   }, []);
 
-  // Process search
+  // Process search – auto-extract CJK chars, filter noise
   const processSearch = useCallback(
-    (char: string) => {
-      const trimmed = char.trim();
-      if (!trimmed) return;
-      const first = trimmed[0];
+    (raw: string) => {
+      const hanzi = extractHanzi(raw);
+      if (hanzi.length === 0) return;
+      const first = hanzi[0];
       setQuery(first);
       setCurrentChar(first);
       setSelectedComponent(null);
       setSearchParams({ char: first });
       setLoading(true);
-      // Simulate brief loading for UX
       setTimeout(() => setLoading(false), 400);
     },
     [setSearchParams]
@@ -258,8 +267,8 @@ export default function Explore() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                maxLength={1}
-                placeholder="输入一个汉字..."
+                maxLength={20}
+                placeholder="输入汉字（支持粘贴含拼音文本）..."
                 className="h-14 w-full rounded-full border border-border-light bg-white px-6 text-center font-serif-cn text-2xl text-ink-black shadow-sm transition-all duration-300 placeholder:text-charcoal/30 focus:border-cinnabar focus:shadow-cinnabar focus:outline-none"
               />
               <button

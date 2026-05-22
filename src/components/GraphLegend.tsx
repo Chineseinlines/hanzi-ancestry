@@ -3,6 +3,7 @@ import { memo } from 'react';
 interface LegendItem {
   color: string;
   label: string;
+  shape?: 'circle' | 'diamond';
 }
 
 interface GraphLegendProps {
@@ -19,10 +20,21 @@ const GraphLegend = memo(function GraphLegend({ items, className = '' }: GraphLe
       <div className="flex flex-col gap-1.5">
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-2">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: item.color }}
-            />
+            {item.shape === 'diamond' ? (
+              <span
+                className="inline-block h-2.5 w-2.5"
+                style={{
+                  backgroundColor: item.color,
+                  transform: 'rotate(45deg)',
+                  borderRadius: '1px',
+                }}
+              />
+            ) : (
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: item.color }}
+              />
+            )}
             <span className="text-[0.6875rem] font-medium text-charcoal" style={{ fontFamily: 'Inter, sans-serif' }}>
               {item.label}
             </span>
