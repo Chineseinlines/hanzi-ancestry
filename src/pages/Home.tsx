@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronDown, GitBranch, Layers } from 'lucide-react';
-import { getCharacter, hasCharacter, getCharacterLeaves, loadData } from '../data/hanziData';
+import { Search, ChevronDown, GitBranch, Layers, BookOpen, Gamepad2, GraduationCap, Compass } from 'lucide-react';
+import { hasCharacter, loadData } from '../data/hanziData';
 
 /* ─────────────────────────── animation variants ─────────────────────────── */
 
@@ -196,14 +196,17 @@ function HeroSection() {
           </div>
           <AnimatePresence>
             {searchError && (
-              <motion.p
+              <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="mt-2 text-sm text-vermilion-light"
+                className="mt-3"
               >
-                {searchError}
-              </motion.p>
+                <p className="text-sm text-vermilion-light">{searchError}</p>
+                <p className="mt-2 text-xs text-rice-paper/40">
+                  Try: 国 · 森 · 明 · 好 · 尊 · 界 · 道 · 武 · 家 · 想
+                </p>
+              </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
@@ -228,153 +231,98 @@ function HeroSection() {
   );
 }
 
-/* ────────────────────── Featured Character Card ────────────────────────── */
+/* ─────────────────── Feature Entry Cards ───────────────────────────────── */
 
-interface FeaturedCardProps {
-  char: string;
-  index: number;
-}
-
-function FeaturedCard({ char, index }: FeaturedCardProps) {
+function EntryCards() {
   const navigate = useNavigate();
-  const entry = getCharacter(char);
-  if (!entry) return null;
 
-  const leaves = getCharacterLeaves(char);
-
-  return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.15 }}
-      custom={index * 0.15}
-      whileHover={{ y: -6 }}
-      onClick={() => navigate(`/explore?char=${encodeURIComponent(char)}`)}
-      className="group cursor-pointer rounded-lg bg-white p-6 shadow-md transition-shadow duration-300 hover:border hover:border-cinnabar hover:shadow-lg"
-      style={{ border: '1px solid transparent' }}
-    >
-      {/* Top row */}
-      <div className="flex items-start justify-between">
-        <div>
-          <span className="font-display-cn text-[2.5rem] leading-none text-ink-black">
-            {char}
-          </span>
-        </div>
-        <div className="text-right">
-          <p className="font-mono text-xs text-cinnabar">
-            {entry.pinyin[0] || ''}
-          </p>
-          <p className="mt-1 text-[0.8125rem] text-charcoal">
-            {entry.definition}
-          </p>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="my-3 h-[1px] bg-border-light" />
-
-      {/* IDS Preview */}
-      <div className="font-mono text-base">
-        {entry.decomposition && entry.decomposition !== '？' ? (
-          <span>
-            {entry.decomposition.split('').map((c, i) => {
-              if ('⿰⿱⿴⿵⿶⿷⿸⿹⿺⿻⿳⿲'.includes(c)) {
-                return (
-                  <span key={i} className="text-charcoal">
-                    {c}
-                  </span>
-                );
-              }
-              return (
-                <span key={i} className="text-graph-node-component">
-                  {c}
-                </span>
-              );
-            })}
-          </span>
-        ) : (
-          <span className="text-charcoal/40">Atomic character</span>
-        )}
-      </div>
-
-      {/* Component preview */}
-      {leaves.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-3">
-          {leaves.slice(0, 4).map((leaf) => {
-            const leafEntry = getCharacter(leaf);
-            return (
-              <div key={leaf} className="flex flex-col items-center gap-0.5">
-                <span className="font-serif-cn text-xl font-bold text-ink-black">
-                  {leaf}
-                </span>
-                <span className="max-w-[60px] truncate text-[0.6875rem] text-charcoal/60">
-                  {leafEntry?.definition || ''}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Explore link */}
-      <div className="mt-4 flex justify-end">
-        <span className="text-[0.8125rem] font-medium text-cinnabar transition-colors duration-200 group-hover:text-vermilion-light">
-          Explore &rarr;
-        </span>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─────────────────── Featured Character Showcase ───────────────────────── */
-
-function FeaturedShowcase() {
-  const featuredChars = ['国', '森', '明', '好', '尊', '界'];
+  const cards = [
+    {
+      icon: <Compass size={28} />,
+      title: '查字',
+      subtitle: 'Search',
+      desc: '输入汉字查看完整拆解、字形演变与关联字网络',
+      action: () => navigate('/explore'),
+      gradient: 'from-cinnabar to-vermilion-light',
+    },
+    {
+      icon: <BookOpen size={28} />,
+      title: '学习',
+      subtitle: 'Learn',
+      desc: '结构化知识卡片、笔顺演示、部件注释与字源讲解',
+      action: () => navigate('/about'),
+      gradient: 'from-graph-node-component to-[#4A7DB5]',
+    },
+    {
+      icon: <Gamepad2 size={28} />,
+      title: '游戏',
+      subtitle: 'Games',
+      desc: '笔画闯关、部件拼图、古字猜谜、形近字找茬',
+      action: () => navigate('/games'),
+      gradient: 'from-[#C47B2A] to-[#E8A840]',
+    },
+    {
+      icon: <GraduationCap size={28} />,
+      title: '题库',
+      subtitle: 'Quiz',
+      desc: '单字随堂测、专项试卷、能力评分与学习报告',
+      action: () => navigate('/explore'),
+      gradient: 'from-green-sage to-[#8DA37E]',
+    },
+  ];
 
   return (
-    <section className="bg-rice-paper py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section header */}
+    <section className="bg-rice-paper py-20 md:py-28">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <motion.div
-          className="mb-4 text-center"
+          className="mb-12 text-center"
           variants={fadeUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.15 }}
           custom={0}
         >
-          <h2
-            className="font-display font-bold text-ink-black"
-            style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}
-          >
-            See It In Action
+          <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
+            Explore Chinese Characters
           </h2>
           <p className="mt-3 text-base text-charcoal">
-            Enter any character to reveal its hidden structure and find its relatives
+            Four ways to discover the hidden architecture of the writing system
           </p>
         </motion.div>
 
-        {/* Ink wash divider */}
-        <motion.div
-          className="mx-auto mb-12 w-[200px]"
-          variants={fadeIn}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.15 }}
-          custom={0.2}
-        >
-          <img
-            src="./ink-wash-divider.svg"
-            alt=""
-            className="w-full"
-          />
-        </motion.div>
-
-        {/* Card grid */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {featuredChars.map((char, i) => (
-            <FeaturedCard key={char} char={char} index={i} />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {cards.map((card, i) => (
+            <motion.button
+              key={card.title}
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.15 }}
+              custom={i * 0.12}
+              whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(26,26,24,0.12)' }}
+              whileTap={{ scale: 0.98 }}
+              onClick={card.action}
+              className="group flex flex-col items-start rounded-2xl p-6 text-left transition-shadow duration-300"
+              style={{
+                background: '#FDFBF6',
+                boxShadow: '0 4px 20px rgba(26,26,24,0.06)',
+                border: '1px solid transparent',
+              }}
+            >
+              <div className={`flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient} text-white shadow-md transition-transform duration-300 group-hover:scale-110`}>
+                {card.icon}
+              </div>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="font-serif-cn text-xl font-bold text-ink-black">{card.title}</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-charcoal/40">{card.subtitle}</span>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-charcoal/70">
+                {card.desc}
+              </p>
+              <span className="mt-3 text-xs font-medium text-cinnabar opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                Enter &rarr;
+              </span>
+            </motion.button>
           ))}
         </div>
       </div>
@@ -386,90 +334,29 @@ function FeaturedShowcase() {
 
 function HowItWorks() {
   const steps = [
-    {
-      num: '01',
-      icon: <Search size={24} />,
-      title: 'Enter a Character',
-      desc: 'Type any single Chinese character into the search field. Our database covers 1,111 characters with full decomposition data.',
-    },
-    {
-      num: '02',
-      icon: <GitBranch size={24} />,
-      title: 'Watch It Decompose',
-      desc: 'See the character break down into its structural components through IDS (Ideographic Description Sequence) parsing, visualized as an interactive tree graph.',
-    },
-    {
-      num: '03',
-      icon: <Layers size={24} />,
-      title: 'Find Related Characters',
-      desc: 'Explore cognate characters that share the same components. Each connection reveals an etymological thread woven through the writing system.',
-    },
+    { num: '01', icon: <Search size={20} />, title: '输入汉字', en: 'Enter', desc: '在搜索框输入任意汉字，或从推荐字中快速选择。支持粘贴含拼音/标点的混合文本。' },
+    { num: '02', icon: <GitBranch size={20} />, title: '拆解部件', en: 'Decompose', desc: '通过字形描述序列(IDS)解析汉字结构，以交互式树图可视化展示部件层级关系。' },
+    { num: '03', icon: <Layers size={20} />, title: '探索系联', en: 'Explore', desc: '发现共享部件的同源汉字，每个连接揭示文字系统背后隐藏的词源脉络。' },
   ];
 
   return (
-    <section className="bg-bg-warm py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section header */}
-        <motion.div
-          className="mb-16 text-center"
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.15 }}
-          custom={0}
-        >
-          <h2
-            className="font-display font-bold text-ink-black"
-            style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}
-          >
-            How It Works
-          </h2>
-          <p className="mt-3 text-base text-charcoal">
-            Three steps to uncover the hidden architecture of any character
-          </p>
+    <section className="bg-bg-warm py-20 md:py-28">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <motion.div className="mb-14 text-center" variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} custom={0}>
+          <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>How It Works</h2>
+          <p className="mt-3 text-base text-charcoal">三步揭示汉字的隐藏结构</p>
         </motion.div>
 
-        {/* Steps grid */}
-        <motion.div
-          className="grid grid-cols-1 gap-8 md:grid-cols-3"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.15 }}
-          custom={0.2}
-        >
+        <motion.div className="grid grid-cols-1 gap-6 md:grid-cols-3" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} custom={0.2}>
           {steps.map((step) => (
-            <motion.div
-              key={step.num}
-              variants={fadeUp}
-              className="flex flex-col items-center text-center"
-            >
-              {/* Number */}
-              <span
-                className="font-display text-[2.5rem] font-bold text-cinnabar/30"
-              >
-                {step.num}
-              </span>
-
-              {/* Icon circle */}
-              <motion.div
-                variants={scaleIn}
-                className="mt-4 flex h-20 w-20 items-center justify-center rounded-full border border-border-light bg-rice-paper text-cinnabar"
-              >
+            <motion.div key={step.num} variants={fadeUp} className="flex flex-col items-center text-center rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 2px 12px rgba(26,26,24,0.04)' }}>
+              <span className="font-display text-[2rem] font-bold text-cinnabar/20">{step.num}</span>
+              <motion.div variants={scaleIn} className="mt-3 flex h-16 w-16 items-center justify-center rounded-full border border-border-light bg-rice-paper text-cinnabar">
                 {step.icon}
               </motion.div>
-
-              {/* Title */}
-              <h3
-                className="mt-6 font-serif-cn text-xl font-semibold text-ink-black"
-              >
-                {step.title}
-              </h3>
-
-              {/* Description */}
-              <p className="mt-3 leading-relaxed text-charcoal">
-                {step.desc}
-              </p>
+              <h3 className="mt-4 font-serif-cn text-lg font-semibold text-ink-black">{step.title}</h3>
+              <span className="text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">{step.en}</span>
+              <p className="mt-2 text-sm leading-relaxed text-charcoal/70">{step.desc}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -541,7 +428,7 @@ export default function Home() {
   return (
     <>
       <HeroSection />
-      <FeaturedShowcase />
+      <EntryCards />
       <HowItWorks />
       <CTABanner />
     </>

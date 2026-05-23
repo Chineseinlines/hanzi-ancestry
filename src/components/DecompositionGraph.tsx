@@ -3,6 +3,8 @@ import * as d3 from 'd3';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import type { DecompositionNode, HanziEntry } from '../data/types';
 import { getCharacter } from '../data/hanziData';
+import { ratePhonetic, PHONETIC_COLORS, type PhoneticRating } from '../data/phoneticRating';
+import { getGhostAnnotation } from '../data/ghostComponents';
 import GraphLegend from './GraphLegend';
 import GraphTooltip from './GraphTooltip';
 
@@ -19,12 +21,14 @@ interface DecompositionGraphProps {
 interface TreeNode {
   id: string;
   character: string;
-  type: 'core' | 'semantic' | 'phonetic' | 'ideographic' | 'leaf';
+  type: 'core' | 'semantic' | 'phonetic' | 'ideographic' | 'leaf' | 'ghost';
   depth: number;
   entry?: HanziEntry;
   children?: TreeNode[];
   x?: number;
   y?: number;
+  phoneticRating?: PhoneticRating | null;
+  isGhost?: boolean;
 }
 
 interface TreeLink {
@@ -37,11 +41,14 @@ const SEMANTIC_COLOR = '#2D5F8A';
 const PHONETIC_COLOR = '#C47B2A';
 const IDEOGRAPHIC_COLOR = '#8B6914';
 
+const GHOST_COLOR = '#B0ADA5';
+
 const LEGEND_ITEMS = [
   { color: CORE_COLOR, label: 'Target character', shape: 'circle' as const },
   { color: SEMANTIC_COLOR, label: 'Semantic (meaning) 表意', shape: 'circle' as const },
   { color: PHONETIC_COLOR, label: 'Phonetic (sound) 表音', shape: 'diamond' as const },
   { color: IDEOGRAPHIC_COLOR, label: 'Ideographic component', shape: 'circle' as const },
+  { color: GHOST_COLOR, label: 'Simplified ghost 简体衍生', shape: 'circle' as const },
 ];
 
 function decompToTree(node: DecompositionNode, depth = 0): TreeNode {
@@ -81,13 +88,27 @@ function annotateTypes(root: TreeNode): void {
 
   const semantic = ety.semantic;
   const phonetic = ety.phonetic;
+  const rootPinyin = rootEntry?.pinyin?.[0];
 
   for (const child of root.children) {
     if (ety.type === 'pictophonetic') {
       if (child.character === semantic) child.type = 'semantic';
-      else if (child.character === phonetic) child.type = 'phonetic';
+      else if (child.character === phonetic) {
+        child.type = 'phonetic';
+        // Compute phonetic reliability rating
+        if (rootPinyin && child.entry?.pinyin?.[0]) {
+          const result = ratePhonetic(rootPinyin, child.entry.pinyin[0]);
+          child.phoneticRating = result?.rating ?? null;
+        }
+      }
     } else if (ety.type === 'ideographic') {
       child.type = 'ideographic';
+    }
+
+    // Check if child is a ghost component (simplified artifact)
+    const ghostAnnotation = getGhostAnnotation(child.character);
+    if (ghostAnnotation) {
+      child.isGhost = true;
     }
   }
 }
@@ -98,33 +119,58 @@ function getNodeRadius(type: TreeNode['type']): number {
     case 'semantic': return 24;
     case 'phonetic': return 24;
     case 'ideographic': return 22;
+    case 'ghost': return 20;
     case 'leaf': return 20;
     default: return 20;
   }
 }
 
-function getNodeColor(type: TreeNode['type'], isHighlighted: boolean): string {
+function getNodeColor(type: TreeNode['type'], isHighlighted: boolean, phoneticRating?: PhoneticRating | null): string {
   if (isHighlighted) return '#C23B2A';
   switch (type) {
     case 'core': return CORE_COLOR;
     case 'semantic': return SEMANTIC_COLOR;
     case 'phonetic': return PHONETIC_COLOR;
     case 'ideographic': return IDEOGRAPHIC_COLOR;
+    case 'ghost': return GHOST_COLOR;
     case 'leaf': return '#EDE6D8';
     default: return '#A39E93';
   }
 }
 
-function getTextColor(type: TreeNode['type']): string {
-  return type === 'leaf' ? '#1A1A18' : '#FFFFFF';
+function getNodeStrokeColor(type: TreeNode['type'], phoneticRating?: PhoneticRating | null): string {
+  if (type === 'ghost') return GHOST_COLOR;
+  if (type === 'phonetic' && phoneticRating) {
+    const colors = PHONETIC_COLORS[phoneticRating];
+    return colors.text;
+  }
+  return '#1A1A18';
 }
 
-function getNodeLabel(type: TreeNode['type']): string {
+function getNodeStrokeWidth(type: TreeNode['type'], phoneticRating?: PhoneticRating | null): number {
+  if (type === 'phonetic' && phoneticRating) return 3;
+  if (type === 'ghost') return 1.5;
+  return type === 'core' ? 3 : 2;
+}
+
+function getTextColor(type: TreeNode['type']): string {
+  return (type === 'leaf' || type === 'ghost') ? '#1A1A18' : '#FFFFFF';
+}
+
+function getNodeLabel(type: TreeNode['type'], phoneticRating?: PhoneticRating | null): string {
   switch (type) {
     case 'semantic': return '形';
-    case 'phonetic': return '声';
+    case 'phonetic':
+      if (phoneticRating) {
+        return phoneticRating === 'green' ? '声✓' : phoneticRating === 'yellow' ? '声~' : '声✗';
+      }
+      return '声';
     default: return '';
   }
+}
+
+function getPhoneticRatingBadge(rating: PhoneticRating): string {
+  return rating === 'green' ? '✓' : rating === 'yellow' ? '~' : '✗';
 }
 
 const DecompositionGraph = memo(function DecompositionGraph({
@@ -145,6 +191,9 @@ const DecompositionGraph = memo(function DecompositionGraph({
     y: number;
     entry: HanziEntry | null;
     nodeRadius: number;
+    nodeType?: TreeNode['type'];
+    phoneticRating?: PhoneticRating | null;
+    isGhost?: boolean;
   }>({ visible: false, x: 0, y: 0, entry: null, nodeRadius: 22 });
 
   const handleZoomIn = useCallback(() => {
@@ -274,14 +323,14 @@ const DecompositionGraph = memo(function DecompositionGraph({
       return highlightedComponent === d.character && d.depth > 0;
     };
 
-    // Node shapes — phonetic uses diamond for color-blind friendliness
+    // Node shapes — phonetic uses diamond for color-blind friendliness; ghost uses dashed
     nodeGroup.each(function (d) {
       const el = d3.select(this);
       const r = getNodeRadius(d.type);
       const hl = isNodeHighlighted(d);
-      const color = getNodeColor(d.type, hl);
-      const strokeClr = hl ? '#C23B2A' : '#1A1A18';
-      const strokeW = hl ? 3 : d.type === 'core' ? 3 : 2;
+      const color = getNodeColor(d.type, hl, d.phoneticRating);
+      const strokeClr = getNodeStrokeColor(d.type, d.phoneticRating);
+      const strokeW = getNodeStrokeWidth(d.type, d.phoneticRating);
 
       if (d.type === 'phonetic') {
         // Diamond shape (rotated square) for phonetic nodes
@@ -290,6 +339,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
           .attr('fill', color)
           .attr('stroke', strokeClr)
           .attr('stroke-width', strokeW)
+          .attr('stroke-dasharray', d.isGhost ? '4,3' : 'none')
           .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.18))');
       } else {
         el.append('circle')
@@ -297,6 +347,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
           .attr('fill', color)
           .attr('stroke', strokeClr)
           .attr('stroke-width', strokeW)
+          .attr('stroke-dasharray', d.isGhost ? '4,3' : 'none')
           .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.18))');
       }
     });
@@ -315,7 +366,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .attr('pointer-events', 'none')
       .text((d) => d.character);
 
-    // Type badges (形/声)
+    // Type badges (形/声) — with phonetic rating color
     nodeGroup.filter((d) => d.type === 'semantic' || d.type === 'phonetic')
       .append('text')
       .attr('text-anchor', 'middle')
@@ -323,19 +374,25 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .attr('font-family', 'Inter, sans-serif')
       .attr('font-weight', '600')
       .attr('font-size', '10px')
-      .attr('fill', (d) => d.type === 'semantic' ? SEMANTIC_COLOR : PHONETIC_COLOR)
-      .text((d) => getNodeLabel(d.type));
+      .attr('fill', (d) => {
+        if (d.type === 'phonetic' && d.phoneticRating) {
+          return PHONETIC_COLORS[d.phoneticRating].text;
+        }
+        return d.type === 'semantic' ? SEMANTIC_COLOR : PHONETIC_COLOR;
+      })
+      .text((d) => getNodeLabel(d.type, d.phoneticRating));
 
-    // Definition labels
+    // Definition labels (or ghost warning for ghost nodes)
     nodeGroup.append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', (d) => getNodeRadius(d.type) + 16)
       .attr('font-family', 'Inter, sans-serif')
       .attr('font-weight', '500')
       .attr('font-size', '9px')
-      .attr('fill', '#3D3D3B')
+      .attr('fill', (d) => d.isGhost ? '#A39E93' : '#3D3D3B')
       .attr('pointer-events', 'none')
       .text((d) => {
+        if (d.isGhost) return '← 无造字意义';
         const def = d.entry?.definition ?? '';
         return def.length > 20 ? def.slice(0, 20) + '...' : def;
       });
@@ -365,15 +422,18 @@ const DecompositionGraph = memo(function DecompositionGraph({
             .attr('r', r * 1.15);
         }
 
-        const nodeEl = d3.select(this).select('circle').node() as SVGCircleElement | null;
-        if (nodeEl && d.entry) {
-          const cr = nodeEl.getBoundingClientRect();
+        const shapeNode = d3.select(this).select('circle, polygon').node() as SVGCircleElement | SVGPolygonElement | null;
+        if (shapeNode && d.entry) {
+          const cr = shapeNode.getBoundingClientRect();
           setTooltip({
             visible: true,
             x: cr.left + cr.width / 2,
             y: cr.top + cr.height / 2,
             entry: d.entry,
             nodeRadius: r + 4,
+            nodeType: d.type,
+            phoneticRating: d.phoneticRating ?? null,
+            isGhost: d.isGhost ?? false,
           });
         }
       })
@@ -433,6 +493,9 @@ const DecompositionGraph = memo(function DecompositionGraph({
         y={tooltip.y}
         entry={tooltip.entry}
         nodeRadius={tooltip.nodeRadius}
+        nodeType={tooltip.nodeType}
+        phoneticRating={tooltip.phoneticRating}
+        isGhost={tooltip.isGhost}
         onExplore={onNodeClick ?? undefined}
       />
     </div>

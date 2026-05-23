@@ -19,7 +19,7 @@ import {
 } from '../data/hanziData';
 import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
-import { getAnnotation, getMoonAnnotationByDefinition } from '../data/componentAnnotations';
+import { getAnnotation, getMoonAnnotation } from '../data/componentAnnotations';
 
 const QUICK_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语', '尊', '界'];
 
@@ -471,14 +471,14 @@ export default function Explore() {
                 className="mt-2 max-w-md text-center text-base text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                This character is not in our current database. Try another character.
+                This character is not in our current database. Try one of the suggested characters below.
               </p>
-              <div className="mt-6 flex gap-2">
-                {QUICK_CHARS.slice(0, 4).map((c) => (
+              <div className="mt-6 flex flex-wrap justify-center gap-2">
+                {QUICK_CHARS.map((c) => (
                   <button
                     key={c}
                     onClick={() => processSearch(c)}
-                    className="rounded-full border border-border-light bg-white px-4 py-2 font-serif-cn text-base text-ink-black transition-colors hover:bg-cinnabar hover:text-white"
+                    className="rounded-full border border-border-light bg-white px-4 py-2 font-serif-cn text-base text-ink-black transition-all hover:bg-cinnabar hover:text-white hover:shadow-md"
                   >
                     {c}
                   </button>
@@ -750,7 +750,7 @@ export default function Explore() {
 
                           const indentPx = line.depth * 24;
                           const ann = getAnnotation(line.character);
-                          const isMoonBody = line.character === '月' && getMoonAnnotationByDefinition(charData?.definition ?? '');
+                          const isMoonBody = line.character === '月' && getMoonAnnotation(charData?.definition ?? '');
                           const variantBadge = ann || isMoonBody;
 
                           return (

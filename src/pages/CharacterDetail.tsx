@@ -2,8 +2,9 @@ import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  GitBranch, BookOpen, ScrollText, Globe, Puzzle, ChevronDown,
+  GitBranch, BookOpen, ScrollText, Globe, Puzzle, ChevronDown, Heart,
 } from 'lucide-react';
+import { useFavorites } from '../hooks/useFavorites';
 import {
   getCharacter,
   getCulturalData,
@@ -18,7 +19,9 @@ import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
-import { getAnnotation, getMoonAnnotationByDefinition, type ComponentAnnotation } from '../data/componentAnnotations';
+import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
+import { ratePhonetic, PHONETIC_COLORS, RED_WARNING_TEXT, type PhoneticRatingResult } from '../data/phoneticRating';
+import { getGhostSuggestion, isGhostCharacter, getGhostAnnotation } from '../data/ghostComponents';
 
 const TABS = [
   { id: 'card', label: '知识卡片', icon: BookOpen },
@@ -109,10 +112,22 @@ export default function CharacterDetail() {
         if (ann) {
           results.push({ component: child.character, annotation: ann });
         } else if (child.character === '月') {
-          const moonAnn = getMoonAnnotationByDefinition(entry?.definition ?? '');
+          const moonAnn = getMoonAnnotation(entry?.definition ?? '');
           if (moonAnn) {
             results.push({ component: child.character, annotation: moonAnn });
+          } else {
+            // Explicitly mark as true moon for clarity
+            results.push({ component: child.character, annotation: getMoonTrueAnnotation() });
           }
+        }
+        // 阝 positional detection
+        if (child.character === '阝' && entry?.decomposition) {
+          const decomp = entry.decomposition;
+          const erPos = decomp.indexOf('阝');
+          // Heuristic: if 阝 is near the end of IDS, it's likely on the right
+          // Actually, we can't reliably detect position from IDS alone without structural parsing.
+          // For now, skip positional 阝 detection in the annotations list and rely on the generic annotation.
+          // The getAnnotation('阝') already returns the combined阜/邑 info.
         }
         walk(child);
       }
@@ -120,6 +135,46 @@ export default function CharacterDetail() {
     walk(decomposition);
     return results;
   }, [decomposition, entry]);
+
+  // Phonetic rating for pictophonetic characters
+  const phoneticRating = useMemo((): PhoneticRatingResult | null => {
+    if (!entry?.etymology || entry.etymology.type !== 'pictophonetic') return null;
+    const phonetic = entry.etymology.phonetic;
+    if (!phonetic) return null;
+    const phoneticEntry = getCharacter(phonetic);
+    if (!phoneticEntry?.pinyin?.[0]) return null;
+    return ratePhonetic(entry.pinyin[0], phoneticEntry.pinyin[0]);
+  }, [entry]);
+
+  // Ghost component detection for the current character
+  const ghostInfo = useMemo(() => {
+    if (!char) return null;
+    return getGhostSuggestion(char);
+  }, [char]);
+
+  // Ghost annotations for child components
+  const ghostComponentAnnotations = useMemo(() => {
+    if (!decomposition) return [];
+    const results: { component: string; suggestion: string }[] = [];
+    const seen = new Set<string>();
+
+    function walk(node: DecompositionNode) {
+      for (const child of node.children) {
+        if (seen.has(child.character)) continue;
+        seen.add(child.character);
+        const sug = getGhostSuggestion(child.character);
+        if (sug) {
+          results.push({ component: child.character, suggestion: sug });
+        }
+        walk(child);
+      }
+    }
+    walk(decomposition);
+    return results;
+  }, [decomposition]);
+
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const charIsFav = char ? isFavorite(char) : false;
 
   const goToDetail = (c: string) => {
     navigate(`/detail?char=${encodeURIComponent(c)}`);
@@ -190,6 +245,19 @@ export default function CharacterDetail() {
               <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: 'rgba(107,127,94,0.2)', color: '#6B7F5E', fontFamily: 'Inter' }}>
                 Radical: {entry.radical}
               </span>
+              <button
+                onClick={() => toggleFavorite(char)}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all hover:scale-105"
+                style={{
+                  background: charIsFav ? 'rgba(194,59,42,0.2)' : 'rgba(245,240,232,0.1)',
+                  color: charIsFav ? '#C23B2A' : 'rgba(245,240,232,0.5)',
+                  fontFamily: 'Inter',
+                }}
+                title={charIsFav ? '取消收藏' : '收藏'}
+              >
+                <Heart size={12} fill={charIsFav ? '#C23B2A' : 'none'} />
+                {charIsFav ? '已收藏' : '收藏'}
+              </button>
             </div>
             <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: 'rgba(245,240,232,0.75)', fontFamily: 'Inter' }}>
               {entry.definition}
@@ -198,6 +266,44 @@ export default function CharacterDetail() {
               <p className="mt-3 text-sm italic max-w-md mx-auto" style={{ color: 'rgba(245,240,232,0.5)', fontFamily: 'Inter' }}>
                 {entry.etymologyHint}
               </p>
+            )}
+
+            {/* Phonetic Rating Badge */}
+            {phoneticRating && (
+              <div className="mt-3 flex justify-center">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                  style={{
+                    background: PHONETIC_COLORS[phoneticRating.rating].bg,
+                    color: PHONETIC_COLORS[phoneticRating.rating].text,
+                    border: `1px solid ${PHONETIC_COLORS[phoneticRating.rating].border}`,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  title={phoneticRating.tooltip}
+                >
+                  声旁可靠性: {phoneticRating.label}
+                  <span className="font-mono text-[0.6875rem] opacity-70">
+                    ({phoneticRating.charPinyin} ← {phoneticRating.phoneticPinyin})
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {/* Ghost Component Warning */}
+            {ghostInfo && (
+              <div className="mt-3 flex justify-center">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs"
+                  style={{
+                    background: 'rgba(176,173,165,0.2)',
+                    color: 'rgba(245,240,232,0.8)',
+                    border: '1px solid rgba(176,173,165,0.3)',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  {ghostInfo}
+                </span>
+              </div>
             )}
           </motion.div>
         </div>
@@ -349,6 +455,50 @@ export default function CharacterDetail() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Ghost Component Annotations within the same card */}
+                  {ghostComponentAnnotations.length > 0 && (
+                    <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(176,173,165,0.3)' }}>
+                      <h3 className="text-xs font-semibold uppercase tracking-[0.06em] mb-3" style={{ color: '#A39E93', fontFamily: 'Inter' }}>
+                        Simplified Ghost Components
+                        <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(176,173,165,0.8)' }}>简体幽灵部件</span>
+                      </h3>
+                      <div className="flex flex-col gap-2">
+                        {ghostComponentAnnotations.map(({ component, suggestion }) => (
+                          <div key={component} className="flex items-start gap-3 rounded-xl p-3" style={{ background: 'rgba(176,173,165,0.06)', border: '1px solid rgba(176,173,165,0.15)' }}>
+                            <span className="font-display-cn text-xl flex-shrink-0" style={{ color: '#A39E93', fontFamily: '"Ma Shan Zheng", cursive' }}>
+                              {component}
+                            </span>
+                            <p className="text-xs leading-relaxed" style={{ color: '#8B8680', fontFamily: 'Inter' }}>
+                              {suggestion}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Standalone ghost component annotations when no regular annotations exist */}
+              {componentAnnotations.length === 0 && ghostComponentAnnotations.length > 0 && (
+                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.06em] mb-4" style={{ color: '#A39E93', fontFamily: 'Inter' }}>
+                    Simplified Ghost Components
+                    <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(176,173,165,0.8)' }}>简体幽灵部件</span>
+                  </h2>
+                  <div className="flex flex-col gap-2">
+                    {ghostComponentAnnotations.map(({ component, suggestion }) => (
+                      <div key={component} className="flex items-start gap-3 rounded-xl p-3" style={{ background: 'rgba(176,173,165,0.06)', border: '1px solid rgba(176,173,165,0.15)' }}>
+                        <span className="font-display-cn text-xl flex-shrink-0" style={{ color: '#A39E93', fontFamily: '"Ma Shan Zheng", cursive' }}>
+                          {component}
+                        </span>
+                        <p className="text-xs leading-relaxed" style={{ color: '#8B8680', fontFamily: 'Inter' }}>
+                          {suggestion}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -367,7 +517,7 @@ export default function CharacterDetail() {
                             const indentPx = line.depth * 24;
                             const color = line.depth === 0 ? '#1A1A18' : line.depth === 1 ? '#2D5F8A' : line.depth === 2 ? 'rgba(45,95,138,0.7)' : '#8B6914';
                             const ann = getAnnotation(line.character);
-                            const isMoonBody = line.character === '月' && getMoonAnnotationByDefinition(entry?.definition ?? '');
+                            const isMoonBody = line.character === '月' && getMoonAnnotation(entry?.definition ?? '');
                             const variantBadge = ann || isMoonBody;
                             return (
                               <div key={`${line.character}-${i}`} style={{ color, paddingLeft: `${indentPx}px`, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
