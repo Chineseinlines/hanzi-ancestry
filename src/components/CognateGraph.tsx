@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft } from 'lucide-react';
-import type { HanziEntry, CognateResult, CharRelations } from '../data/types';
+import type { HanziEntry, CognateResult } from '../data/types';
 import { getCharacter, getComponentCognates, getRelations, getRelationsVersion } from '../data/hanziData';
 import GraphLegend from './GraphLegend';
 import GraphTooltip from './GraphTooltip';
@@ -27,17 +27,6 @@ const RELATION_COLORS: Record<RelationType, string> = {
   homophone: '#8B6914',
   cognate: '#A39E93',
   component: '#A39E93',
-};
-
-const RELATION_LABELS: Record<RelationType, string> = {
-  differentiation: '源流分化',
-  antonym: '反义',
-  phonetic: '同声旁',
-  semantic: '同形旁',
-  containedBy: '构件包含',
-  homophone: '同音',
-  cognate: '共享构件',
-  component: '包含',
 };
 
 interface SimNode extends d3.SimulationNodeDatum {

@@ -204,8 +204,6 @@ export default function CharacterDetail() {
     navigate(`/detail?char=${encodeURIComponent(c)}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const goToExplore = () => navigate(`/explore?char=${encodeURIComponent(char)}`);
-
   /* ── Loading ── */
   if (loading) {
     return (
