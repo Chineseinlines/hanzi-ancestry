@@ -78,6 +78,31 @@ export interface ShuowenEntry {
   sixBooks: string;
 }
 
+export interface CharRelations {
+  /** chars derived FROM this char (differentiation) */
+  differentiations: string[];
+  /** chars sharing the same phonetic component */
+  phoneticFamily: string[];
+  /** chars sharing the same semantic component */
+  semanticFamily: string[];
+  /** chars whose decomposition contains this char */
+  containedIn: string[];
+  /** chars with identical pinyin */
+  homophones: string[];
+  /** chars with same pinyin ignoring tone */
+  nearHomophones: string[];
+  /** antonym pairs */
+  antonyms: string[];
+  /** CJK components in this char's decomposition */
+  components: string[];
+  /** chars sharing the same radical */
+  radicalFamily: string[];
+  /** traditional form, if simplified */
+  traditional: string | null;
+  /** simplified form, if traditional */
+  simplified: string | null;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;

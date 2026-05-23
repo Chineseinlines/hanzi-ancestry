@@ -9,15 +9,16 @@ import {
   getCharacter,
   getCharacterEnriched,
   getCulturalData,
-  getCognates,
+  getRelatedChars,
   decomposeCharacter,
   loadData,
   loadCulturalData,
   loadShuowen,
   loadSimpTradMap,
+  loadRelations,
   getShuowen,
 } from '../data/hanziData';
-import type { HanziEntry, CognateResult, CulturalData, DecompositionNode, ShuowenEntry } from '../data/types';
+import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations } from '../data/types';
 import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
 import CharPuzzleGame from '../components/CharPuzzleGame';
@@ -94,7 +95,7 @@ export default function CharacterDetail() {
   const [entry, setEntry] = useState<HanziEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [cultural, setCultural] = useState<CulturalData | null>(null);
-  const [cognates, setCognates] = useState<CognateResult[]>([]);
+  const [relations, setRelations] = useState<CharRelations | null>(null);
   const [shuowen, setShuowen] = useState<ShuowenEntry | null>(null);
   const [expandedAllusion, setExpandedAllusion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('card');
@@ -110,12 +111,13 @@ export default function CharacterDetail() {
       await loadCulturalData();
       await loadShuowen();
       await loadSimpTradMap();
+      await loadRelations();
       if (cancelled) return;
       const e = getCharacterEnriched(char);
       setEntry(e ?? null);
       setCultural(getCulturalData(char) ?? null);
       setShuowen(getShuowen(char) ?? null);
-      if (e) setCognates(getCognates(char, 12));
+      if (e) setRelations(getRelatedChars(char) as CharRelations | null);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -633,34 +635,66 @@ export default function CharacterDetail() {
           {activeTab === 'cognates' && (
             <motion.div key="cognates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Etymologically Related Characters</h2>
-                  <button onClick={goToExplore} className="text-sm font-medium transition-all hover:underline" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>View in Network →</button>
-                </div>
-                {cognates.length === 0 ? (
-                  <p className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No etymologically related characters found. This may be a very basic or rare character.</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {cognates.map((c) => (
-                      <motion.button key={c.character} whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(26,26,24,0.1)' }} whileTap={{ scale: 0.97 }}
-                        onClick={() => goToDetail(c.character)}
-                        className="flex flex-col items-center rounded-xl p-4 text-center transition-all"
-                        style={{ background: '#F5F0E8', border: '1px solid rgba(26,26,24,0.06)' }}
-                      >
-                        <span className="text-3xl font-display-cn" style={{ color: '#1A1A18', fontFamily: '"Ma Shan Zheng", cursive' }}>{c.character}</span>
-                        <span className="text-xs mt-1" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{c.pinyin}</span>
-                        <span className="text-[10px] mt-1 line-clamp-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{c.definition}</span>
-                        {c.sharedComponents.length > 0 && (
-                          <div className="flex flex-wrap justify-center gap-1 mt-2">
-                            {c.sharedComponents.slice(0, 3).map(comp => (
-                              <span key={comp} className="rounded px-1.5 py-0.5 text-[10px]" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A' }}>{comp}</span>
-                            ))}
+                <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Character Relations</h2>
+                {relations && (() => {
+                  // Build grouped relations, each char in highest-priority group only
+                  const seen = new Set<string>([char]);
+                  const groups: { label: string; en: string; color: string; bg: string; chars: string[] }[] = [];
+
+                  const addGroup = (label: string, en: string, color: string, bg: string, chars: string[]) => {
+                    const filtered = chars.filter(c => !seen.has(c));
+                    if (filtered.length > 0) {
+                      filtered.forEach(c => seen.add(c));
+                      groups.push({ label, en, color, bg, chars: filtered });
+                    }
+                  };
+
+                  addGroup('源流分化', 'Differentiation', '#C23B2A', 'rgba(194,59,42,0.08)', relations.differentiations);
+                  addGroup('反义对举', 'Antonym', '#9B2226', 'rgba(155,34,38,0.06)', relations.antonyms);
+                  addGroup('同声旁族', 'Phonetic Family', '#CA6702', 'rgba(202,103,2,0.06)', relations.phoneticFamily);
+                  addGroup('同形旁族', 'Semantic Family', '#2D5F8A', 'rgba(45,95,138,0.06)', relations.semanticFamily);
+                  addGroup('构件包含', 'Component Of', '#6B7F5E', 'rgba(107,127,94,0.06)', relations.containedIn);
+                  addGroup('同音近音', 'Homophone', '#8B6914', 'rgba(139,105,20,0.06)', relations.homophones);
+
+                  if (groups.length === 0) {
+                    return <p className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No related characters found.</p>;
+                  }
+
+                  return (
+                    <div className="space-y-5">
+                      {groups.map(g => (
+                        <div key={g.label}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: g.bg, color: g.color, fontFamily: 'Inter' }}>
+                              {g.label}
+                            </span>
+                            <span className="text-[10px] uppercase tracking-wide" style={{ color: 'rgba(139,105,20,0.5)', fontFamily: 'Inter' }}>{g.en}</span>
                           </div>
-                        )}
-                      </motion.button>
-                    ))}
-                  </div>
-                )}
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                            {g.chars.slice(0, 18).map(c => {
+                              const info = getCharacter(c);
+                              return (
+                                <motion.button key={c} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }}
+                                  onClick={() => goToDetail(c)}
+                                  className="flex flex-col items-center rounded-xl p-3 text-center transition-all"
+                                  style={{ background: '#F5F0E8', border: '1px solid rgba(26,26,24,0.06)' }}
+                                >
+                                  <span className="text-2xl font-display-cn" style={{ color: '#1A1A18', fontFamily: '"Ma Shan Zheng", cursive' }}>{c}</span>
+                                  {info && (
+                                    <>
+                                      <span className="text-[10px] mt-0.5" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{info.pinyin[0]}</span>
+                                      <span className="text-[9px] mt-0.5 line-clamp-1" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{info.definition.slice(0, 10)}</span>
+                                    </>
+                                  )}
+                                </motion.button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </motion.div>
           )}

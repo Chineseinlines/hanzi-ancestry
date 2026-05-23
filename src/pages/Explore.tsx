@@ -15,6 +15,7 @@ import {
   getCognates,
   hasCharacter,
   loadData,
+  loadRelations,
   getTraditionalComponents,
 } from '../data/hanziData';
 import DecompositionGraph from '../components/DecompositionGraph';
@@ -123,6 +124,7 @@ export default function Explore() {
   // Load data on mount
   useEffect(() => {
     loadData();
+    loadRelations();
   }, []);
 
   // Process search – auto-extract CJK chars, filter noise

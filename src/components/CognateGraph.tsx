@@ -1,8 +1,8 @@
 import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft } from 'lucide-react';
-import type { HanziEntry, CognateResult } from '../data/types';
-import { getCharacter, getComponentCognates } from '../data/hanziData';
+import type { HanziEntry, CognateResult, CharRelations } from '../data/types';
+import { getCharacter, getComponentCognates, getRelations } from '../data/hanziData';
 import GraphLegend from './GraphLegend';
 import GraphTooltip from './GraphTooltip';
 
@@ -16,6 +16,30 @@ interface CognateGraphProps {
   className?: string;
 }
 
+type RelationType = 'differentiation' | 'antonym' | 'phonetic' | 'semantic' | 'containedBy' | 'homophone' | 'cognate' | 'component';
+
+const RELATION_COLORS: Record<RelationType, string> = {
+  differentiation: '#C23B2A',
+  antonym: '#9B2226',
+  phonetic: '#CA6702',
+  semantic: '#2D5F8A',
+  containedBy: '#6B7F5E',
+  homophone: '#8B6914',
+  cognate: '#A39E93',
+  component: '#A39E93',
+};
+
+const RELATION_LABELS: Record<RelationType, string> = {
+  differentiation: '源流分化',
+  antonym: '反义',
+  phonetic: '同声旁',
+  semantic: '同形旁',
+  containedBy: '构件包含',
+  homophone: '同音',
+  cognate: '共享构件',
+  component: '包含',
+};
+
 interface SimNode extends d3.SimulationNodeDatum {
   id: string;
   character: string;
@@ -23,17 +47,23 @@ interface SimNode extends d3.SimulationNodeDatum {
   entry?: HanziEntry;
   sharedComponents: string[];
   radius: number;
+  relationType?: RelationType;
 }
 
 interface SimLink extends d3.SimulationLinkDatum<SimNode> {
   source: string | SimNode;
   target: string | SimNode;
   sharedCount: number;
+  relationType?: RelationType;
 }
 
 const DEFAULT_LEGEND = [
   { color: '#C23B2A', label: 'Target Character' },
-  { color: '#8B6914', label: 'Cognate' },
+  { color: '#CA6702', label: 'Phonetic Family' },
+  { color: '#2D5F8A', label: 'Semantic Family' },
+  { color: '#6B7F5E', label: 'Component Of' },
+  { color: '#9B2226', label: 'Antonym' },
+  { color: '#8B6914', label: 'Homophone' },
 ];
 
 const COMPONENT_LEGEND = [
@@ -101,7 +131,7 @@ const CognateGraph = memo(function CognateGraph({
 
       return { nodes: allNodes, links: allLinks, legendItems: COMPONENT_LEGEND };
     } else {
-      // Traditional cognate mode
+      // Relations-based mode — use new multi-type relation data
       const centerEntry = getCharacter(character);
       const centerNode: SimNode = {
         id: 'center',
@@ -112,24 +142,67 @@ const CognateGraph = memo(function CognateGraph({
         radius: 25,
       };
 
-      const cognateNodes: SimNode[] = cognates.slice(0, 20).map((c, i) => {
-        const entry = getCharacter(c.character);
-        return {
-          id: `cognate-${i}`,
-          character: c.character,
-          type: 'cognate',
-          entry,
-          sharedComponents: c.sharedComponents,
-          radius: c.sharedComponents.length >= 2 ? 18 : 15,
-        };
-      });
+      const relations = getRelations(character);
+      const allNodes: SimNode[] = [centerNode];
+      const allLinks: SimLink[] = [];
+      let nodeIdx = 0;
 
-      const allNodes = [centerNode, ...cognateNodes];
-      const allLinks: SimLink[] = cognateNodes.map((n) => ({
-        source: 'center',
-        target: n.id,
-        sharedCount: n.sharedComponents.length,
-      }));
+      const addRelated = (chars: string[], relType: RelationType, radius: number) => {
+        for (const c of chars) {
+          if (allNodes.length > 25) break;
+          const entry = getCharacter(c);
+          if (!entry) continue;
+          const id = `rel-${nodeIdx++}`;
+          allNodes.push({
+            id,
+            character: c,
+            type: 'cognate',
+            entry,
+            sharedComponents: [],
+            radius,
+            relationType: relType,
+          });
+          allLinks.push({
+            source: 'center',
+            target: id,
+            sharedCount: relType === 'differentiation' ? 3 : 1,
+            relationType: relType,
+          });
+        }
+      };
+
+      if (relations) {
+        addRelated(relations.differentiations, 'differentiation', 20);
+        addRelated(relations.antonyms, 'antonym', 19);
+        addRelated(relations.phoneticFamily, 'phonetic', 17);
+        addRelated(relations.semanticFamily, 'semantic', 16);
+        addRelated(relations.containedIn, 'containedBy', 15);
+        addRelated(relations.homophones, 'homophone', 13);
+      }
+
+      // Fallback to old cognate data if no relations found
+      if (allNodes.length === 1 && cognates.length > 0) {
+        for (const c of cognates.slice(0, 20)) {
+          const entry = getCharacter(c.character);
+          if (!entry) continue;
+          const id = `cog-${nodeIdx++}`;
+          allNodes.push({
+            id,
+            character: c.character,
+            type: 'cognate',
+            entry,
+            sharedComponents: c.sharedComponents,
+            radius: c.sharedComponents.length >= 2 ? 18 : 15,
+            relationType: 'cognate',
+          });
+          allLinks.push({
+            source: 'center',
+            target: id,
+            sharedCount: c.sharedComponents.length,
+            relationType: 'cognate',
+          });
+        }
+      }
 
       return { nodes: allNodes, links: allLinks, legendItems: DEFAULT_LEGEND };
     }
@@ -209,9 +282,10 @@ const CognateGraph = memo(function CognateGraph({
       .enter()
       .append('line')
       .attr('class', 'link')
-      .attr('stroke', '#A39E93')
+      .attr('stroke', (d) => d.relationType ? RELATION_COLORS[d.relationType] : '#A39E93')
       .attr('stroke-width', (d) => 1 + d.sharedCount * 0.5)
       .attr('stroke-opacity', 0.6)
+      .attr('stroke-dasharray', (d) => d.relationType === 'antonym' ? '4,2' : null)
       .attr('opacity', 0);
 
     // Draw node groups
@@ -244,7 +318,9 @@ const CognateGraph = memo(function CognateGraph({
       .attr('r', 0) // start at 0 for animation
       .attr('fill', (d) => {
         if (d.type === 'component') return '#C23B2A';
-        return d.type === 'center' ? '#C23B2A' : '#8B6914';
+        if (d.type === 'center') return '#C23B2A';
+        if (d.relationType) return RELATION_COLORS[d.relationType];
+        return '#8B6914';
       })
       .attr('stroke', '#1A1A18')
       .attr('stroke-width', (d) => (d.type === 'center' || d.type === 'component' ? 3 : 2))

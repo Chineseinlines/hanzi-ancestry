@@ -1,4 +1,4 @@
-import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry } from './types';
+import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry, CharRelations } from './types';
 
 // ── In-memory data store ────────────────────────────────────────────
 let charMap: Map<string, HanziEntry> | null = null;
@@ -16,6 +16,10 @@ let shuowenPromise: Promise<void> | null = null;
 // Simplified → Traditional mapping
 let simpToTrad: Map<string, string> | null = null;
 let simpTradPromise: Promise<void> | null = null;
+
+// Character relations
+let relationsMap: Map<string, CharRelations> | null = null;
+let relationsPromise: Promise<void> | null = null;
 
 // CDN stroke cache
 const strokeCache = new Map<string, StrokeData>();
@@ -422,6 +426,60 @@ export function getTraditionalForm(char: string): string {
 /** Check if a char is simplified and has a traditional counterpart. */
 export function hasTraditional(char: string): boolean {
   return simpToTrad?.has(char) ?? false;
+}
+
+// ── Character relations ───────────────────────────────────────────────
+
+export async function loadRelations(): Promise<void> {
+  if (relationsMap) return;
+  if (relationsPromise) return relationsPromise;
+
+  relationsPromise = (async () => {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}char-relations.json`);
+      if (!res.ok) throw new Error(`char-relations.json: ${res.status}`);
+      const data = await res.json() as Record<string, CharRelations>;
+      relationsMap = new Map(Object.entries(data));
+    } catch (err) {
+      console.error('Failed to load char relations:', err);
+      relationsMap = new Map();
+    }
+  })();
+  return relationsPromise;
+}
+
+export function getRelations(char: string): CharRelations | undefined {
+  const rel = relationsMap?.get(char);
+  if (rel) return rel;
+  // Fall back to traditional form
+  const trad = simpToTrad?.get(char);
+  if (trad) return relationsMap?.get(trad);
+  return undefined;
+}
+
+export function hasRelations(char: string): boolean {
+  return relationsMap?.has(char) ?? false;
+}
+
+/** Get all characters that are directly related to this char, grouped by type. */
+export function getRelatedChars(char: string): {
+  differentiations: string[];
+  phoneticFamily: string[];
+  semanticFamily: string[];
+  containedIn: string[];
+  homophones: string[];
+  antonyms: string[];
+} {
+  const rel = getRelations(char);
+  if (!rel) return { differentiations: [], phoneticFamily: [], semanticFamily: [], containedIn: [], homophones: [], antonyms: [] };
+  return {
+    differentiations: rel.differentiations,
+    phoneticFamily: rel.phoneticFamily,
+    semanticFamily: rel.semanticFamily,
+    containedIn: rel.containedIn,
+    homophones: rel.homophones.slice(0, 10),
+    antonyms: rel.antonyms,
+  };
 }
 
 // Legacy alias — stroke data is now async, use getStrokeData() instead
