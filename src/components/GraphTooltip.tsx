@@ -12,7 +12,6 @@ interface GraphTooltipProps {
   x: number;
   y: number;
   sharedComponents?: string[];
-  onExplore?: (char: string) => void;
   nodeRadius?: number;
   nodeType?: string;
   phoneticRating?: PhoneticRating | null;
@@ -30,7 +29,6 @@ const GraphTooltip = memo(function GraphTooltip({
   x,
   y,
   sharedComponents = [],
-  onExplore,
   nodeRadius = 22,
   nodeType,
   phoneticRating,
@@ -87,7 +85,7 @@ const GraphTooltip = memo(function GraphTooltip({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.2, ease: EASE_SPRING }}
-          className="pointer-events-auto fixed z-[100] rounded-lg bg-white px-4 py-3"
+          className="pointer-events-none fixed z-[100] rounded-lg bg-white px-4 py-3"
           style={{
             left: pos.left,
             top: pos.top,
@@ -171,15 +169,6 @@ const GraphTooltip = memo(function GraphTooltip({
             <MiniStrokePreview character={entry.character} />
           </div>
 
-          {onExplore && (
-            <button
-              onClick={() => onExplore(entry.character)}
-              className="mt-1 text-[0.6875rem] font-medium text-cinnabar transition-colors hover:text-vermilion-light"
-              style={{ fontFamily: 'Inter, sans-serif' }}
-            >
-              Explore &rarr;
-            </button>
-          )}
         </motion.div>
       )}
     </AnimatePresence>

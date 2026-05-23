@@ -283,45 +283,51 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
               </div>
             )}
 
-            {/* Full shuowen expandable */}
-            {shuowen.shuowen && shuowen.shuowen.length > 20 && (
-              <div>
-                <button
-                  onClick={() => setShowShuowenDetail(!showShuowenDetail)}
-                  className="flex items-center gap-1 text-[0.6875rem] font-medium transition-colors hover:underline"
-                  style={{ color: '#C23B2A', fontFamily: 'Inter' }}
-                >
-                  查看原文
-                  <svg
-                    width="10" height="10" viewBox="0 0 10 10" fill="none"
-                    className={`transition-transform duration-200 ${showShuowenDetail ? 'rotate-180' : ''}`}
+            {/* Full shuowen — only show toggle when text is substantially different from summary */}
+            {(() => {
+              const summaryLen = (shuowen.summary || '').length;
+              const fullLen = (shuowen.shuowen || '').length;
+              const hasExtraText = fullLen > summaryLen + 15;
+              if (!hasExtraText) return null;
+              return (
+                <div>
+                  <button
+                    onClick={() => setShowShuowenDetail(!showShuowenDetail)}
+                    className="flex items-center gap-1 text-[0.6875rem] font-medium transition-colors hover:underline"
+                    style={{ color: '#C23B2A', fontFamily: 'Inter' }}
                   >
-                    <path d="M2 3.5L5 6.5L8 3.5" stroke="#C23B2A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <AnimatePresence>
-                  {showShuowenDetail && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden"
+                    查看原文
+                    <svg
+                      width="10" height="10" viewBox="0 0 10 10" fill="none"
+                      className={`transition-transform duration-200 ${showShuowenDetail ? 'rotate-180' : ''}`}
                     >
-                      <p
-                        className="mt-2 text-[0.6875rem] leading-relaxed max-h-40 overflow-y-auto rounded-lg p-2.5 font-serif-cn"
-                        style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}
+                      <path d="M2 3.5L5 6.5L8 3.5" stroke="#C23B2A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <AnimatePresence>
+                    {showShuowenDetail && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
                       >
-                        {shuowen.shuowen}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+                        <p
+                          className="mt-2 text-[0.6875rem] leading-relaxed max-h-40 overflow-y-auto rounded-lg p-2.5 font-serif-cn"
+                          style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}
+                        >
+                          {shuowen.shuowen}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })()}
 
-            {/* No shuowen text fallback */}
-            {(!shuowen.shuowen || shuowen.shuowen.length <= 20) && shuowen.summary && shuowen.summary.length < 15 && (
+            {/* No shuowen text at all */}
+            {!shuowen.shuowen && !shuowen.summary && (
               <p className="text-[0.6875rem] italic" style={{ color: 'rgba(139,105,20,0.4)', fontFamily: 'Inter' }}>
                 暂无详细说文解字原文
               </p>

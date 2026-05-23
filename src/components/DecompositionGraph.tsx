@@ -181,6 +181,13 @@ const DecompositionGraph = memo(function DecompositionGraph({
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  // Store callbacks in refs so the D3 effect doesn't re-run on every render
+  const callbacksRef = useRef({ onNodeClick, onNodeDoubleClick, onComponentClick });
+  callbacksRef.current = { onNodeClick, onNodeDoubleClick, onComponentClick };
+  const highlightedRef = useRef(highlightedComponent);
+  highlightedRef.current = highlightedComponent;
+  const selectableRef = useRef(selectableComponents);
+  selectableRef.current = selectableComponents;
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -447,15 +454,16 @@ const DecompositionGraph = memo(function DecompositionGraph({
       })
       .on('click', (_event, d) => {
         _event.stopPropagation();
-        if (d.depth > 0 && onComponentClick) {
-          onComponentClick(d.character);
-        } else if (onNodeClick) {
-          onNodeClick(d.character);
+        const { onNodeClick: clk, onComponentClick: compClk } = callbacksRef.current;
+        if (d.depth > 0 && compClk) {
+          compClk(d.character);
+        } else if (clk) {
+          clk(d.character);
         }
       })
       .on('dblclick', (_event, d) => {
         _event.stopPropagation();
-        if (onNodeDoubleClick) onNodeDoubleClick(d.character);
+        callbacksRef.current.onNodeDoubleClick?.(d.character);
       });
 
     svg.on('dblclick.zoom', () => {
@@ -466,7 +474,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
       svg.selectAll('*').remove();
       svg.on('.zoom', null);
     };
-  }, [decomposition, onNodeClick, onNodeDoubleClick, onComponentClick, selectableComponents, highlightedComponent]);
+  }, [decomposition]);
 
   return (
     <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded-lg bg-white ${className}`}>
@@ -492,7 +500,6 @@ const DecompositionGraph = memo(function DecompositionGraph({
         nodeType={tooltip.nodeType}
         phoneticRating={tooltip.phoneticRating}
         isGhost={tooltip.isGhost}
-        onExplore={onNodeClick ?? undefined}
       />
     </div>
   );

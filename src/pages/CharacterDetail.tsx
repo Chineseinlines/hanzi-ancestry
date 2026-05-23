@@ -72,14 +72,14 @@ export default function CharacterDetail() {
   const [shuowen, setShuowen] = useState<ShuowenEntry | null>(null);
   const [expandedAllusion, setExpandedAllusion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('card');
-  const [idsExpanded, setIdsExpanded] = useState(false);
+  const [idsExpanded, setIdsExpanded] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       setActiveTab('card');
-      setIdsExpanded(false);
+      setIdsExpanded(true);
       await loadData();
       await loadCulturalData();
       await loadShuowen();
@@ -411,14 +411,21 @@ export default function CharacterDetail() {
                       {shuowen.summary}
                     </p>
                   )}
-                  {shuowen.shuowen && shuowen.shuowen.length > 20 && (
-                    <details className="mt-3">
-                      <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>查看原文</summary>
-                      <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
-                        {shuowen.shuowen}
-                      </p>
-                    </details>
-                  )}
+                  {(() => {
+                    const summaryLen = (shuowen.summary || '').length;
+                    const fullLen = (shuowen.shuowen || '').length;
+                    if (fullLen > summaryLen + 15) {
+                      return (
+                        <details className="mt-3">
+                          <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>查看原文</summary>
+                          <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
+                            {shuowen.shuowen}
+                          </p>
+                        </details>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
             </motion.div>
@@ -453,6 +460,75 @@ export default function CharacterDetail() {
                       onNodeDoubleClick={(c) => navigate(`/explore?char=${encodeURIComponent(c)}`)}
                     />
                   </div>
+                </div>
+              )}
+
+              {/* IDS Text Tree — always visible, right after the graph */}
+              {idsLines.length > 0 && (
+                <div
+                  className="rounded-2xl p-5"
+                  style={{
+                    background: '#FDFBF6',
+                    boxShadow: '0 4px 20px rgba(26,26,24,0.06)',
+                    borderLeft: '3px solid #C23B2A',
+                  }}
+                >
+                  <button
+                    onClick={() => setIdsExpanded(!idsExpanded)}
+                    className="flex w-full items-center justify-between text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <GitBranch size={14} className="text-cinnabar" />
+                      <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                        Full Decomposition Tree
+                      </span>
+                      <span className="font-serif-cn text-xs" style={{ color: 'rgba(139,105,20,0.5)' }}>完整拆解树</span>
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      className={`transition-transform duration-300 ${idsExpanded ? 'rotate-180' : ''}`}
+                      style={{ color: '#C23B2A' }}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {idsExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
+                        <pre
+                          className="mt-3 overflow-x-auto rounded-lg p-4 font-mono text-sm leading-relaxed"
+                          style={{ background: 'rgba(245,240,232,0.5)', whiteSpace: 'pre' }}
+                        >
+                          {idsLines.map((line, i) => {
+                            const indentPx = line.depth * 24;
+                            const color = line.depth === 0 ? '#1A1A18' : line.depth === 1 ? '#2D5F8A' : line.depth === 2 ? 'rgba(45,95,138,0.7)' : '#8B6914';
+                            const ann = getAnnotation(line.character);
+                            const isMoonBody = line.character === '月' && getMoonAnnotation(entry?.definition ?? '');
+                            const variantBadge = ann || isMoonBody;
+                            return (
+                              <div key={`${line.character}-${i}`} style={{ color, paddingLeft: `${indentPx}px`, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                <span>
+                                  <span style={{ color: 'rgba(139,105,20,0.5)' }}>{line.prefix}{line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}</span>
+                                  {line.decomposition && line.decomposition !== '？' && <span style={{ color: 'rgba(139,105,20,0.6)' }}>{line.decomposition} </span>}
+                                  <span className="font-semibold">{line.character}</span>
+                                  {line.definition && <span style={{ color: 'rgba(139,105,20,0.6)' }}> — {line.definition}</span>}
+                                </span>
+                                {variantBadge && (
+                                  <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
+                                    {variantBadge.name}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </pre>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
 
@@ -529,46 +605,6 @@ export default function CharacterDetail() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* IDS Text Tree */}
-              {idsLines.length > 0 && (
-                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <button onClick={() => setIdsExpanded(!idsExpanded)} className="flex w-full items-center justify-between text-left">
-                    <span className="text-sm font-medium" style={{ color: '#1A1A18', fontFamily: 'Inter' }}>View Full Decomposition Text</span>
-                    <ChevronDown size={18} className={`transition-transform duration-300 ${idsExpanded ? 'rotate-180' : ''}`} style={{ color: '#8B6914' }} />
-                  </button>
-                  <AnimatePresence>
-                    {idsExpanded && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                        <pre className="mt-4 overflow-x-auto rounded-lg p-4 font-mono text-sm leading-relaxed" style={{ background: '#F5F0E8', whiteSpace: 'pre' }}>
-                          {idsLines.map((line, i) => {
-                            const indentPx = line.depth * 24;
-                            const color = line.depth === 0 ? '#1A1A18' : line.depth === 1 ? '#2D5F8A' : line.depth === 2 ? 'rgba(45,95,138,0.7)' : '#8B6914';
-                            const ann = getAnnotation(line.character);
-                            const isMoonBody = line.character === '月' && getMoonAnnotation(entry?.definition ?? '');
-                            const variantBadge = ann || isMoonBody;
-                            return (
-                              <div key={`${line.character}-${i}`} style={{ color, paddingLeft: `${indentPx}px`, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                <span>
-                                  <span style={{ color: 'rgba(139,105,20,0.5)' }}>{line.prefix}{line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}</span>
-                                  {line.decomposition && line.decomposition !== '？' && <span style={{ color: 'rgba(139,105,20,0.6)' }}>{line.decomposition} </span>}
-                                  <span className="font-semibold">{line.character}</span>
-                                  {line.definition && <span style={{ color: 'rgba(139,105,20,0.6)' }}> — {line.definition}</span>}
-                                </span>
-                                {variantBadge && (
-                                  <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
-                                    {variantBadge.name}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </pre>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               )}
             </motion.div>
