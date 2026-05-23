@@ -1,4 +1,4 @@
-import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData } from './types';
+import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry } from './types';
 
 // ── In-memory data store ────────────────────────────────────────────
 let charMap: Map<string, HanziEntry> | null = null;
@@ -8,6 +8,10 @@ let dataLoadPromise: Promise<void> | null = null;
 // Stroke & cultural data
 let culturalMap: Map<string, CulturalData> | null = null;
 let culturalPromise: Promise<void> | null = null;
+
+// Shuowen data
+let shuowenMap: Map<string, ShuowenEntry> | null = null;
+let shuowenPromise: Promise<void> | null = null;
 
 // CDN stroke cache
 const strokeCache = new Map<string, StrokeData>();
@@ -323,6 +327,29 @@ export async function loadCulturalData(): Promise<void> {
 
 export function getCulturalData(char: string): CulturalData | undefined {
   return culturalMap?.get(char);
+}
+
+// ── Shuowen data ────────────────────────────────────────────────────
+export async function loadShuowen(): Promise<void> {
+  if (shuowenMap) return;
+  if (shuowenPromise) return shuowenPromise;
+
+  shuowenPromise = (async () => {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}shuowen.json`);
+      if (!res.ok) throw new Error(`shuowen.json: ${res.status}`);
+      const data = await res.json() as Record<string, ShuowenEntry>;
+      shuowenMap = new Map(Object.entries(data));
+    } catch (err) {
+      console.error('Failed to load shuowen data:', err);
+      shuowenMap = new Map();
+    }
+  })();
+  return shuowenPromise;
+}
+
+export function getShuowen(char: string): ShuowenEntry | undefined {
+  return shuowenMap?.get(char);
 }
 
 // Legacy alias — stroke data is now async, use getStrokeData() instead

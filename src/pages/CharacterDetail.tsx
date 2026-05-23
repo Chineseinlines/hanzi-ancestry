@@ -12,8 +12,10 @@ import {
   decomposeCharacter,
   loadData,
   loadCulturalData,
+  loadShuowen,
+  getShuowen,
 } from '../data/hanziData';
-import type { HanziEntry, CognateResult, CulturalData, DecompositionNode } from '../data/types';
+import type { HanziEntry, CognateResult, CulturalData, DecompositionNode, ShuowenEntry } from '../data/types';
 import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
 import CharPuzzleGame from '../components/CharPuzzleGame';
@@ -67,6 +69,7 @@ export default function CharacterDetail() {
   const [loading, setLoading] = useState(true);
   const [cultural, setCultural] = useState<CulturalData | null>(null);
   const [cognates, setCognates] = useState<CognateResult[]>([]);
+  const [shuowen, setShuowen] = useState<ShuowenEntry | null>(null);
   const [expandedAllusion, setExpandedAllusion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('card');
   const [idsExpanded, setIdsExpanded] = useState(false);
@@ -79,10 +82,12 @@ export default function CharacterDetail() {
       setIdsExpanded(false);
       await loadData();
       await loadCulturalData();
+      await loadShuowen();
       if (cancelled) return;
       const e = getCharacter(char);
       setEntry(e ?? null);
       setCultural(getCulturalData(char) ?? null);
+      setShuowen(getShuowen(char) ?? null);
       if (e) setCognates(getCognates(char, 12));
       setLoading(false);
     })();
@@ -381,6 +386,41 @@ export default function CharacterDetail() {
                   <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{cultural.evolution}</p>
                 </div>
               )}
+
+              {/* Shuowen structure & classification */}
+              {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.summary) && (
+                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>说文解字</h2>
+                    <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}>Shuowen</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    {shuowen.structure && (
+                      <span className="text-sm px-3 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}>
+                        字形结构: {shuowen.structure}
+                      </span>
+                    )}
+                    {shuowen.sixBooks && (
+                      <span className="text-sm px-3 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}>
+                        六书分类: {shuowen.sixBooks}
+                      </span>
+                    )}
+                  </div>
+                  {shuowen.summary && (
+                    <p className="text-sm leading-relaxed font-serif-cn" style={{ color: '#3D3D3B' }}>
+                      {shuowen.summary}
+                    </p>
+                  )}
+                  {shuowen.shuowen && shuowen.shuowen.length > 20 && (
+                    <details className="mt-3">
+                      <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>查看原文</summary>
+                      <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
+                        {shuowen.shuowen}
+                      </p>
+                    </details>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -389,7 +429,7 @@ export default function CharacterDetail() {
             <motion.div key="glyph" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                 <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Glyph Evolution</h2>
-                <GlyphEvolution character={char} />
+                <GlyphEvolution character={char} shuowen={shuowen} />
               </div>
             </motion.div>
           )}

@@ -70,6 +70,14 @@ export interface CulturalData {
   words: string[];
 }
 
+export interface ShuowenEntry {
+  char: string;
+  shuowen: string;
+  summary: string;
+  structure: string;
+  sixBooks: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;

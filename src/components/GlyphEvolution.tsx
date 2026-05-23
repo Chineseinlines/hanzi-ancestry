@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { ShuowenEntry } from '../data/types';
 
 interface GlyphEvolutionProps {
   character: string;
   traditional?: string;
+  shuowen?: ShuowenEntry | null;
 }
 
 interface ScriptStyle {
@@ -12,7 +14,6 @@ interface ScriptStyle {
   en: string;
   period: string;
   font: string;
-  /** Whether to use /glyph/{key}/{hex} local cache URL */
   useLocalGlyph: boolean;
 }
 
@@ -24,12 +25,12 @@ const SCRIPT_STYLES: ScriptStyle[] = [
   { key: 'regular',  label: '楷书',   en: 'Regular',      period: 'c. 400 CE',   font: '"Ma Shan Zheng", "Noto Serif SC", serif', useLocalGlyph: false },
 ];
 
-/** Build image URL(s) for a script style. Returns an array to try in order. */
+const EASING = [0.25, 0.1, 0.25, 1] as [number, number, number, number];
+
 function buildImageUrls(_char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
   if (style.useLocalGlyph) {
     return [`${import.meta.env.BASE_URL}glyphs/${style.key}/${hexUpper}.svg`];
   }
-  // Regular script: GlyphWiki SVG (use proxy in dev, direct in production)
   const glyphwikiUrl = `https://glyphwiki.org/glyph/u${hex}.svg`;
   if (import.meta.env.DEV) {
     return [`/api/glyphwiki/glyph/u${hex}.svg`, glyphwikiUrl];
@@ -37,11 +38,21 @@ function buildImageUrls(_char: string, hex: string, hexUpper: string, style: Scr
   return [glyphwikiUrl];
 }
 
-export default function GlyphEvolution({ character, traditional }: GlyphEvolutionProps) {
+const SIX_BOOKS_LABELS: Record<string, string> = {
+  '象形': 'Pictographic — 象形字，以线条描摹事物轮廓',
+  '指事': 'Indicative — 指事字，以抽象符号指示意义',
+  '会意': 'Ideographic — 会意字，组合多个部件表达含义',
+  '形声': 'Pictophonetic — 形声字，形旁表意、声旁表音',
+  '转注': 'Transferred — 转注字，互训引申',
+  '假借': 'Borrowed — 假借字，同音借代',
+};
+
+export default function GlyphEvolution({ character, traditional, shuowen }: GlyphEvolutionProps) {
   const [active, setActive] = useState(4);
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, string | null>>({});
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
+  const [showShuowenDetail, setShowShuowenDetail] = useState(false);
   const displayChar = traditional || character;
 
   const hex = (() => {
@@ -55,6 +66,7 @@ export default function GlyphEvolution({ character, traditional }: GlyphEvolutio
     setImagesLoaded({});
     setLoadingKeys(new Set(SCRIPT_STYLES.map((s) => s.key)));
     setImgErrors(new Set());
+    setShowShuowenDetail(false);
 
     let cancelled = false;
 
@@ -110,94 +122,212 @@ export default function GlyphEvolution({ character, traditional }: GlyphEvolutio
     setActive((a) => (a < SCRIPT_STYLES.length - 1 ? a + 1 : 0));
   }, []);
 
+  const hasShuowen = shuowen && (shuowen.shuowen || shuowen.structure || shuowen.sixBooks);
+  const sixBooksLabel = shuowen?.sixBooks ? SIX_BOOKS_LABELS[shuowen.sixBooks] : undefined;
+
   return (
     <div className="w-full">
-      {/* Main display */}
-      <div
-        className="relative flex items-center justify-center rounded-2xl overflow-hidden mb-4"
-        style={{
-          height: 200,
-          background: 'linear-gradient(135deg, #F5F0E8 0%, #EDE6D8 100%)',
-          boxShadow: 'inset 0 0 30px rgba(139,105,20,0.08)',
-        }}
-      >
-        <button
-          onClick={handlePrev}
-          className="absolute left-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/80"
-          style={{ background: 'rgba(255,255,255,0.5)' }}
-          aria-label="Previous"
+      {/* Main display: glyph + shuowen side panel */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-4">
+        {/* Glyph image */}
+        <div
+          className="relative flex items-center justify-center rounded-2xl overflow-hidden flex-1"
+          style={{
+            minHeight: 200,
+            background: 'linear-gradient(135deg, #F5F0E8 0%, #EDE6D8 100%)',
+            boxShadow: 'inset 0 0 30px rgba(139,105,20,0.08)',
+          }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 4L6 8L10 12" stroke="#8B6914" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <button
-          onClick={handleNext}
-          className="absolute right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/80"
-          style={{ background: 'rgba(255,255,255,0.5)' }}
-          aria-label="Next"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M6 4L10 8L6 12" stroke="#8B6914" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+          <button
+            onClick={handlePrev}
+            className="absolute left-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/80"
+            style={{ background: 'rgba(255,255,255,0.5)' }}
+            aria-label="Previous"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 4L6 8L10 12" stroke="#8B6914" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            onClick={handleNext}
+            className="absolute right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/80"
+            style={{ background: 'rgba(255,255,255,0.5)' }}
+            aria-label="Next"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M6 4L10 8L6 12" stroke="#8B6914" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
 
-        {isLoading ? (
-          <div className="flex flex-col items-center gap-2">
-            <div
-              className="w-8 h-8 border-2 rounded-full animate-spin"
-              style={{
-                borderColor: 'rgba(139,105,20,0.2)',
-                borderTopColor: '#8B6914',
+          <div className="absolute top-3 right-12 z-10">
+            <span
+              className="text-[0.625rem] px-2 py-0.5 rounded-full font-medium"
+              style={{ background: 'rgba(139,105,20,0.12)', color: '#8B6914', fontFamily: 'Inter' }}
+            >
+              {currentStyle.period}
+            </span>
+          </div>
+
+          {isLoading ? (
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className="w-8 h-8 border-2 rounded-full animate-spin"
+                style={{
+                  borderColor: 'rgba(139,105,20,0.2)',
+                  borderTopColor: '#8B6914',
+                }}
+              />
+              <span className="text-xs" style={{ color: 'rgba(26,26,24,0.35)', fontFamily: 'Inter' }}>
+                加载中...
+              </span>
+            </div>
+          ) : hasImage && !imgErrored ? (
+            <img
+              src={currentImageUrl!}
+              alt={`${displayChar} - ${currentStyle.en}`}
+              referrerPolicy="no-referrer"
+              className="max-h-full max-w-full object-contain p-4"
+              onError={() => {
+                setImgErrors((prev) => new Set(prev).add(currentStyle.key));
               }}
             />
-            <span className="text-xs" style={{ color: 'rgba(26,26,24,0.35)', fontFamily: 'Inter' }}>
-              加载中...
-            </span>
-          </div>
-        ) : hasImage && !imgErrored ? (
-          <img
-            src={currentImageUrl!}
-            alt={`${displayChar} - ${currentStyle.en}`}
-            referrerPolicy="no-referrer"
-            className="max-h-full max-w-full object-contain p-4"
-            onError={() => {
-              setImgErrors((prev) => new Set(prev).add(currentStyle.key));
-            }}
-          />
-        ) : (() => {
-          const isClerical = currentStyle.key === 'clerical';
-          return (
-          <div className="flex flex-col items-center">
-            <span
-              className="font-display-cn leading-none"
-              style={{
-                fontSize: isAncient && !isClerical ? '4rem' : '5rem',
-                color: '#1A1A18',
-                fontFamily: currentStyle.font,
-                opacity: isAncient && !isClerical ? 0.6 : 0.85,
-              }}
-            >
-              {displayChar}
-            </span>
-            {isAncient && !isClerical && (
+          ) : (() => {
+            const isClerical = currentStyle.key === 'clerical';
+            return (
+            <div className="flex flex-col items-center">
               <span
-                className="text-xs mt-1"
-                style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
+                className="font-display-cn leading-none"
+                style={{
+                  fontSize: isAncient && !isClerical ? '4rem' : '5rem',
+                  color: '#1A1A18',
+                  fontFamily: currentStyle.font,
+                  opacity: isAncient && !isClerical ? 0.6 : 0.85,
+                }}
               >
-                暂无字形图片
+                {displayChar}
               </span>
-            )}
-            {isClerical && (
+              {isAncient && !isClerical && (
+                <span
+                  className="text-xs mt-1"
+                  style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
+                >
+                  暂无字形图片
+                </span>
+              )}
+              {isClerical && (
+                <span
+                  className="text-[11px] mt-1"
+                  style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
+                >
+                  未找到真实隶书图片，为您显示的是现代仿隶书字体
+                </span>
+              )}
+            </div>
+          )})()}
+        </div>
+
+        {/* Shuowen info panel */}
+        {hasShuowen && (
+          <motion.div
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, ease: EASING }}
+            className="lg:w-72 flex-shrink-0 rounded-2xl p-5 flex flex-col gap-3"
+            style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)', border: '1px solid rgba(26,26,24,0.06)' }}
+          >
+            <div className="flex items-center gap-2">
               <span
-                className="text-[11px] mt-1"
-                style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
+                className="text-[0.625rem] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+                style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}
               >
-                未找到真实隶书图片，为您显示的是现代仿隶书字体
+                说文解字
               </span>
+              <span className="text-[0.625rem] font-medium" style={{ color: 'rgba(139,105,20,0.5)', fontFamily: 'Inter' }}>
+                Shuowen Jiezi
+              </span>
+            </div>
+
+            {/* Structure & Six Books */}
+            <div className="flex flex-wrap gap-2">
+              {shuowen.structure && (
+                <span
+                  className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium"
+                  style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}
+                >
+                  结构: {shuowen.structure}
+                </span>
+              )}
+              {shuowen.sixBooks && (
+                <span
+                  className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium"
+                  style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}
+                >
+                  六书: {shuowen.sixBooks}
+                </span>
+              )}
+            </div>
+
+            {/* Six books explanation */}
+            {sixBooksLabel && (
+              <p className="text-[0.6875rem] leading-relaxed" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                {sixBooksLabel}
+              </p>
             )}
-          </div>
-        )})()}
+
+            {/* Summary */}
+            {shuowen.summary && (
+              <div className="rounded-xl p-3" style={{ background: 'rgba(245,240,232,0.6)' }}>
+                <p className="text-[0.75rem] leading-relaxed font-serif-cn" style={{ color: '#3D3D3B' }}>
+                  {shuowen.summary}
+                </p>
+              </div>
+            )}
+
+            {/* Full shuowen expandable */}
+            {shuowen.shuowen && shuowen.shuowen.length > 20 && (
+              <div>
+                <button
+                  onClick={() => setShowShuowenDetail(!showShuowenDetail)}
+                  className="flex items-center gap-1 text-[0.6875rem] font-medium transition-colors hover:underline"
+                  style={{ color: '#C23B2A', fontFamily: 'Inter' }}
+                >
+                  查看原文
+                  <svg
+                    width="10" height="10" viewBox="0 0 10 10" fill="none"
+                    className={`transition-transform duration-200 ${showShuowenDetail ? 'rotate-180' : ''}`}
+                  >
+                    <path d="M2 3.5L5 6.5L8 3.5" stroke="#C23B2A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <AnimatePresence>
+                  {showShuowenDetail && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <p
+                        className="mt-2 text-[0.6875rem] leading-relaxed max-h-40 overflow-y-auto rounded-lg p-2.5 font-serif-cn"
+                        style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}
+                      >
+                        {shuowen.shuowen}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* No shuowen text fallback */}
+            {(!shuowen.shuowen || shuowen.shuowen.length <= 20) && shuowen.summary && shuowen.summary.length < 15 && (
+              <p className="text-[0.6875rem] italic" style={{ color: 'rgba(139,105,20,0.4)', fontFamily: 'Inter' }}>
+                暂无详细说文解字原文
+              </p>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Timeline selector */}
@@ -257,17 +387,17 @@ export default function GlyphEvolution({ character, traditional }: GlyphEvolutio
           );
         })}
       </div>
+
+      {/* No shuowen data at all */}
+      {!hasShuowen && (
+        <p className="mt-3 text-[0.6875rem] text-center" style={{ color: 'rgba(139,105,20,0.35)', fontFamily: 'Inter' }}>
+          暂无说文解字数据
+        </p>
+      )}
     </div>
   );
 }
 
-/**
- * Try loading an image URL with a timeout.
- * - No crossOrigin: servers don't return CORS headers — would break loading.
- * - referrerPolicy no-referrer: helps bypass hotlink protection.
- * - SVG files (natural 0×0) are accepted as valid.
- * - Tiny raster images (< 20px) treated as placeholder/error images.
- */
 function tryLoadImage(url: string, timeoutMs = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -285,11 +415,11 @@ function tryLoadImage(url: string, timeoutMs = 5000): Promise<boolean> {
       const w = img.naturalWidth;
       const h = img.naturalHeight;
       if (w === 0 && h === 0) {
-        done(true); // SVG
+        done(true);
       } else if (w >= 20 && h >= 20) {
         done(true);
       } else {
-        done(false); // tiny placeholder
+        done(false);
       }
     };
     img.onerror = () => done(false);
