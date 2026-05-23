@@ -20,6 +20,7 @@ let simpTradPromise: Promise<void> | null = null;
 // Character relations
 let relationsMap: Map<string, CharRelations> | null = null;
 let relationsPromise: Promise<void> | null = null;
+let relationsVersion = 0;
 
 // CDN stroke cache
 const strokeCache = new Map<string, StrokeData>();
@@ -440,12 +441,18 @@ export async function loadRelations(): Promise<void> {
       if (!res.ok) throw new Error(`char-relations.json: ${res.status}`);
       const data = await res.json() as Record<string, CharRelations>;
       relationsMap = new Map(Object.entries(data));
+      relationsVersion++;
     } catch (err) {
       console.error('Failed to load char relations:', err);
       relationsMap = new Map();
+      relationsVersion++;
     }
   })();
   return relationsPromise;
+}
+
+export function getRelationsVersion(): number {
+  return relationsVersion;
 }
 
 export function getRelations(char: string): CharRelations | undefined {

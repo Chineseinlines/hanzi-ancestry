@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft } from 'lucide-react';
 import type { HanziEntry, CognateResult, CharRelations } from '../data/types';
-import { getCharacter, getComponentCognates, getRelations } from '../data/hanziData';
+import { getCharacter, getComponentCognates, getRelations, getRelationsVersion } from '../data/hanziData';
 import GraphLegend from './GraphLegend';
 import GraphTooltip from './GraphTooltip';
 
@@ -94,6 +94,19 @@ const CognateGraph = memo(function CognateGraph({
   }>({ visible: false, x: 0, y: 0, entry: null, sharedComponents: [], nodeRadius: 22 });
 
   const isComponentMode = !!selectedComponent;
+
+  // Track relations data version so useMemo rebuilds when relations load
+  const [dataVersion, setDataVersion] = useState(getRelationsVersion);
+  useEffect(() => {
+    const check = () => {
+      const v = getRelationsVersion();
+      if (v !== dataVersion) setDataVersion(v);
+    };
+    check();
+    if (dataVersion > 0) return;
+    const timer = setInterval(check, 300);
+    return () => clearInterval(timer);
+  }, [dataVersion]);
 
   // Build graph data
   const { nodes, links, legendItems } = useMemo(() => {
@@ -206,7 +219,7 @@ const CognateGraph = memo(function CognateGraph({
 
       return { nodes: allNodes, links: allLinks, legendItems: DEFAULT_LEGEND };
     }
-  }, [character, cognates, isComponentMode, selectedComponent]);
+  }, [character, cognates, isComponentMode, selectedComponent, dataVersion]);
 
   const handleZoomIn = useCallback(() => {
     if (!svgRef.current || !zoomRef.current) return;
