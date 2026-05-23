@@ -204,7 +204,9 @@ export default function CharacterDetail() {
 
     const add = (chars: string[], label: string, en: string, color: string) => {
       for (const c of chars) {
+        // Skip self and self-variants (traditional/simplified form of the viewed character)
         if (c === char) continue;
+        if (c === relations.traditional || c === relations.simplified) continue;
         let entry = map.get(c);
         if (!entry) { entry = []; map.set(c, entry); }
         if (!entry.some(t => t.label === label)) {
@@ -218,7 +220,8 @@ export default function CharacterDetail() {
     add(relations.phoneticFamily, '同声旁族', 'Phonetic Family', '#CA6702');
     add(relations.semanticFamily, '同形旁族', 'Semantic Family', '#2D5F8A');
     add(relations.containedIn, '构件包含', 'Component Of', '#6B7F5E');
-    add(relations.homophones, '同音近音', 'Homophone', '#8B6914');
+    add(relations.homophones, '同音字', 'Homophone', '#8B6914');
+    add(relations.nearHomophones, '近音字', 'Near-Homophone', '#A08A5A');
 
     return map;
   }, [relations, char]);

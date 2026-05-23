@@ -21,6 +21,14 @@ let simpTradPromise: Promise<void> | null = null;
 let phoneticIndex: Map<string, Set<string>> | null = null;
 let semanticIndex: Map<string, Set<string>> | null = null;
 let pinyinIndex: Map<string, Set<string>> | null = null;
+let pinyinNoToneIndex: Map<string, Set<string>> | null = null;
+
+// Structural importance: how many chars contain this char as a component
+// Proxy for character frequency/fundamental-ness
+let structuralRank: Map<string, number> | null = null;
+
+// Traditional → Simplified reverse mapping (built from simpToTrad)
+let tradToSimp: Map<string, string> | null = null;
 
 // Antonym pairs (high-frequency, curated)
 const ANTONYM_PAIRS: [string, string][] = [
@@ -46,6 +54,14 @@ const STROKE_CDN = 'https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0';
 
 // Stroke blacklist — pure strokes that shouldn't be treated as components
 const STROKE_BLACKLIST = new Set(['一','丨','丿','丶','乙','亅','乀']);
+
+/** Strip tone marks from pinyin, returning base syllable (e.g. "mǎi" → "mai") */
+function stripTone(pinyin: string): string {
+  return pinyin
+    .normalize('NFD')
+    .replace(/[̀-̄̆-̧̈-̨]/g, '')
+    .normalize('NFC');
+}
 
 /**
  * Load character dictionary from Make Me a Hanzi data.
@@ -101,6 +117,7 @@ export async function loadData(): Promise<void> {
       phoneticIndex = new Map();
       semanticIndex = new Map();
       pinyinIndex = new Map();
+      pinyinNoToneIndex = new Map();
       const charSet = new Set(Object.keys(rawDict));
 
       for (const [char, raw] of Object.entries(rawDict)) {
@@ -122,7 +139,21 @@ export async function loadData(): Promise<void> {
           let s = pinyinIndex.get(py);
           if (!s) { s = new Set(); pinyinIndex.set(py, s); }
           s.add(char);
+          // Also index by tone-stripped pinyin for near-homophones
+          const noTone = stripTone(py);
+          let nt = pinyinNoToneIndex.get(noTone);
+          if (!nt) { nt = new Set(); pinyinNoToneIndex.set(noTone, nt); }
+          nt.add(char);
         }
+      }
+
+      // Compute structural importance from reverse index
+      // (how many characters contain this char as a component — proxy for frequency)
+      structuralRank = new Map();
+      for (const [comp, chars] of reverseIndex.entries()) {
+        // Dedup the array in case source data has duplicates
+        const unique = new Set(chars);
+        structuralRank.set(comp, unique.size);
       }
     } catch (err) {
       console.error('Failed to load hanzi data:', err);
@@ -312,12 +343,27 @@ export function getComponentCognates(component: string, maxResults: number = 30)
   for (const c of chars) {
     if (!charMap.has(c)) continue;
     const entry = charMap.get(c)!;
-    const score = entry.etymology?.phonetic === component || entry.etymology?.semantic === component ? 10 : 1;
+    const etymological = entry.etymology?.phonetic === component || entry.etymology?.semantic === component ? 10 : 0;
+    const importance = getImportance(c);
+    const score = etymological + Math.log2(importance + 1);
     results.push({ character: c, definition: entry.definition, pinyin: entry.pinyin[0] || '', score });
   }
 
   results.sort((a, b) => b.score - a.score);
-  return results.slice(0, maxResults);
+  // Apply simp-trad dedup on the sorted results
+  const seen = new Set<string>();
+  const deduped: ComponentCognateResult[] = [];
+  for (const r of results) {
+    if (seen.has(r.character)) continue;
+    // Also skip traditional form if simplified already seen
+    const simp = tradToSimp?.get(r.character);
+    if (simp && seen.has(simp)) continue;
+    const trad = simpToTrad?.get(r.character);
+    if (trad && seen.has(trad)) continue;
+    seen.add(r.character);
+    deduped.push(r);
+  }
+  return deduped.slice(0, maxResults);
 }
 
 export function getCognates(char: string, maxResults: number = 30): CognateResult[] {
@@ -366,10 +412,22 @@ export function getCognates(char: string, maxResults: number = 30): CognateResul
 
   const filtered = Array.from(cognateScores.entries())
     .filter(([, data]) => data.shared.size > 0)
-    .sort((a, b) => b[1].score - a[1].score);
+    .sort((a, b) => {
+      // Primary: number of shared components; secondary: structural importance
+      const scoreDiff = b[1].score - a[1].score;
+      if (scoreDiff !== 0) return scoreDiff;
+      return getImportance(b[0]) - getImportance(a[0]);
+    });
 
   const results: CognateResult[] = [];
-  for (const [c, data] of filtered.slice(0, maxResults)) {
+  const seen = new Set<string>();
+  for (const [c, data] of filtered) {
+    if (seen.has(c)) continue;
+    const simp = tradToSimp?.get(c);
+    if (simp && seen.has(simp)) continue;
+    const trad = simpToTrad?.get(c);
+    if (trad && seen.has(trad)) continue;
+    seen.add(c);
     const cEntry = charMap!.get(c)!;
     results.push({
       character: c,
@@ -378,6 +436,7 @@ export function getCognates(char: string, maxResults: number = 30): CognateResul
       sharedComponents: Array.from(data.shared),
       score: data.score,
     });
+    if (results.length >= maxResults) break;
   }
 
   return results;
@@ -456,6 +515,11 @@ export async function loadSimpTradMap(): Promise<void> {
       if (!res.ok) throw new Error(`simp-trad-map.json: ${res.status}`);
       const data = await res.json() as Record<string, string>;
       simpToTrad = new Map(Object.entries(data));
+      // Build reverse mapping (traditional → simplified)
+      tradToSimp = new Map();
+      for (const [simp, trad] of Object.entries(data)) {
+        if (!tradToSimp.has(trad)) tradToSimp.set(trad, simp);
+      }
     } catch (err) {
       console.error('Failed to load simp-trad map:', err);
       simpToTrad = new Map();
@@ -487,6 +551,72 @@ function extractCJK(str: string): string[] {
   return chars;
 }
 
+/** Structural importance score — higher = more fundamental/common character */
+function getImportance(c: string): number {
+  // Base: how many characters contain this char as a component (fundamental building block)
+  const struct = structuralRank?.get(c) ?? 0;
+  // Bonus for having etymology data (well-studied, common char)
+  const entry = charMap?.get(c);
+  const hasEtymology = entry?.etymology?.type ? 5 : 0;
+  return struct + hasEtymology;
+}
+
+/** Sort an array of characters by structural importance (descending) */
+function sortByImportance(chars: string[]): string[] {
+  return chars.sort((a, b) => getImportance(b) - getImportance(a));
+}
+
+/**
+ * Remove traditional-form duplicates from a list.
+ * Uses explicit simp-trad map first, then falls back to pinyin+definition overlap.
+ * When both forms exist, keeps the more common (higher importance) one.
+ */
+function dedupSimpTrad(chars: string[]): string[] {
+  if (chars.length <= 1) return chars;
+  const toRemove = new Set<string>();
+
+  for (let i = 0; i < chars.length; i++) {
+    if (toRemove.has(chars[i])) continue;
+    for (let j = i + 1; j < chars.length; j++) {
+      if (toRemove.has(chars[j])) continue;
+      const a = chars[i], b = chars[j];
+
+      // Check 1: explicit simp-trad map
+      const aTrad = simpToTrad?.get(a);
+      const bTrad = simpToTrad?.get(b);
+      const aSimp = tradToSimp?.get(a);
+      const bSimp = tradToSimp?.get(b);
+
+      if (aTrad === b || bTrad === a || aSimp === b || bSimp === a) {
+        // Keep the more important one
+        if (getImportance(a) >= getImportance(b)) toRemove.add(b);
+        else toRemove.add(a);
+        continue;
+      }
+
+      // Check 2: same tone-stripped pinyin + definition overlap (heuristic)
+      const entryA = charMap?.get(a), entryB = charMap?.get(b);
+      if (entryA && entryB) {
+        const pinyinA = entryA.pinyin.map(p => stripTone(p));
+        const pinyinB = entryB.pinyin.map(p => stripTone(p));
+        const sharePinyin = pinyinA.some(pa => pinyinB.includes(pa));
+        if (sharePinyin) {
+          const defA = entryA.definition || '', defB = entryB.definition || '';
+          // Definition similarity: one contains the other, or high overlap
+          const shareDef = defA.includes(defB.slice(0, 10)) || defB.includes(defA.slice(0, 10))
+            || (defA.slice(0, 20) === defB.slice(0, 20));
+          if (shareDef) {
+            if (getImportance(a) >= getImportance(b)) toRemove.add(b);
+            else toRemove.add(a);
+          }
+        }
+      }
+    }
+  }
+
+  return toRemove.size === 0 ? chars : chars.filter(c => !toRemove.has(c));
+}
+
 export function computeRelations(char: string): CharRelations {
   const entry = charMap?.get(char);
   if (!entry) {
@@ -497,78 +627,106 @@ export function computeRelations(char: string): CharRelations {
   const phonetic = entry.etymology?.phonetic;
   const semantic = entry.etymology?.semantic;
 
-  // Differentiations: chars using THIS char as phonetic + containing it in decomposition
-  const differentiations: string[] = [];
+  // ── Differentiations ──────────────────────────────────────────────
+  const diffSet = new Set<string>();
   const children = phoneticIndex?.get(char);
   if (children) {
     for (const child of children) {
       const cd = charSet.get(child)?.decomposition || '';
-      if (extractCJK(cd).includes(char)) differentiations.push(child);
+      if (extractCJK(cd).includes(char)) diffSet.add(child);
     }
   }
 
-  // Phonetic family: siblings (share same phonetic) + children (use char as phonetic)
-  const pfSet = new Set<string>();
-  if (phonetic && charSet.has(phonetic)) {
-    const sibs = phoneticIndex?.get(phonetic);
-    if (sibs) for (const s of sibs) { if (s !== char) pfSet.add(s); }
-  }
-  if (children) for (const c of children) pfSet.add(c);
-  const phoneticFamily = [...pfSet].sort((a, b) =>
-    ((phoneticIndex?.get(charSet.get(b)?.etymology?.phonetic || '')?.size || 0) -
-     (phoneticIndex?.get(charSet.get(a)?.etymology?.phonetic || '')?.size || 0))
-  ).slice(0, 30);
-
-  // Semantic family
-  const semFamily: string[] = [];
-  if (semantic && charSet.has(semantic)) {
-    const sibs = semanticIndex?.get(semantic);
-    if (sibs) for (const s of sibs) { if (s !== char) semFamily.push(s); }
-  }
-
-  // Contained in (from reverseIndex), dedup in case source data has duplicates
-  const containedIn = [...new Set(reverseIndex?.get(char) || [])].slice(0, 30);
-
-  // Homophones
-  const homoSet = new Set<string>();
-  for (const py of entry.pinyin) {
-    const exact = pinyinIndex?.get(py);
-    if (exact) for (const c of exact) { if (c !== char) homoSet.add(c); }
-  }
-  const homophones = [...homoSet].sort().slice(0, 20);
-
-  // Antonyms
+  // ── Antonyms ──────────────────────────────────────────────────────
   const antonymLookup = new Map<string, string[]>();
   for (const [a, b] of ANTONYM_PAIRS) {
     if (!charSet.has(a) || !charSet.has(b)) continue;
     const l = antonymLookup.get(a) || []; l.push(b); antonymLookup.set(a, l);
     const r = antonymLookup.get(b) || []; r.push(a); antonymLookup.set(b, r);
   }
-  const antonyms = antonymLookup.get(char) || [];
+  const antSet = new Set(antonymLookup.get(char) || []);
 
-  // Components
-  const components = extractCJK(entry.decomposition || '').filter(c => c !== char);
+  // ── Phonetic family ───────────────────────────────────────────────
+  const pfSet = new Set<string>();
+  if (phonetic && charSet.has(phonetic)) {
+    const sibs = phoneticIndex?.get(phonetic);
+    if (sibs) for (const s of sibs) { if (s !== char) pfSet.add(s); }
+  }
+  if (children) for (const c of children) pfSet.add(c);
 
-  // Radical family
-  const radFam: string[] = [];
-  const radical = entry.radical;
-  if (radical && radical !== char) {
-    for (const [c, e] of charSet) {
-      if (c !== char && e.radical === radical) radFam.push(c);
+  // ── Semantic family ───────────────────────────────────────────────
+  const sfSet = new Set<string>();
+  if (semantic && charSet.has(semantic)) {
+    const sibs = semanticIndex?.get(semantic);
+    if (sibs) for (const s of sibs) { if (s !== char) sfSet.add(s); }
+  }
+
+  // ── Contained in ──────────────────────────────────────────────────
+  const ciSet = new Set(reverseIndex?.get(char) || []);
+
+  // ── Homophones ────────────────────────────────────────────────────
+  const homoSet = new Set<string>();
+  for (const py of entry.pinyin) {
+    const exact = pinyinIndex?.get(py);
+    if (exact) for (const c of exact) { if (c !== char) homoSet.add(c); }
+  }
+
+  // ── Near-homophones ───────────────────────────────────────────────
+  const nearHomoSet = new Set<string>();
+  for (const py of entry.pinyin) {
+    const noTone = stripTone(py);
+    const near = pinyinNoToneIndex?.get(noTone);
+    if (near) for (const c of near) {
+      if (c !== char && !homoSet.has(c)) nearHomoSet.add(c);
     }
   }
 
-  // Traditional / Simplified
+  // ── Components ────────────────────────────────────────────────────
+  const components = extractCJK(entry.decomposition || '').filter(c => c !== char);
+
+  // ── Radical family ────────────────────────────────────────────────
+  const radSet = new Set<string>();
+  const radical = entry.radical;
+  if (radical && radical !== char) {
+    for (const [c, e] of charSet) {
+      if (c !== char && e.radical === radical) radSet.add(c);
+    }
+  }
+
+  // ── Self-variant set (chars to never include) ──────────────────────
   const traditional = simpToTrad?.get(char) || null;
   let simplified: string | null = null;
   if (simpToTrad) {
     for (const [s, t] of simpToTrad) { if (t === char) { simplified = s; break; } }
   }
+  const selfVariants = new Set([char, traditional, simplified].filter(Boolean) as string[]);
+
+  // ── Build mutually-exclusive lists (priority order) ───────────────
+  // Each character appears only in the highest-priority list that claims it.
+  // Priority: differentiation > antonym > phonetic > semantic > containedIn > homophone > nearHomophone > radical
+  const claimed = new Set<string>();
+
+  function takeList(set: Set<string>, limit: number): string[] {
+    const result = dedupSimpTrad(sortByImportance([...set]))
+      .filter(c => !selfVariants.has(c) && !claimed.has(c));
+    const taken = result.slice(0, limit);
+    for (const c of taken) claimed.add(c);
+    return taken;
+  }
+
+  const differentiations = takeList(diffSet, 30);
+  const antonyms         = takeList(antSet, 30);
+  const phoneticFamily   = takeList(pfSet, 30);
+  const semanticFamily   = takeList(sfSet, 30);
+  const containedIn      = takeList(ciSet, 30);
+  const homophones       = takeList(homoSet, 20);
+  const nearHomophones   = takeList(nearHomoSet, 20);
+  const radicalFamily    = takeList(radSet, 30);
 
   return {
-    differentiations, phoneticFamily, semanticFamily: semFamily.slice(0, 30),
-    containedIn, homophones, nearHomophones: [],
-    antonyms, components, radicalFamily: radFam.slice(0, 30),
+    differentiations, phoneticFamily, semanticFamily,
+    containedIn, homophones, nearHomophones,
+    antonyms, components, radicalFamily,
     traditional, simplified,
   };
 }

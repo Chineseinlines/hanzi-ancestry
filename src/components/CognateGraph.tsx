@@ -147,13 +147,16 @@ const CognateGraph = memo(function CognateGraph({
       const relations = getRelations(character);
       const allNodes: SimNode[] = [centerNode];
       const allLinks: SimLink[] = [];
+      const seenChars = new Set<string>(); // dedup: same char in multiple relation types → single node
       let nodeIdx = 0;
 
       const addRelated = (chars: string[], relType: RelationType, radius: number) => {
         for (const c of chars) {
-          if (allNodes.length > 25) break;
+          if (allNodes.length > 40) break;
+          if (seenChars.has(c)) continue; // already in graph from higher-priority relation type
           const entry = getCharacter(c);
           if (!entry) continue;
+          seenChars.add(c);
           const id = `rel-${nodeIdx++}`;
           allNodes.push({
             id,
@@ -180,6 +183,7 @@ const CognateGraph = memo(function CognateGraph({
         addRelated(relations.semanticFamily, 'semantic', 16);
         addRelated(relations.containedIn, 'containedBy', 15);
         addRelated(relations.homophones, 'homophone', 13);
+        addRelated(relations.nearHomophones, 'homophone', 11);
       }
 
       // Fallback to old cognate data if no relations found
