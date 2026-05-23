@@ -60,6 +60,30 @@ function collectIDSLines(node: DecompositionNode, depth = 0, prefix = '', isLast
   return lines;
 }
 
+function getEnglishSummary(shuowen: ShuowenEntry, entry: HanziEntry | null): string {
+  const parts: string[] = [];
+  const sb = shuowen.sixBooks;
+  if (sb === '象形') parts.push('Pictograph (象形) — depicts the object\'s form');
+  else if (sb === '指事') parts.push('Ideogram (指事) — abstract symbol indicating a concept');
+  else if (sb === '会意') parts.push('Compound ideograph (会意) — combines multiple components for meaning');
+  else if (sb === '形声') parts.push('Phono-semantic compound (形声) — semantic component hints at meaning, phonetic at sound');
+  else if (sb === '转注') parts.push('Transferred cognate (转注) — characters sharing meaning/pronunciation');
+  else if (sb === '假借') parts.push('Phonetic loan (假借) — borrowed for its sound');
+  else if (sb) parts.push(sb);
+
+  if (shuowen.structure && shuowen.structure !== sb) {
+    parts.push(`Structure: ${shuowen.structure}`);
+  }
+
+  if (entry?.etymology) {
+    const ety = entry.etymology;
+    if (ety.semantic) parts.push(`Semantic component: ${ety.semantic}`);
+    if (ety.phonetic) parts.push(`Phonetic component: ${ety.phonetic}`);
+  }
+
+  return parts.join('. ') + (parts.length > 0 ? '.' : '');
+}
+
 export default function CharacterDetail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -388,7 +412,7 @@ export default function CharacterDetail() {
               )}
 
               {/* Shuowen structure & classification */}
-              {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.summary) && (
+              {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.shuowen) && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <div className="flex items-center gap-2 mb-3">
                     <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>说文解字</h2>
@@ -406,26 +430,17 @@ export default function CharacterDetail() {
                       </span>
                     )}
                   </div>
-                  {shuowen.summary && (
-                    <p className="text-sm leading-relaxed font-serif-cn" style={{ color: '#3D3D3B' }}>
-                      {shuowen.summary}
-                    </p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                    {getEnglishSummary(shuowen, entry)}
+                  </p>
+                  {shuowen.shuowen && (
+                    <details className="mt-3">
+                      <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>查看原文</summary>
+                      <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
+                        {shuowen.shuowen}
+                      </p>
+                    </details>
                   )}
-                  {(() => {
-                    const summaryLen = (shuowen.summary || '').length;
-                    const fullLen = (shuowen.shuowen || '').length;
-                    if (fullLen > summaryLen + 15) {
-                      return (
-                        <details className="mt-3">
-                          <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>查看原文</summary>
-                          <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
-                            {shuowen.shuowen}
-                          </p>
-                        </details>
-                      );
-                    }
-                    return null;
-                  })()}
                 </div>
               )}
             </motion.div>
@@ -460,75 +475,6 @@ export default function CharacterDetail() {
                       onNodeDoubleClick={(c) => navigate(`/explore?char=${encodeURIComponent(c)}`)}
                     />
                   </div>
-                </div>
-              )}
-
-              {/* IDS Text Tree — always visible, right after the graph */}
-              {idsLines.length > 0 && (
-                <div
-                  className="rounded-2xl p-5"
-                  style={{
-                    background: '#FDFBF6',
-                    boxShadow: '0 4px 20px rgba(26,26,24,0.06)',
-                    borderLeft: '3px solid #C23B2A',
-                  }}
-                >
-                  <button
-                    onClick={() => setIdsExpanded(!idsExpanded)}
-                    className="flex w-full items-center justify-between text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <GitBranch size={14} className="text-cinnabar" />
-                      <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                        Full Decomposition Tree
-                      </span>
-                      <span className="font-serif-cn text-xs" style={{ color: 'rgba(139,105,20,0.5)' }}>完整拆解树</span>
-                    </div>
-                    <ChevronDown
-                      size={18}
-                      className={`transition-transform duration-300 ${idsExpanded ? 'rotate-180' : ''}`}
-                      style={{ color: '#C23B2A' }}
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {idsExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
-                      >
-                        <pre
-                          className="mt-3 overflow-x-auto rounded-lg p-4 font-mono text-sm leading-relaxed"
-                          style={{ background: 'rgba(245,240,232,0.5)', whiteSpace: 'pre' }}
-                        >
-                          {idsLines.map((line, i) => {
-                            const indentPx = line.depth * 24;
-                            const color = line.depth === 0 ? '#1A1A18' : line.depth === 1 ? '#2D5F8A' : line.depth === 2 ? 'rgba(45,95,138,0.7)' : '#8B6914';
-                            const ann = getAnnotation(line.character);
-                            const isMoonBody = line.character === '月' && getMoonAnnotation(entry?.definition ?? '');
-                            const variantBadge = ann || isMoonBody;
-                            return (
-                              <div key={`${line.character}-${i}`} style={{ color, paddingLeft: `${indentPx}px`, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                                <span>
-                                  <span style={{ color: 'rgba(139,105,20,0.5)' }}>{line.prefix}{line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}</span>
-                                  {line.decomposition && line.decomposition !== '？' && <span style={{ color: 'rgba(139,105,20,0.6)' }}>{line.decomposition} </span>}
-                                  <span className="font-semibold">{line.character}</span>
-                                  {line.definition && <span style={{ color: 'rgba(139,105,20,0.6)' }}> — {line.definition}</span>}
-                                </span>
-                                {variantBadge && (
-                                  <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
-                                    {variantBadge.name}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </pre>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               )}
 
@@ -605,6 +551,59 @@ export default function CharacterDetail() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* IDS Text Tree */}
+              {idsLines.length > 0 && (
+                <div
+                  className="rounded-2xl p-5"
+                  style={{
+                    background: '#FDFBF6',
+                    boxShadow: '0 4px 20px rgba(26,26,24,0.06)',
+                    borderLeft: '3px solid #C23B2A',
+                  }}
+                >
+                  <button onClick={() => setIdsExpanded(!idsExpanded)} className="flex w-full items-center justify-between text-left">
+                    <div className="flex items-center gap-2">
+                      <GitBranch size={14} className="text-cinnabar" />
+                      <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                        Full Decomposition Tree
+                      </span>
+                      <span className="font-serif-cn text-xs" style={{ color: 'rgba(139,105,20,0.5)' }}>完整拆解树</span>
+                    </div>
+                    <ChevronDown size={18} className={`transition-transform duration-300 ${idsExpanded ? 'rotate-180' : ''}`} style={{ color: '#C23B2A' }} />
+                  </button>
+                  <AnimatePresence>
+                    {idsExpanded && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
+                        <pre className="mt-3 overflow-x-auto rounded-lg p-4 font-mono text-sm leading-relaxed" style={{ background: 'rgba(245,240,232,0.5)', whiteSpace: 'pre' }}>
+                          {idsLines.map((line, i) => {
+                            const indentPx = line.depth * 24;
+                            const color = line.depth === 0 ? '#1A1A18' : line.depth === 1 ? '#2D5F8A' : line.depth === 2 ? 'rgba(45,95,138,0.7)' : '#8B6914';
+                            const ann = getAnnotation(line.character);
+                            const isMoonBody = line.character === '月' && getMoonAnnotation(entry?.definition ?? '');
+                            const variantBadge = ann || isMoonBody;
+                            return (
+                              <div key={`${line.character}-${i}`} style={{ color, paddingLeft: `${indentPx}px`, display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                <span>
+                                  <span style={{ color: 'rgba(139,105,20,0.5)' }}>{line.prefix}{line.depth > 0 && (line.isLast ? '└─ ' : '├─ ')}</span>
+                                  {line.decomposition && line.decomposition !== '？' && <span style={{ color: 'rgba(139,105,20,0.6)' }}>{line.decomposition} </span>}
+                                  <span className="font-semibold">{line.character}</span>
+                                  {line.definition && <span style={{ color: 'rgba(139,105,20,0.6)' }}> — {line.definition}</span>}
+                                </span>
+                                {variantBadge && (
+                                  <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
+                                    {variantBadge.name}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </pre>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </motion.div>

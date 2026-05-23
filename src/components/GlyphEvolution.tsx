@@ -27,6 +27,24 @@ const SCRIPT_STYLES: ScriptStyle[] = [
 
 const EASING = [0.25, 0.1, 0.25, 1] as [number, number, number, number];
 
+function buildEnglishSummary(shuowen: ShuowenEntry): string {
+  const parts: string[] = [];
+  const sb = shuowen.sixBooks;
+  if (sb === '象形') parts.push('Pictograph — depicts the object\'s form');
+  else if (sb === '指事') parts.push('Ideogram — abstract symbol indicating a concept');
+  else if (sb === '会意') parts.push('Compound ideograph — combines components for meaning');
+  else if (sb === '形声') parts.push('Phono-semantic compound — semantic + phonetic');
+  else if (sb === '转注') parts.push('Transferred cognate — shares meaning or sound');
+  else if (sb === '假借') parts.push('Phonetic loan — borrowed for its sound');
+  else if (sb) parts.push(sb);
+
+  if (shuowen.structure && shuowen.structure !== sb) {
+    parts.push(`Structure: ${shuowen.structure}`);
+  }
+
+  return parts.join('. ') + (parts.length > 0 ? '.' : '');
+}
+
 function buildImageUrls(_char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
   if (style.useLocalGlyph) {
     return [`${import.meta.env.BASE_URL}glyphs/${style.key}/${hexUpper}.svg`];
@@ -274,62 +292,56 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
               </p>
             )}
 
-            {/* Summary */}
-            {shuowen.summary && (
+            {/* English explanation (default visible) */}
+            {buildEnglishSummary(shuowen) && (
               <div className="rounded-xl p-3" style={{ background: 'rgba(245,240,232,0.6)' }}>
-                <p className="text-[0.75rem] leading-relaxed font-serif-cn" style={{ color: '#3D3D3B' }}>
-                  {shuowen.summary}
+                <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                  {buildEnglishSummary(shuowen)}
                 </p>
               </div>
             )}
 
-            {/* Full shuowen — only show toggle when text is substantially different from summary */}
-            {(() => {
-              const summaryLen = (shuowen.summary || '').length;
-              const fullLen = (shuowen.shuowen || '').length;
-              const hasExtraText = fullLen > summaryLen + 15;
-              if (!hasExtraText) return null;
-              return (
-                <div>
-                  <button
-                    onClick={() => setShowShuowenDetail(!showShuowenDetail)}
-                    className="flex items-center gap-1 text-[0.6875rem] font-medium transition-colors hover:underline"
-                    style={{ color: '#C23B2A', fontFamily: 'Inter' }}
+            {/* Chinese原文 — always available when shuowen text exists */}
+            {shuowen.shuowen && (
+              <div>
+                <button
+                  onClick={() => setShowShuowenDetail(!showShuowenDetail)}
+                  className="flex items-center gap-1 text-[0.6875rem] font-medium transition-colors hover:underline"
+                  style={{ color: '#C23B2A', fontFamily: 'Inter' }}
+                >
+                  查看原文
+                  <svg
+                    width="10" height="10" viewBox="0 0 10 10" fill="none"
+                    className={`transition-transform duration-200 ${showShuowenDetail ? 'rotate-180' : ''}`}
                   >
-                    查看原文
-                    <svg
-                      width="10" height="10" viewBox="0 0 10 10" fill="none"
-                      className={`transition-transform duration-200 ${showShuowenDetail ? 'rotate-180' : ''}`}
+                    <path d="M2 3.5L5 6.5L8 3.5" stroke="#C23B2A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <AnimatePresence>
+                  {showShuowenDetail && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
                     >
-                      <path d="M2 3.5L5 6.5L8 3.5" stroke="#C23B2A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  <AnimatePresence>
-                    {showShuowenDetail && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="overflow-hidden"
+                      <p
+                        className="mt-2 text-[0.6875rem] leading-relaxed max-h-40 overflow-y-auto rounded-lg p-2.5 font-serif-cn"
+                        style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}
                       >
-                        <p
-                          className="mt-2 text-[0.6875rem] leading-relaxed max-h-40 overflow-y-auto rounded-lg p-2.5 font-serif-cn"
-                          style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}
-                        >
-                          {shuowen.shuowen}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })()}
+                        {shuowen.shuowen}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
-            {/* No shuowen text at all */}
-            {!shuowen.shuowen && !shuowen.summary && (
+            {/* No data at all */}
+            {!shuowen.shuowen && !shuowen.summary && !shuowen.sixBooks && (
               <p className="text-[0.6875rem] italic" style={{ color: 'rgba(139,105,20,0.4)', fontFamily: 'Inter' }}>
-                暂无详细说文解字原文
+                暂无说文解字数据
               </p>
             )}
           </motion.div>
