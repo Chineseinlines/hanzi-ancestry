@@ -34,7 +34,7 @@ const GraphTooltip = memo(function GraphTooltip({
   nodeRadius = 22,
   nodeType,
   phoneticRating,
-  isGhost,
+  isGhost: _isGhost,
 }: GraphTooltipProps) {
   const [pos, setPos] = useState({ left: 0, top: 0 });
 

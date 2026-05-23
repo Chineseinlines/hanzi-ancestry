@@ -125,7 +125,7 @@ function getNodeRadius(type: TreeNode['type']): number {
   }
 }
 
-function getNodeColor(type: TreeNode['type'], isHighlighted: boolean, phoneticRating?: PhoneticRating | null): string {
+function getNodeColor(type: TreeNode['type'], isHighlighted: boolean): string {
   if (isHighlighted) return '#C23B2A';
   switch (type) {
     case 'core': return CORE_COLOR;
@@ -167,10 +167,6 @@ function getNodeLabel(type: TreeNode['type'], phoneticRating?: PhoneticRating | 
       return '声';
     default: return '';
   }
-}
-
-function getPhoneticRatingBadge(rating: PhoneticRating): string {
-  return rating === 'green' ? '✓' : rating === 'yellow' ? '~' : '✗';
 }
 
 const DecompositionGraph = memo(function DecompositionGraph({
@@ -328,7 +324,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
       const el = d3.select(this);
       const r = getNodeRadius(d.type);
       const hl = isNodeHighlighted(d);
-      const color = getNodeColor(d.type, hl, d.phoneticRating);
+      const color = getNodeColor(d.type, hl);
       const strokeClr = getNodeStrokeColor(d.type, d.phoneticRating);
       const strokeW = getNodeStrokeWidth(d.type, d.phoneticRating);
 

@@ -10,7 +10,6 @@ import {
   getCulturalData,
   getCognates,
   decomposeCharacter,
-  getTraditionalComponents,
   loadData,
   loadCulturalData,
 } from '../data/hanziData';
@@ -20,8 +19,8 @@ import GlyphEvolution from '../components/GlyphEvolution';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
-import { ratePhonetic, PHONETIC_COLORS, RED_WARNING_TEXT, type PhoneticRatingResult } from '../data/phoneticRating';
-import { getGhostSuggestion, isGhostCharacter, getGhostAnnotation } from '../data/ghostComponents';
+import { ratePhonetic, PHONETIC_COLORS, type PhoneticRatingResult } from '../data/phoneticRating';
+import { getGhostSuggestion } from '../data/ghostComponents';
 
 const TABS = [
   { id: 'card', label: '知识卡片', icon: BookOpen },
@@ -91,7 +90,6 @@ export default function CharacterDetail() {
   }, [char]);
 
   const decomposition = useMemo(() => (char ? decomposeCharacter(char) : null), [char]);
-  const traditionalComponents = useMemo(() => (char ? getTraditionalComponents(char) : []), [char]);
   const idsLines = useMemo(() => {
     if (!decomposition) return [];
     return collectIDSLines(decomposition);
@@ -120,15 +118,7 @@ export default function CharacterDetail() {
             results.push({ component: child.character, annotation: getMoonTrueAnnotation() });
           }
         }
-        // 阝 positional detection
-        if (child.character === '阝' && entry?.decomposition) {
-          const decomp = entry.decomposition;
-          const erPos = decomp.indexOf('阝');
-          // Heuristic: if 阝 is near the end of IDS, it's likely on the right
-          // Actually, we can't reliably detect position from IDS alone without structural parsing.
-          // For now, skip positional 阝 detection in the annotations list and rely on the generic annotation.
-          // The getAnnotation('阝') already returns the combined阜/邑 info.
-        }
+        // 阝: positional阜/邑 detection not currently implemented from IDS alone
         walk(child);
       }
     }

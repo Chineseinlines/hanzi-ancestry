@@ -12,16 +12,6 @@ const fadeUp = {
   }),
 };
 
-interface GameCard {
-  icon: React.ReactNode;
-  title: string;
-  en: string;
-  category: string;
-  desc: string;
-  available: boolean;
-  action?: () => void;
-}
-
 export default function Games() {
   const navigate = useNavigate();
 

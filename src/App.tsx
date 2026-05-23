@@ -11,7 +11,7 @@ const pageTransition = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -12 },
-  transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
+  transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] },
 }
 
 export default function App() {
