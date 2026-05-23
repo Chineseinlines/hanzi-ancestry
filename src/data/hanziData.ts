@@ -17,10 +17,26 @@ let shuowenPromise: Promise<void> | null = null;
 let simpToTrad: Map<string, string> | null = null;
 let simpTradPromise: Promise<void> | null = null;
 
-// Character relations
-let relationsMap: Map<string, CharRelations> | null = null;
-let relationsPromise: Promise<void> | null = null;
-let relationsVersion = 0;
+// Character relations — computed in-memory from loaded data (no separate JSON fetch)
+let phoneticIndex: Map<string, Set<string>> | null = null;
+let semanticIndex: Map<string, Set<string>> | null = null;
+let pinyinIndex: Map<string, Set<string>> | null = null;
+
+// Antonym pairs (high-frequency, curated)
+const ANTONYM_PAIRS: [string, string][] = [
+  ['上', '下'], ['大', '小'], ['多', '少'], ['高', '低'], ['长', '短'],
+  ['前', '后'], ['左', '右'], ['开', '关'], ['进', '退'], ['出', '入'],
+  ['来', '去'], ['天', '地'], ['日', '月'], ['男', '女'], ['生', '死'],
+  ['水', '火'], ['东', '西'], ['南', '北'], ['内', '外'], ['深', '浅'],
+  ['轻', '重'], ['快', '慢'], ['新', '旧'], ['老', '少'], ['强', '弱'],
+  ['好', '坏'], ['真', '假'], ['冷', '热'], ['厚', '薄'], ['远', '近'],
+  ['早', '晚'], ['古', '今'], ['明', '暗'], ['正', '反'], ['公', '私'],
+  ['得', '失'], ['存', '亡'], ['安', '危'], ['始', '终'], ['首', '尾'],
+  ['表', '里'], ['善', '恶'], ['美', '丑'], ['爱', '恨'], ['贫', '富'],
+  ['贵', '贱'], ['买', '卖'], ['问', '答'], ['攻', '守'], ['彼', '此'],
+  ['曲', '直'], ['动', '静'], ['虚', '实'], ['文', '武'], ['恩', '怨'],
+  ['嫁', '娶'], ['昼', '夜'], ['寒', '暑'], ['清', '浊'],
+];
 
 // CDN stroke cache
 const strokeCache = new Map<string, StrokeData>();
@@ -79,6 +95,34 @@ export async function loadData(): Promise<void> {
       reverseIndex = new Map();
       for (const [comp, chars] of Object.entries(rawIndex)) {
         reverseIndex.set(comp, chars);
+      }
+
+      // Build relation indexes in-memory
+      phoneticIndex = new Map();
+      semanticIndex = new Map();
+      pinyinIndex = new Map();
+      const charSet = new Set(Object.keys(rawDict));
+
+      for (const [char, raw] of Object.entries(rawDict)) {
+        const phonetic = raw.etymology?.phonetic;
+        if (phonetic && charSet.has(phonetic) && phonetic !== char) {
+          let s = phoneticIndex.get(phonetic);
+          if (!s) { s = new Set(); phoneticIndex.set(phonetic, s); }
+          s.add(char);
+        }
+
+        const semantic = raw.etymology?.semantic;
+        if (semantic && charSet.has(semantic) && semantic !== char) {
+          let s = semanticIndex.get(semantic);
+          if (!s) { s = new Set(); semanticIndex.set(semantic, s); }
+          s.add(char);
+        }
+
+        for (const py of raw.p || []) {
+          let s = pinyinIndex.get(py);
+          if (!s) { s = new Set(); pinyinIndex.set(py, s); }
+          s.add(char);
+        }
       }
     } catch (err) {
       console.error('Failed to load hanzi data:', err);
@@ -429,64 +473,122 @@ export function hasTraditional(char: string): boolean {
   return simpToTrad?.has(char) ?? false;
 }
 
-// ── Character relations ───────────────────────────────────────────────
+// ── Character relations (computed in-memory, no JSON fetch) ─────────────
 
-export async function loadRelations(): Promise<void> {
-  if (relationsMap) return;
-  if (relationsPromise) return relationsPromise;
+let relationsReady = false;
 
-  relationsPromise = (async () => {
-    try {
-      const res = await fetch(`${import.meta.env.BASE_URL}char-relations.json`);
-      if (!res.ok) throw new Error(`char-relations.json: ${res.status}`);
-      const data = await res.json() as Record<string, CharRelations>;
-      relationsMap = new Map(Object.entries(data));
-      relationsVersion++;
-    } catch (err) {
-      console.error('Failed to load char relations:', err);
-      relationsMap = new Map();
-      relationsVersion++;
-    }
-  })();
-  return relationsPromise;
+function extractCJK(str: string): string[] {
+  const chars: string[] = [];
+  for (let i = 0; i < str.length; i++) {
+    const cp = str.codePointAt(i);
+    if (cp && cp >= 0x4E00 && cp <= 0x9FFF) chars.push(str[i]);
+  }
+  return chars;
 }
 
-export function getRelationsVersion(): number {
-  return relationsVersion;
+export function computeRelations(char: string): CharRelations {
+  const entry = charMap?.get(char);
+  if (!entry) {
+    return { differentiations:[], phoneticFamily:[], semanticFamily:[], containedIn:[], homophones:[], nearHomophones:[], antonyms:[], components:[], radicalFamily:[], traditional:null, simplified:null };
+  }
+
+  const charSet = charMap!;
+  const phonetic = entry.etymology?.phonetic;
+  const semantic = entry.etymology?.semantic;
+
+  // Differentiations: chars using THIS char as phonetic + containing it in decomposition
+  const differentiations: string[] = [];
+  const children = phoneticIndex?.get(char);
+  if (children) {
+    for (const child of children) {
+      const cd = charSet.get(child)?.decomposition || '';
+      if (extractCJK(cd).includes(char)) differentiations.push(child);
+    }
+  }
+
+  // Phonetic family: siblings (share same phonetic) + children (use char as phonetic)
+  const pfSet = new Set<string>();
+  if (phonetic && charSet.has(phonetic)) {
+    const sibs = phoneticIndex?.get(phonetic);
+    if (sibs) for (const s of sibs) { if (s !== char) pfSet.add(s); }
+  }
+  if (children) for (const c of children) pfSet.add(c);
+  const phoneticFamily = [...pfSet].sort((a, b) =>
+    ((phoneticIndex?.get(charSet.get(b)?.etymology?.phonetic || '')?.size || 0) -
+     (phoneticIndex?.get(charSet.get(a)?.etymology?.phonetic || '')?.size || 0))
+  ).slice(0, 30);
+
+  // Semantic family
+  const semFamily: string[] = [];
+  if (semantic && charSet.has(semantic)) {
+    const sibs = semanticIndex?.get(semantic);
+    if (sibs) for (const s of sibs) { if (s !== char) semFamily.push(s); }
+  }
+
+  // Contained in (from reverseIndex)
+  const containedIn = (reverseIndex?.get(char) || []).slice(0, 30);
+
+  // Homophones
+  const homoSet = new Set<string>();
+  for (const py of entry.pinyin) {
+    const exact = pinyinIndex?.get(py);
+    if (exact) for (const c of exact) { if (c !== char) homoSet.add(c); }
+  }
+  const homophones = [...homoSet].sort().slice(0, 20);
+
+  // Antonyms
+  const antonymLookup = new Map<string, string[]>();
+  for (const [a, b] of ANTONYM_PAIRS) {
+    if (!charSet.has(a) || !charSet.has(b)) continue;
+    const l = antonymLookup.get(a) || []; l.push(b); antonymLookup.set(a, l);
+    const r = antonymLookup.get(b) || []; r.push(a); antonymLookup.set(b, r);
+  }
+  const antonyms = antonymLookup.get(char) || [];
+
+  // Components
+  const components = extractCJK(entry.decomposition || '').filter(c => c !== char);
+
+  // Radical family
+  const radFam: string[] = [];
+  const radical = entry.radical;
+  if (radical && radical !== char) {
+    for (const [c, e] of charSet) {
+      if (c !== char && e.radical === radical) radFam.push(c);
+    }
+  }
+
+  // Traditional / Simplified
+  const traditional = simpToTrad?.get(char) || null;
+  let simplified: string | null = null;
+  if (simpToTrad) {
+    for (const [s, t] of simpToTrad) { if (t === char) { simplified = s; break; } }
+  }
+
+  return {
+    differentiations, phoneticFamily, semanticFamily: semFamily.slice(0, 30),
+    containedIn, homophones, nearHomophones: [],
+    antonyms, components, radicalFamily: radFam.slice(0, 30),
+    traditional, simplified,
+  };
+}
+
+export async function loadRelations(): Promise<void> {
+  await loadData();
+  relationsReady = true;
 }
 
 export function getRelations(char: string): CharRelations | undefined {
-  const rel = relationsMap?.get(char);
-  if (rel) return rel;
-  // Fall back to traditional form
-  const trad = simpToTrad?.get(char);
-  if (trad) return relationsMap?.get(trad);
-  return undefined;
+  if (!charMap) return undefined;
+  const rel = computeRelations(char);
+  if (rel.differentiations.length === 0 && rel.phoneticFamily.length === 0 && rel.semanticFamily.length === 0) {
+    const trad = simpToTrad?.get(char);
+    if (trad && charMap.has(trad)) return computeRelations(trad);
+  }
+  return rel;
 }
 
-export function hasRelations(char: string): boolean {
-  return relationsMap?.has(char) ?? false;
-}
-
-/** Get all characters that are directly related to this char, grouped by type. */
-export function getRelatedChars(char: string): {
-  differentiations: string[];
-  phoneticFamily: string[];
-  semanticFamily: string[];
-  containedIn: string[];
-  homophones: string[];
-  antonyms: string[];
-} {
-  const rel = getRelations(char);
-  if (!rel) return { differentiations: [], phoneticFamily: [], semanticFamily: [], containedIn: [], homophones: [], antonyms: [] };
-  return {
-    differentiations: rel.differentiations,
-    phoneticFamily: rel.phoneticFamily,
-    semanticFamily: rel.semanticFamily,
-    containedIn: rel.containedIn,
-    homophones: rel.homophones.slice(0, 10),
-    antonyms: rel.antonyms,
-  };
+export function getRelationsVersion(): number {
+  return relationsReady ? 1 : 0;
 }
 
 // Legacy alias — stroke data is now async, use getStrokeData() instead
