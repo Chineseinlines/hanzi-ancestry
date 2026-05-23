@@ -9,7 +9,7 @@ import {
   getCharacter,
   getCharacterEnriched,
   getCulturalData,
-  getRelatedChars,
+  getRelations,
   decomposeCharacter,
   loadData,
   loadCulturalData,
@@ -117,7 +117,7 @@ export default function CharacterDetail() {
       setEntry(e ?? null);
       setCultural(getCulturalData(char) ?? null);
       setShuowen(getShuowen(char) ?? null);
-      if (e) setRelations(getRelatedChars(char) as CharRelations | null);
+      if (e) setRelations(getRelations(char) ?? null);
       setLoading(false);
     })();
     return () => { cancelled = true; };
