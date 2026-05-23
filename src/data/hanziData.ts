@@ -13,6 +13,10 @@ let culturalPromise: Promise<void> | null = null;
 let shuowenMap: Map<string, ShuowenEntry> | null = null;
 let shuowenPromise: Promise<void> | null = null;
 
+// Simplified → Traditional mapping
+let simpToTrad: Map<string, string> | null = null;
+let simpTradPromise: Promise<void> | null = null;
+
 // CDN stroke cache
 const strokeCache = new Map<string, StrokeData>();
 const strokePending = new Map<string, Promise<StrokeData | undefined>>();
@@ -82,7 +86,42 @@ export async function loadData(): Promise<void> {
 }
 
 export function getCharacter(char: string): HanziEntry | undefined {
-  return charMap?.get(char);
+  const entry = charMap?.get(char);
+  if (entry) return entry;
+
+  // Fall back to traditional form entry
+  const trad = simpToTrad?.get(char);
+  if (trad) return charMap?.get(trad);
+  return undefined;
+}
+
+/** Get the character entry, enriched with traditional form data if applicable. */
+export function getCharacterEnriched(char: string): HanziEntry | undefined {
+  const entry = charMap?.get(char);
+  if (!entry) {
+    // Try traditional form
+    const trad = simpToTrad?.get(char);
+    if (trad) return charMap?.get(trad);
+    return undefined;
+  }
+
+  // If entry already has etymology, return as-is
+  if (entry.etymology?.type) return entry;
+
+  // Try to enrich from traditional form
+  const trad = simpToTrad?.get(char);
+  if (!trad) return entry;
+
+  const tradEntry = charMap?.get(trad);
+  if (!tradEntry?.etymology?.type) return entry;
+
+  return {
+    ...entry,
+    etymology: tradEntry.etymology,
+    decomposition: tradEntry.decomposition || entry.decomposition,
+    radical: tradEntry.radical || entry.radical,
+    traditional: trad,
+  };
 }
 
 export function hasCharacter(char: string): boolean {
@@ -349,7 +388,40 @@ export async function loadShuowen(): Promise<void> {
 }
 
 export function getShuowen(char: string): ShuowenEntry | undefined {
-  return shuowenMap?.get(char);
+  if (shuowenMap?.has(char)) return shuowenMap.get(char);
+  // Fall back to traditional form
+  const trad = simpToTrad?.get(char);
+  if (trad && shuowenMap?.has(trad)) return shuowenMap.get(trad);
+  return undefined;
+}
+
+// ── Simplified-Traditional mapping ──────────────────────────────────
+export async function loadSimpTradMap(): Promise<void> {
+  if (simpToTrad) return;
+  if (simpTradPromise) return simpTradPromise;
+
+  simpTradPromise = (async () => {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}simp-trad-map.json`);
+      if (!res.ok) throw new Error(`simp-trad-map.json: ${res.status}`);
+      const data = await res.json() as Record<string, string>;
+      simpToTrad = new Map(Object.entries(data));
+    } catch (err) {
+      console.error('Failed to load simp-trad map:', err);
+      simpToTrad = new Map();
+    }
+  })();
+  return simpTradPromise;
+}
+
+/** Get the traditional form of a character, or return the char itself if none exists. */
+export function getTraditionalForm(char: string): string {
+  return simpToTrad?.get(char) ?? char;
+}
+
+/** Check if a char is simplified and has a traditional counterpart. */
+export function hasTraditional(char: string): boolean {
+  return simpToTrad?.has(char) ?? false;
 }
 
 // Legacy alias — stroke data is now async, use getStrokeData() instead

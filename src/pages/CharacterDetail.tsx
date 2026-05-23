@@ -7,12 +7,14 @@ import {
 import { useFavorites } from '../hooks/useFavorites';
 import {
   getCharacter,
+  getCharacterEnriched,
   getCulturalData,
   getCognates,
   decomposeCharacter,
   loadData,
   loadCulturalData,
   loadShuowen,
+  loadSimpTradMap,
   getShuowen,
 } from '../data/hanziData';
 import type { HanziEntry, CognateResult, CulturalData, DecompositionNode, ShuowenEntry } from '../data/types';
@@ -107,8 +109,9 @@ export default function CharacterDetail() {
       await loadData();
       await loadCulturalData();
       await loadShuowen();
+      await loadSimpTradMap();
       if (cancelled) return;
-      const e = getCharacter(char);
+      const e = getCharacterEnriched(char);
       setEntry(e ?? null);
       setCultural(getCulturalData(char) ?? null);
       setShuowen(getShuowen(char) ?? null);
@@ -324,6 +327,23 @@ export default function CharacterDetail() {
                 </span>
               </div>
             )}
+
+            {/* Traditional form data source indicator */}
+            {entry?.traditional && (
+              <div className="mt-3 flex justify-center">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs"
+                  style={{
+                    background: 'rgba(139,105,20,0.15)',
+                    color: '#C4A265',
+                    border: '1px solid rgba(196,162,101,0.3)',
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  字形 & 字源数据来自繁体: {entry.traditional}
+                </span>
+              </div>
+            )}
           </motion.div>
         </div>
       </section>
@@ -451,7 +471,7 @@ export default function CharacterDetail() {
             <motion.div key="glyph" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                 <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Glyph Evolution</h2>
-                <GlyphEvolution character={char} shuowen={shuowen} />
+                <GlyphEvolution character={char} traditional={entry?.traditional} shuowen={shuowen} />
               </div>
             </motion.div>
           )}
