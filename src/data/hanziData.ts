@@ -126,8 +126,9 @@ export async function loadData(): Promise<void> {
       }
     } catch (err) {
       console.error('Failed to load hanzi data:', err);
-      charMap = new Map();
-      reverseIndex = new Map();
+      charMap = null;
+      reverseIndex = null;
+      dataLoadPromise = null;
     }
   })();
 
@@ -525,8 +526,8 @@ export function computeRelations(char: string): CharRelations {
     if (sibs) for (const s of sibs) { if (s !== char) semFamily.push(s); }
   }
 
-  // Contained in (from reverseIndex)
-  const containedIn = (reverseIndex?.get(char) || []).slice(0, 30);
+  // Contained in (from reverseIndex), dedup in case source data has duplicates
+  const containedIn = [...new Set(reverseIndex?.get(char) || [])].slice(0, 30);
 
   // Homophones
   const homoSet = new Set<string>();

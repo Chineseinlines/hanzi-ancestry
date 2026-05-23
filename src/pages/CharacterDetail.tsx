@@ -197,6 +197,32 @@ export default function CharacterDetail() {
     return results;
   }, [decomposition]);
 
+  // Build deduplicated character → relation-type map
+  const relatedCharMap = useMemo(() => {
+    if (!relations) return null;
+    const map = new Map<string, { label: string; en: string; color: string }[]>();
+
+    const add = (chars: string[], label: string, en: string, color: string) => {
+      for (const c of chars) {
+        if (c === char) continue;
+        let entry = map.get(c);
+        if (!entry) { entry = []; map.set(c, entry); }
+        if (!entry.some(t => t.label === label)) {
+          entry.push({ label, en, color });
+        }
+      }
+    };
+
+    add(relations.differentiations, '源流分化', 'Differentiation', '#C23B2A');
+    add(relations.antonyms, '反义对举', 'Antonym', '#9B2226');
+    add(relations.phoneticFamily, '同声旁族', 'Phonetic Family', '#CA6702');
+    add(relations.semanticFamily, '同形旁族', 'Semantic Family', '#2D5F8A');
+    add(relations.containedIn, '构件包含', 'Component Of', '#6B7F5E');
+    add(relations.homophones, '同音近音', 'Homophone', '#8B6914');
+
+    return map;
+  }, [relations, char]);
+
   const { isFavorite, toggleFavorite } = useFavorites();
   const charIsFav = char ? isFavorite(char) : false;
 
@@ -634,65 +660,37 @@ export default function CharacterDetail() {
             <motion.div key="cognates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                 <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Character Relations</h2>
-                {relations && (() => {
-                  // Build grouped relations, each char in highest-priority group only
-                  const seen = new Set<string>([char]);
-                  const groups: { label: string; en: string; color: string; bg: string; chars: string[] }[] = [];
-
-                  const addGroup = (label: string, en: string, color: string, bg: string, chars: string[]) => {
-                    const filtered = chars.filter(c => !seen.has(c));
-                    if (filtered.length > 0) {
-                      filtered.forEach(c => seen.add(c));
-                      groups.push({ label, en, color, bg, chars: filtered });
-                    }
-                  };
-
-                  addGroup('源流分化', 'Differentiation', '#C23B2A', 'rgba(194,59,42,0.08)', relations.differentiations);
-                  addGroup('反义对举', 'Antonym', '#9B2226', 'rgba(155,34,38,0.06)', relations.antonyms);
-                  addGroup('同声旁族', 'Phonetic Family', '#CA6702', 'rgba(202,103,2,0.06)', relations.phoneticFamily);
-                  addGroup('同形旁族', 'Semantic Family', '#2D5F8A', 'rgba(45,95,138,0.06)', relations.semanticFamily);
-                  addGroup('构件包含', 'Component Of', '#6B7F5E', 'rgba(107,127,94,0.06)', relations.containedIn);
-                  addGroup('同音近音', 'Homophone', '#8B6914', 'rgba(139,105,20,0.06)', relations.homophones);
-
-                  if (groups.length === 0) {
-                    return <p className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No related characters found.</p>;
-                  }
-
-                  return (
-                    <div className="space-y-5">
-                      {groups.map(g => (
-                        <div key={g.label}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: g.bg, color: g.color, fontFamily: 'Inter' }}>
-                              {g.label}
-                            </span>
-                            <span className="text-[10px] uppercase tracking-wide" style={{ color: 'rgba(139,105,20,0.5)', fontFamily: 'Inter' }}>{g.en}</span>
+                {relatedCharMap && relatedCharMap.size > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                    {[...relatedCharMap.entries()].map(([c, types]) => {
+                      const info = getCharacter(c);
+                      return (
+                        <motion.button key={c} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }}
+                          onClick={() => goToDetail(c)}
+                          className="flex flex-col items-center rounded-xl p-3 text-center transition-all"
+                          style={{ background: '#F5F0E8', border: '1px solid rgba(26,26,24,0.06)' }}
+                        >
+                          <span className="text-2xl font-display-cn" style={{ color: '#1A1A18', fontFamily: '"Ma Shan Zheng", cursive' }}>{c}</span>
+                          {info && (
+                            <>
+                              <span className="text-[10px] mt-0.5" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{info.pinyin[0]}</span>
+                              <span className="text-[9px] mt-0.5 line-clamp-1" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{info.definition.slice(0, 10)}</span>
+                            </>
+                          )}
+                          <div className="flex flex-wrap justify-center gap-0.5 mt-1">
+                            {types.map(t => (
+                              <span key={t.label} className="text-[8px] font-semibold px-1 py-px rounded-full"
+                                style={{ background: t.color + '18', color: t.color, fontFamily: 'Inter' }}
+                              >{t.label}</span>
+                            ))}
                           </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                            {g.chars.slice(0, 18).map(c => {
-                              const info = getCharacter(c);
-                              return (
-                                <motion.button key={c} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }}
-                                  onClick={() => goToDetail(c)}
-                                  className="flex flex-col items-center rounded-xl p-3 text-center transition-all"
-                                  style={{ background: '#F5F0E8', border: '1px solid rgba(26,26,24,0.06)' }}
-                                >
-                                  <span className="text-2xl font-display-cn" style={{ color: '#1A1A18', fontFamily: '"Ma Shan Zheng", cursive' }}>{c}</span>
-                                  {info && (
-                                    <>
-                                      <span className="text-[10px] mt-0.5" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{info.pinyin[0]}</span>
-                                      <span className="text-[9px] mt-0.5 line-clamp-1" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{info.definition.slice(0, 10)}</span>
-                                    </>
-                                  )}
-                                </motion.button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No related characters found.</p>
+                )}
               </div>
             </motion.div>
           )}
