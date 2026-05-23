@@ -483,7 +483,6 @@ const CognateGraph = memo(function CognateGraph({
         entry={tooltip.entry}
         sharedComponents={tooltip.sharedComponents}
         nodeRadius={tooltip.nodeRadius}
-        onExplore={onNodeClick ?? undefined}
       />
     </div>
   );
