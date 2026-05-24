@@ -741,6 +741,9 @@ export function computeRelations(char: string): CharRelations {
   if (phonetic && charSet.has(phonetic)) {
     const sibs = phoneticIndex?.get(phonetic);
     if (sibs) for (const s of sibs) { if (s !== char) pfSet.add(s); }
+    // Cross-role siblings: chars containing the phonetic component in any role
+    const containing = reverseIndex?.get(phonetic);
+    if (containing) for (const c of containing) { if (c !== char) pfSet.add(c); }
   }
   if (children) for (const c of children) pfSet.add(c);
 
@@ -749,6 +752,9 @@ export function computeRelations(char: string): CharRelations {
   if (semantic && charSet.has(semantic)) {
     const sibs = semanticIndex?.get(semantic);
     if (sibs) for (const s of sibs) { if (s !== char) sfSet.add(s); }
+    // Cross-role siblings: chars containing the semantic component in any role
+    const containing = reverseIndex?.get(semantic);
+    if (containing) for (const c of containing) { if (c !== char) sfSet.add(c); }
   }
 
   // ── Contained in ──────────────────────────────────────────────────
