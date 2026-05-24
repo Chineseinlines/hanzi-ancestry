@@ -710,7 +710,7 @@ function dedupSimpTrad(chars: string[]): string[] {
 export function computeRelations(char: string): CharRelations {
   const entry = charMap?.get(char);
   if (!entry) {
-    return { differentiations:[], phoneticFamily:[], semanticFamily:[], containedIn:[], homophones:[], nearHomophones:[], antonyms:[], components:[], radicalFamily:[], traditional:null, simplified:null };
+    return { differentiations:[], phoneticFamily:[], semanticFamily:[], sharedComponents:[], containedIn:[], homophones:[], nearHomophones:[], antonyms:[], components:[], radicalFamily:[], traditional:null, simplified:null };
   }
 
   const charSet = charMap!;
@@ -757,6 +757,18 @@ export function computeRelations(char: string): CharRelations {
     if (containing) for (const c of containing) { if (c !== char) sfSet.add(c); }
   }
 
+  // ── Shared component family ──────────────────────────────────────
+  // Chars sharing any CJK component with the target, regardless of role.
+  // This is the catch-all that makes the system symmetric for ideographic
+  // characters (which lack phonetic/semantic labels).
+  const scSet = new Set<string>();
+  const allComps = extractCJK(entry.decomposition || '')
+    .filter(c => c !== char && !STROKE_BLACKLIST.has(c));
+  for (const comp of allComps) {
+    const sharing = reverseIndex?.get(comp);
+    if (sharing) for (const c of sharing) { if (c !== char) scSet.add(c); }
+  }
+
   // ── Contained in ──────────────────────────────────────────────────
   const ciSet = new Set(reverseIndex?.get(char) || []);
 
@@ -799,7 +811,7 @@ export function computeRelations(char: string): CharRelations {
 
   // ── Build mutually-exclusive lists (priority order) ───────────────
   // Each character appears only in the highest-priority list that claims it.
-  // Priority: differentiation > antonym > phonetic > semantic > containedIn > homophone > nearHomophone > radical
+  // Priority: differentiation > antonym > phonetic > semantic > sharedComponent > containedIn > homophone > nearHomophone > radical
   const claimed = new Set<string>();
 
   function takeList(set: Set<string>, limit: number): string[] {
@@ -814,6 +826,7 @@ export function computeRelations(char: string): CharRelations {
   const antonyms         = takeList(antSet, 30);
   const phoneticFamily   = takeList(pfSet, 30);
   const semanticFamily   = takeList(sfSet, 30);
+  const sharedComponents = takeList(scSet, 30);
   const containedIn      = takeList(ciSet, 30);
   const homophones       = takeList(homoSet, 20);
   const nearHomophones   = takeList(nearHomoSet, 20);
@@ -821,7 +834,7 @@ export function computeRelations(char: string): CharRelations {
 
   return {
     differentiations, phoneticFamily, semanticFamily,
-    containedIn, homophones, nearHomophones,
+    sharedComponents, containedIn, homophones, nearHomophones,
     antonyms, components, radicalFamily,
     traditional, simplified,
   };
@@ -958,7 +971,7 @@ export function scoreRelations(char: string, limit: number = 80): ScoredRelation
     for (const tc of traditionalChars) candidates.delete(tc);
   }
 
-  // Filter to common chars only (通用规范汉字表 一级字表 3500字)
+  // Filter to common chars only (通用规范汉字表 一级+二级 6500字)
   for (const c of candidates) {
     if (!isCommonChar(c)) candidates.delete(c);
   }
@@ -1056,6 +1069,7 @@ export function scoreRelations(char: string, limit: number = 80): ScoredRelation
     if (hasExactMatch) tags.push('同音');
     else if (hasNearMatch) tags.push('近音');
     if (ci?.includes(c)) tags.push('构件包含');
+    if (sharedCount > 0 && !tags.includes('同声旁') && !tags.includes('同形旁') && !tags.includes('构件包含') && !tags.includes('源流分化')) tags.push('同构件');
     if (radical && cEntry.radical === radical && !tags.includes('同形旁')) tags.push('同部首');
 
     scored.push({

@@ -181,6 +181,7 @@ const CognateGraph = memo(function CognateGraph({
         addRelated(relations.antonyms, 'antonym', 19);
         addRelated(relations.phoneticFamily, 'phonetic', 17);
         addRelated(relations.semanticFamily, 'semantic', 16);
+        addRelated(relations.sharedComponents, 'cognate', 15);
         addRelated(relations.containedIn, 'containedBy', 15);
         addRelated(relations.homophones, 'homophone', 13);
         addRelated(relations.nearHomophones, 'homophone', 11);

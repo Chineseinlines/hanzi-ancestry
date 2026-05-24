@@ -101,6 +101,8 @@ export interface CharRelations {
   phoneticFamily: string[];
   /** chars sharing the same semantic component */
   semanticFamily: string[];
+  /** chars sharing any CJK component in decomposition */
+  sharedComponents: string[];
   /** chars whose decomposition contains this char */
   containedIn: string[];
   /** chars with identical pinyin */

@@ -33,6 +33,7 @@ const TAG_COLORS: Record<string, string> = {
   '反义': '#9B2226',
   '同声旁': '#CA6702',
   '同形旁': '#2D5F8A',
+  '同构件': '#5A8A6B',
   '同音': '#8B6914',
   '近音': '#A08A5A',
   '构件包含': '#6B7F5E',
@@ -231,6 +232,7 @@ export default function CharacterDetail() {
     add(relations.antonyms, '反义对举', 'Antonym', '#9B2226');
     add(relations.phoneticFamily, '同声旁族', 'Phonetic Family', '#CA6702');
     add(relations.semanticFamily, '同形旁族', 'Semantic Family', '#2D5F8A');
+    add(relations.sharedComponents, '同构件', 'Shared Component', '#5A8A6B');
     add(relations.containedIn, '构件包含', 'Component Of', '#6B7F5E');
     add(relations.homophones, '同音字', 'Homophone', '#8B6914');
     add(relations.nearHomophones, '近音字', 'Near-Homophone', '#A08A5A');
@@ -730,8 +732,8 @@ export default function CharacterDetail() {
                 >
                   View All Relations ({relations ? (
                     relations.differentiations.length + relations.phoneticFamily.length + relations.semanticFamily.length +
-                    relations.containedIn.length + relations.homophones.length + relations.nearHomophones.length +
-                    relations.antonyms.length + relations.radicalFamily.length
+                    relations.sharedComponents.length + relations.containedIn.length + relations.homophones.length +
+                    relations.nearHomophones.length + relations.antonyms.length + relations.radicalFamily.length
                   ) : 0} total) →
                 </button>
               </div>
