@@ -1,4 +1,5 @@
-import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry, CharRelations } from './types';
+import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry, CharRelations, ScoredRelation } from './types';
+import { isCommonChar } from './commonChars';
 
 // ── In-memory data store ────────────────────────────────────────────
 let charMap: Map<string, HanziEntry> | null = null;
@@ -27,8 +28,14 @@ let pinyinNoToneIndex: Map<string, Set<string>> | null = null;
 // Proxy for character frequency/fundamental-ness
 let structuralRank: Map<string, number> | null = null;
 
+// Radical → chars index (built at load time for fast lookup)
+let radicalIndex: Map<string, string[]> | null = null;
+
 // Traditional → Simplified reverse mapping (built from simpToTrad)
 let tradToSimp: Map<string, string> | null = null;
+
+// Set of known traditional characters (to filter from relations)
+let traditionalChars: Set<string> | null = null;
 
 // Antonym pairs (high-frequency, curated)
 const ANTONYM_PAIRS: [string, string][] = [
@@ -154,6 +161,16 @@ export async function loadData(): Promise<void> {
         // Dedup the array in case source data has duplicates
         const unique = new Set(chars);
         structuralRank.set(comp, unique.size);
+      }
+
+      // Build radical index for fast radical-family lookup
+      radicalIndex = new Map();
+      for (const [, entry] of charMap) {
+        const r = entry.radical;
+        if (!r) continue;
+        let list = radicalIndex.get(r);
+        if (!list) { list = []; radicalIndex.set(r, list); }
+        list.push(entry.character);
       }
     } catch (err) {
       console.error('Failed to load hanzi data:', err);
@@ -520,6 +537,47 @@ export async function loadSimpTradMap(): Promise<void> {
       for (const [simp, trad] of Object.entries(data)) {
         if (!tradToSimp.has(trad)) tradToSimp.set(trad, simp);
       }
+
+      // Build traditionalChars set comprehensively.
+      // Traditional chars should never appear as relations for learners.
+      traditionalChars = new Set(tradToSimp.keys());
+
+      // Hardcoded traditional-specific CJK characters — these only appear
+      // in traditional Chinese and never in simplified. Any character whose
+      // decomposition contains one of these is traditional.
+      const TRAD_MARKERS = new Set([
+        // Standalone traditional characters (radical variants)
+        '鳥', '魚', '馬', '車', '門', '貝', '見', '風', '韋', '飛',
+        '齒', '齊', '龍', '龜', '鹵',
+        // Traditional component variants (used inside decompositions)
+        '糹', '釒', '頁', '飠',
+      ]);
+
+      if (charMap) {
+        // Mark any character whose radical or any CJK decomposition component
+        // is a known traditional marker.
+        for (const [c, entry] of charMap) {
+          if (traditionalChars.has(c)) continue;
+          if (TRAD_MARKERS.has(entry.radical)) {
+            traditionalChars.add(c);
+            continue;
+          }
+          const comps = extractCJK(entry.decomposition || '');
+          if (comps.some(cmp => TRAD_MARKERS.has(cmp))) {
+            traditionalChars.add(c);
+          }
+        }
+
+        // Second pass: mark chars whose decomposition contains any char
+        // that is already in traditionalChars (e.g. 幗 contains 國).
+        for (const [c, entry] of charMap) {
+          if (traditionalChars.has(c)) continue;
+          const comps = extractCJK(entry.decomposition || '');
+          if (comps.some(cmp => traditionalChars.has(cmp))) {
+            traditionalChars.add(c);
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to load simp-trad map:', err);
       simpToTrad = new Map();
@@ -555,15 +613,52 @@ function extractCJK(str: string): string[] {
 function getImportance(c: string): number {
   // Base: how many characters contain this char as a component (fundamental building block)
   const struct = structuralRank?.get(c) ?? 0;
-  // Bonus for having etymology data (well-studied, common char)
+
+  // Etymology bonus — check both raw entry and enriched traditional form
+  // (simplified chars often lack etymology while their traditional forms have it)
   const entry = charMap?.get(c);
-  const hasEtymology = entry?.etymology?.type ? 5 : 0;
-  return struct + hasEtymology;
+  let hasEtymology = entry?.etymology?.type ? true : false;
+  if (!hasEtymology) {
+    const trad = simpToTrad?.get(c);
+    if (trad) {
+      const tradEntry = charMap?.get(trad);
+      if (tradEntry?.etymology?.type) hasEtymology = true;
+    }
+  }
+
+  // Radical family size bonus — chars from large radical families
+  // tend to be more standard/common (weak signal but better than nothing)
+  const radical = entry?.radical;
+  const radSize = radical ? (radicalIndex?.get(radical)?.length || 0) : 0;
+  const radicalBonus = Math.log2(radSize + 1);
+
+  return struct + (hasEtymology ? 5 : 0) + radicalBonus;
 }
 
 /** Sort an array of characters by structural importance (descending) */
 function sortByImportance(chars: string[]): string[] {
   return chars.sort((a, b) => getImportance(b) - getImportance(a));
+}
+
+/**
+ * Given two characters that form a simp/trad pair, remove the traditional one.
+ * When importances are equal, prefer the simplified character.
+ */
+function keepSimpOverTrad(a: string, b: string, toRemove: Set<string>) {
+  const impA = getImportance(a);
+  const impB = getImportance(b);
+  if (impA !== impB) {
+    if (impA > impB) toRemove.add(b);
+    else toRemove.add(a);
+    return;
+  }
+  // Equal importance: prefer simplified → keep the one in simpToTrad, remove the one in tradToSimp
+  const aIsTrad = tradToSimp?.has(a) || traditionalChars?.has(a);
+  const bIsTrad = tradToSimp?.has(b) || traditionalChars?.has(b);
+  if (aIsTrad && !bIsTrad) { toRemove.add(a); return; }
+  if (!aIsTrad && bIsTrad) { toRemove.add(b); return; }
+  // Can't determine — keep a, remove b (arbitrary but stable)
+  toRemove.add(b);
 }
 
 /**
@@ -588,26 +683,21 @@ function dedupSimpTrad(chars: string[]): string[] {
       const bSimp = tradToSimp?.get(b);
 
       if (aTrad === b || bTrad === a || aSimp === b || bSimp === a) {
-        // Keep the more important one
-        if (getImportance(a) >= getImportance(b)) toRemove.add(b);
-        else toRemove.add(a);
+        keepSimpOverTrad(a, b, toRemove);
         continue;
       }
 
-      // Check 2: same tone-stripped pinyin + definition overlap (heuristic)
+      // Check 2: same tone-stripped pinyin + exact same definition → simp/trad pair
       const entryA = charMap?.get(a), entryB = charMap?.get(b);
       if (entryA && entryB) {
         const pinyinA = entryA.pinyin.map(p => stripTone(p));
         const pinyinB = entryB.pinyin.map(p => stripTone(p));
         const sharePinyin = pinyinA.some(pa => pinyinB.includes(pa));
         if (sharePinyin) {
-          const defA = entryA.definition || '', defB = entryB.definition || '';
-          // Definition similarity: one contains the other, or high overlap
-          const shareDef = defA.includes(defB.slice(0, 10)) || defB.includes(defA.slice(0, 10))
-            || (defA.slice(0, 20) === defB.slice(0, 20));
-          if (shareDef) {
-            if (getImportance(a) >= getImportance(b)) toRemove.add(b);
-            else toRemove.add(a);
+          const defA = (entryA.definition || '').trim();
+          const defB = (entryB.definition || '').trim();
+          if (defA && defB && defA === defB) {
+            keepSimpOverTrad(a, b, toRemove);
           }
         }
       }
@@ -708,7 +798,7 @@ export function computeRelations(char: string): CharRelations {
 
   function takeList(set: Set<string>, limit: number): string[] {
     const result = dedupSimpTrad(sortByImportance([...set]))
-      .filter(c => !selfVariants.has(c) && !claimed.has(c));
+      .filter(c => !selfVariants.has(c) && !claimed.has(c) && isCommonChar(c));
     const taken = result.slice(0, limit);
     for (const c of taken) claimed.add(c);
     return taken;
@@ -744,6 +834,248 @@ export function getRelations(char: string): CharRelations | undefined {
     if (trad && charMap.has(trad)) return computeRelations(trad);
   }
   return rel;
+}
+
+/**
+ * Score all related characters across 3 dimensions (form/sound/meaning)
+ * with academic weighting. Returns ranked list for the dedicated relations page.
+ *
+ * Formula: totalScore = (formScore × 0.40 + soundScore × 0.35 + meaningScore × 0.25) × freqMod
+ * where freqMod ∈ [0.85, 1.30] based on character frequency/importance.
+ */
+export function scoreRelations(char: string, limit: number = 80): ScoredRelation[] {
+  const entry = charMap?.get(char);
+  if (!entry || !charMap) return [];
+
+  const targetComponents = new Set(
+    extractCJK(entry.decomposition || '').filter(c => c !== char && !STROKE_BLACKLIST.has(c))
+  );
+  const phonetic = entry.etymology?.phonetic;
+  const semantic = entry.etymology?.semantic;
+  const radical = entry.radical;
+
+  // ── Build antonym lookup ──────────────────────────────────────────
+  const antonymLookup = new Map<string, string[]>();
+  for (const [a, b] of ANTONYM_PAIRS) {
+    if (!charMap.has(a) || !charMap.has(b)) continue;
+    const l = antonymLookup.get(a) || []; l.push(b); antonymLookup.set(a, l);
+    const r = antonymLookup.get(b) || []; r.push(a); antonymLookup.set(b, r);
+  }
+  const ants = antonymLookup.get(char) || [];
+
+  // ── Self-variants ────────────────────────────────────────────────
+  // Explicit map
+  const traditional = simpToTrad?.get(char) || null;
+  let simplified: string | null = null;
+  if (simpToTrad) {
+    for (const [s, t] of simpToTrad) { if (t === char) { simplified = s; break; } }
+  }
+  const selfVariants = new Set([char, traditional, simplified].filter(Boolean) as string[]);
+  // Heuristic: chars with same pinyin AND identical definition are likely simp/trad variants
+  for (const py of entry.pinyin) {
+    const samePinyin = pinyinIndex?.get(py);
+    if (samePinyin) {
+      for (const c of samePinyin) {
+        if (!selfVariants.has(c)) {
+          const cEntry = charMap.get(c);
+          if (cEntry && cEntry.definition === entry.definition) {
+            selfVariants.add(c);
+          }
+        }
+      }
+    }
+  }
+
+  // ── Collect candidates ──────────────────────────────────────────
+  const candidates = new Set<string>();
+  const children = phoneticIndex?.get(char);
+
+  // Differentiations
+  if (children) {
+    for (const child of children) {
+      const cd = charMap.get(child)?.decomposition || '';
+      if (extractCJK(cd).includes(char)) candidates.add(child);
+    }
+  }
+
+  // Phonetic family
+  if (phonetic && charMap.has(phonetic)) {
+    const sibs = phoneticIndex?.get(phonetic);
+    if (sibs) for (const s of sibs) { if (s !== char) candidates.add(s); }
+  }
+  if (children) for (const c of children) candidates.add(c);
+
+  // Semantic family
+  if (semantic && charMap.has(semantic)) {
+    const sibs = semanticIndex?.get(semantic);
+    if (sibs) for (const s of sibs) { if (s !== char) candidates.add(s); }
+  }
+
+  // Contained in
+  const ci = reverseIndex?.get(char);
+  if (ci) for (const c of ci) { if (c !== char) candidates.add(c); }
+
+  // Homophones only (near-homophones removed — too noisy)
+  for (const py of entry.pinyin) {
+    const exact = pinyinIndex?.get(py);
+    if (exact) for (const c of exact) { if (c !== char) candidates.add(c); }
+  }
+
+  // Antonyms
+  for (const a of ants) candidates.add(a);
+
+  // Radical family (top 25 by importance)
+  if (radical && radical !== char) {
+    const radList = radicalIndex?.get(radical);
+    if (radList) {
+      for (const c of sortByImportance(radList).slice(0, 25)) {
+        if (c !== char) candidates.add(c);
+      }
+    }
+  }
+
+  // Chars sharing components with target (top 8 per component)
+  for (const comp of targetComponents) {
+    const compChars = reverseIndex?.get(comp);
+    if (compChars) {
+      for (const c of sortByImportance([...compChars]).slice(0, 8)) {
+        if (c !== char) candidates.add(c);
+      }
+    }
+  }
+
+  // Remove self-variants
+  for (const sv of selfVariants) candidates.delete(sv);
+
+  // Remove all traditional characters (they are not useful for learners)
+  if (traditionalChars) {
+    for (const tc of traditionalChars) candidates.delete(tc);
+  }
+
+  // Filter to common chars only (通用规范汉字表 一级字表 3500字)
+  for (const c of candidates) {
+    if (!isCommonChar(c)) candidates.delete(c);
+  }
+
+  // ── Score each candidate ────────────────────────────────────────
+  const scored: ScoredRelation[] = [];
+  for (const c of candidates) {
+    const cEntry = charMap.get(c);
+    if (!cEntry) continue;
+
+    const cComponents = new Set(
+      extractCJK(cEntry.decomposition || '').filter(x => x !== c && !STROKE_BLACKLIST.has(x))
+    );
+    const cPhonetic = cEntry.etymology?.phonetic;
+    const cSemantic = cEntry.etymology?.semantic;
+
+    // ── Form Score (0-100) ──────────────────────────────────────
+    let formScore = 0;
+
+    // Shared components
+    let sharedCount = 0;
+    for (const tc of targetComponents) {
+      if (cComponents.has(tc)) sharedCount++;
+    }
+    const maxComps = Math.max(targetComponents.size, cComponents.size, 1);
+    formScore += Math.min(50, Math.round((sharedCount / maxComps) * 50));
+
+    // Same radical
+    if (radical && cEntry.radical === radical) formScore += 25;
+
+    // Same phonetic component
+    if (phonetic && cPhonetic === phonetic) formScore += 20;
+
+    // Target is phonetic of candidate (differentiation)
+    if (children?.has(c)) formScore += 15;
+
+    // Component containment (bidirectional)
+    if (targetComponents.has(c)) formScore += 10;
+    if (cComponents.has(char)) formScore += 10;
+
+    formScore = Math.min(100, formScore);
+
+    // ── Sound Score (0-100) ─────────────────────────────────────
+    let soundScore = 0;
+    const targetNoTones = entry.pinyin.map(p => stripTone(p));
+    const cPinyins = cEntry.pinyin;
+    const cNoTones = cPinyins.map(p => stripTone(p));
+
+    const hasExactMatch = entry.pinyin.some(tp => cPinyins.includes(tp));
+    const hasNearMatch = targetNoTones.some(tn => cNoTones.includes(tn));
+
+    if (hasExactMatch) soundScore = 100;
+    else if (hasNearMatch) soundScore = 50;
+
+    // ── Meaning Score (0-100) ───────────────────────────────────
+    let meaningScore = 0;
+
+    if (semantic && cSemantic === semantic) meaningScore += 40;
+    if (ants.includes(c)) meaningScore += 40;
+    if (children?.has(c)) {
+      const cd = charMap.get(c)?.decomposition || '';
+      if (extractCJK(cd).includes(char)) meaningScore += 30;
+    }
+    if (radical && cEntry.radical === radical) meaningScore += 15;
+    if (ci?.has(c)) meaningScore += 10;
+
+    meaningScore = Math.min(100, meaningScore);
+
+    // ── Total: geometric mean × synergy × frequency ─────────
+    // Geometric mean naturally penalises single-dimension matches.
+    // Synergy bonus: multi-dimension relations are far stronger.
+    const f = Math.max(15, formScore);
+    const s = Math.max(15, soundScore);
+    const m = Math.max(15, meaningScore);
+    const geometricScore = Math.round(Math.cbrt(f * s * m));
+
+    const dims = (formScore > 20 ? 1 : 0) + (soundScore > 20 ? 1 : 0) + (meaningScore > 20 ? 1 : 0);
+    const synergy = dims >= 3 ? 1.5 : dims >= 2 ? 1.2 : 1.0;
+
+    // Frequency modifier — wider range, steeper curve
+    // importance=0 → 0.35, imp=10 → 0.83, imp=50 → 1.12, imp=100 → 1.35
+    const importance = getImportance(c);
+    const freqMod = Math.min(1.35, 0.35 + Math.log2(importance + 1) / 6);
+    const totalScore = Math.round(geometricScore * synergy * freqMod);
+
+    // ── Tags ────────────────────────────────────────────────────
+    const tags: string[] = [];
+    if (children?.has(c)) {
+      const cd = charMap.get(c)?.decomposition || '';
+      if (extractCJK(cd).includes(char)) tags.push('源流分化');
+    }
+    if (ants.includes(c)) tags.push('反义');
+    if (phonetic && cPhonetic === phonetic) tags.push('同声旁');
+    if (semantic && cSemantic === semantic) tags.push('同形旁');
+    if (hasExactMatch) tags.push('同音');
+    else if (hasNearMatch) tags.push('近音');
+    if (ci?.has(c)) tags.push('构件包含');
+    if (radical && cEntry.radical === radical && !tags.includes('同形旁')) tags.push('同部首');
+
+    scored.push({
+      character: c,
+      definition: cEntry.definition,
+      pinyin: cPinyins[0] || '',
+      totalScore,
+      formScore: Math.round(formScore),
+      soundScore: Math.round(soundScore),
+      meaningScore: Math.round(meaningScore),
+      tags,
+    });
+  }
+
+  // Sort by totalScore desc, break ties by importance
+  scored.sort((a, b) => {
+    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+    return getImportance(b.character) - getImportance(a.character);
+  });
+
+  // Dedup simp-trad variants — use full heuristic (map + pinyin/definition overlap)
+  const charList = dedupSimpTrad(scored.map(r => r.character));
+  const keepSet = new Set(charList);
+  const deduped = scored.filter(r => keepSet.has(r.character));
+
+  return deduped.slice(0, limit);
 }
 
 export function getRelationsVersion(): number {

@@ -5,6 +5,7 @@ import Home from './pages/Home'
 import Explore from './pages/Explore'
 import About from './pages/About'
 import CharacterDetail from './pages/CharacterDetail'
+import CharacterRelations from './pages/CharacterRelations'
 import Games from './pages/Games'
 
 const pageTransition = {
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/explore" element={<Explore />} />
             <Route path="/about" element={<About />} />
             <Route path="/detail" element={<CharacterDetail />} />
+            <Route path="/relations" element={<CharacterRelations />} />
             <Route path="/games" element={<Games />} />
           </Routes>
         </motion.div>

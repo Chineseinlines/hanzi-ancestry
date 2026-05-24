@@ -78,6 +78,22 @@ export interface ShuowenEntry {
   sixBooks: string;
 }
 
+export interface ScoredRelation {
+  character: string;
+  definition: string;
+  pinyin: string;
+  /** Overall weighted score (0-100) */
+  totalScore: number;
+  /** Form/structure dimension score */
+  formScore: number;
+  /** Sound/phonetic dimension score */
+  soundScore: number;
+  /** Meaning/semantic dimension score */
+  meaningScore: number;
+  /** Relation labels (e.g. "同声旁", "同形旁", "同音", "反义") */
+  tags: string[];
+}
+
 export interface CharRelations {
   /** chars derived FROM this char (differentiation) */
   differentiations: string[];

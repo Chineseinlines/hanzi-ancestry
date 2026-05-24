@@ -17,8 +17,9 @@ import {
   loadSimpTradMap,
   loadRelations,
   getShuowen,
+  scoreRelations,
 } from '../data/hanziData';
-import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations } from '../data/types';
+import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations, ScoredRelation } from '../data/types';
 import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
 import CharPuzzleGame from '../components/CharPuzzleGame';
@@ -26,6 +27,17 @@ import DecompositionGraph from '../components/DecompositionGraph';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
 import { ratePhonetic, PHONETIC_COLORS, type PhoneticRatingResult } from '../data/phoneticRating';
 import { getGhostSuggestion } from '../data/ghostComponents';
+
+const TAG_COLORS: Record<string, string> = {
+  '源流分化': '#C23B2A',
+  '反义': '#9B2226',
+  '同声旁': '#CA6702',
+  '同形旁': '#2D5F8A',
+  '同音': '#8B6914',
+  '近音': '#A08A5A',
+  '构件包含': '#6B7F5E',
+  '同部首': '#5A6B8A',
+};
 
 const TABS = [
   { id: 'card', label: '知识卡片', icon: BookOpen },
@@ -225,6 +237,12 @@ export default function CharacterDetail() {
 
     return map;
   }, [relations, char]);
+
+  // Top 5 scored relations for preview
+  const topRelations = useMemo((): ScoredRelation[] => {
+    if (!char) return [];
+    return scoreRelations(char, 5);
+  }, [char]);
 
   const { isFavorite, toggleFavorite } = useFavorites();
   const charIsFav = char ? isFavorite(char) : false;
@@ -660,11 +678,71 @@ export default function CharacterDetail() {
 
           {/* ── Tab: 关联汉字 ── */}
           {activeTab === 'cognates' && (
-            <motion.div key="cognates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
+            <motion.div key="cognates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-4">
+              {/* Preview: Top 5 scored relations */}
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                 <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Character Relations</h2>
-                {relatedCharMap && relatedCharMap.size > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                {topRelations.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
+                    {topRelations.map(rel => {
+                      const info = getCharacter(rel.character);
+                      return (
+                        <motion.button key={rel.character} whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }}
+                          onClick={() => goToDetail(rel.character)}
+                          className="flex flex-col items-center rounded-xl p-3 text-center transition-all"
+                          style={{ background: '#F5F0E8', border: '1px solid rgba(26,26,24,0.06)' }}
+                        >
+                          <span className="text-2xl font-display-cn" style={{ color: '#1A1A18', fontFamily: '"Ma Shan Zheng", cursive' }}>{rel.character}</span>
+                          {info && (
+                            <>
+                              <span className="text-[10px] mt-0.5" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{info.pinyin[0]}</span>
+                              <span className="text-[9px] mt-0.5 line-clamp-1" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{info.definition.slice(0, 10)}</span>
+                            </>
+                          )}
+                          <span className="text-xs font-bold mt-1" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>{rel.totalScore}pts</span>
+                          {rel.tags.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-0.5 mt-0.5">
+                              {rel.tags.slice(0, 2).map(tag => (
+                                <span key={tag} className="text-[7px] font-semibold px-1 py-px rounded-full"
+                                  style={{ background: TAG_COLORS[tag] + '18', color: TAG_COLORS[tag], fontFamily: 'Inter' }}
+                                >{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm mb-4" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No related characters found.</p>
+                )}
+
+                {/* View All button */}
+                <button
+                  onClick={() => navigate(`/relations?char=${encodeURIComponent(char)}`)}
+                  className="w-full py-3 rounded-xl text-sm font-medium transition-all hover:scale-[1.01]"
+                  style={{
+                    background: 'linear-gradient(135deg, #C23B2A 0%, #9B2226 100%)',
+                    color: '#F5F0E8',
+                    fontFamily: 'Inter',
+                    boxShadow: '0 2px 12px rgba(194,59,42,0.2)',
+                  }}
+                >
+                  View All Relations ({relations ? (
+                    relations.differentiations.length + relations.phoneticFamily.length + relations.semanticFamily.length +
+                    relations.containedIn.length + relations.homophones.length + relations.nearHomophones.length +
+                    relations.antonyms.length + relations.radicalFamily.length
+                  ) : 0} total) →
+                </button>
+              </div>
+
+              {/* Full relation lists (collapsed by default) */}
+              {relatedCharMap && relatedCharMap.size > 0 && (
+                <details className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                  <summary className="text-sm font-medium cursor-pointer" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                    All relations by category ({relatedCharMap.size} unique characters)
+                  </summary>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 mt-4">
                     {[...relatedCharMap.entries()].map(([c, types]) => {
                       const info = getCharacter(c);
                       return (
@@ -691,10 +769,8 @@ export default function CharacterDetail() {
                       );
                     })}
                   </div>
-                ) : (
-                  <p className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No related characters found.</p>
-                )}
-              </div>
+                </details>
+              )}
             </motion.div>
           )}
 
