@@ -557,24 +557,24 @@ export async function loadSimpTradMap(): Promise<void> {
         // Mark any character whose radical or any CJK decomposition component
         // is a known traditional marker.
         for (const [c, entry] of charMap) {
-          if (traditionalChars.has(c)) continue;
+          if (traditionalChars!.has(c)) continue;
           if (TRAD_MARKERS.has(entry.radical)) {
-            traditionalChars.add(c);
+            traditionalChars!.add(c);
             continue;
           }
           const comps = extractCJK(entry.decomposition || '');
           if (comps.some(cmp => TRAD_MARKERS.has(cmp))) {
-            traditionalChars.add(c);
+            traditionalChars!.add(c);
           }
         }
 
         // Second pass: mark chars whose decomposition contains any char
         // that is already in traditionalChars (e.g. 幗 contains 國).
         for (const [c, entry] of charMap) {
-          if (traditionalChars.has(c)) continue;
+          if (traditionalChars!.has(c)) continue;
           const comps = extractCJK(entry.decomposition || '');
-          if (comps.some(cmp => traditionalChars.has(cmp))) {
-            traditionalChars.add(c);
+          if (comps.some(cmp => traditionalChars!.has(cmp))) {
+            traditionalChars!.add(c);
           }
         }
       }
@@ -1017,7 +1017,7 @@ export function scoreRelations(char: string, limit: number = 80): ScoredRelation
       if (extractCJK(cd).includes(char)) meaningScore += 30;
     }
     if (radical && cEntry.radical === radical) meaningScore += 15;
-    if (ci?.has(c)) meaningScore += 10;
+    if (ci?.includes(c)) meaningScore += 10;
 
     meaningScore = Math.min(100, meaningScore);
 
@@ -1049,7 +1049,7 @@ export function scoreRelations(char: string, limit: number = 80): ScoredRelation
     if (semantic && cSemantic === semantic) tags.push('同形旁');
     if (hasExactMatch) tags.push('同音');
     else if (hasNearMatch) tags.push('近音');
-    if (ci?.has(c)) tags.push('构件包含');
+    if (ci?.includes(c)) tags.push('构件包含');
     if (radical && cEntry.radical === radical && !tags.includes('同形旁')) tags.push('同部首');
 
     scored.push({
