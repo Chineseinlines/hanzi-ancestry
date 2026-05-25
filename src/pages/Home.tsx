@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronDown, GitBranch, Layers, BookOpen, Gamepad2, GraduationCap, Compass } from 'lucide-react';
-import { hasCharacter, loadData } from '../data/hanziData';
+import { hasCharacter, loadData, searchByPinyin, searchByEnglish, hasCJK } from '../data/hanziData';
+import type { EnglishSearchResult } from '../data/hanziData';
 
 /* ─────────────────────────── animation variants ─────────────────────────── */
 
@@ -49,10 +50,21 @@ const staggerContainer = {
 
 /* ──────────────────────────────── Hero ─────────────────────────────────── */
 
+type SearchMode = 'auto' | 'hanzi' | 'pinyin' | 'english';
+
+const SEARCH_MODES: { key: SearchMode; label: string }[] = [
+  { key: 'auto', label: '自动' },
+  { key: 'hanzi', label: '汉字' },
+  { key: 'pinyin', label: '拼音' },
+  { key: 'english', label: 'EN' },
+];
+
 function HeroSection() {
   const navigate = useNavigate();
   const [searchChar, setSearchChar] = useState('');
   const [searchError, setSearchError] = useState('');
+  const [searchMode, setSearchMode] = useState<SearchMode>('auto');
+  const [enResults, setEnResults] = useState<EnglishSearchResult | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -64,21 +76,70 @@ function HeroSection() {
 
   const handleSearch = () => {
     if (!searchChar.trim()) return;
-    // Extract CJK chars from input (filter spaces/punctuation/pinyin)
-    const hanzi: string[] = [];
-    for (const ch of searchChar) {
-      const cp = ch.codePointAt(0);
-      if (cp && cp >= 0x4E00 && cp <= 0x9FFF) hanzi.push(ch);
+    const raw = searchChar.trim();
+
+    const tryHanzi = (): string | null => {
+      const hanzi: string[] = [];
+      for (const ch of raw) {
+        const cp = ch.codePointAt(0);
+        if (cp && cp >= 0x4E00 && cp <= 0x9FFF) hanzi.push(ch);
+      }
+      if (hanzi.length > 0 && hasCharacter(hanzi[0])) return hanzi[0];
+      return null;
+    };
+
+    const tryPinyin = (): string | null => {
+      const results = searchByPinyin(raw);
+      return results.length > 0 ? results[0].char : null;
+    };
+
+    let char: string | null = null;
+
+    switch (searchMode) {
+      case 'hanzi':
+        char = tryHanzi();
+        if (!char) { setSearchError('No Chinese character found. Enter a Chinese character.'); return; }
+        break;
+      case 'pinyin':
+        char = tryPinyin();
+        if (!char) { setSearchError('No matching characters found for this pinyin.'); return; }
+        break;
+      case 'english': {
+        const enRes = searchByEnglish(raw);
+        if (enRes.words.length === 0 && enRes.chars.length === 0) {
+          setSearchError('No matching results found for this English word.');
+          setEnResults(null);
+          return;
+        }
+        setSearchError('');
+        setEnResults(enRes);
+        return; // Show results panel, don't navigate
+      }
+      case 'auto':
+      default:
+        if (hasCJK(raw)) {
+          char = tryHanzi();
+          if (!char) { setSearchError(`Not in database. Try another character.`); return; }
+        } else {
+          // Try pinyin first, then English
+          const pinyinChar = tryPinyin();
+          if (pinyinChar) {
+            char = pinyinChar;
+          } else {
+            // English search — show results panel
+            const enRes = searchByEnglish(raw);
+            if (enRes.words.length > 0 || enRes.chars.length > 0) {
+              setSearchError('');
+              setEnResults(enRes);
+              return;
+            }
+            setSearchError('No matching results found.');
+            return;
+          }
+        }
+        break;
     }
-    if (hanzi.length === 0) {
-      setSearchError('Please enter a Chinese character.');
-      return;
-    }
-    const char = hanzi[0];
-    if (!hasCharacter(char)) {
-      setSearchError(`"${char}" is not in our database. Try another character.`);
-      return;
-    }
+
     setSearchError('');
     navigate(`/explore?char=${encodeURIComponent(char)}`);
   };
@@ -176,10 +237,11 @@ function HeroSection() {
               onChange={(e) => {
                 setSearchChar(e.target.value);
                 setSearchError('');
+                setEnResults(null);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="输入汉字或粘贴文本..."
-              className="h-14 w-full rounded-full border px-6 text-center font-serif-cn text-2xl outline-none transition-all duration-300 focus:border-cinnabar"
+              placeholder="输入汉字 / pinyin / English word..."
+              className="h-14 w-full rounded-full border px-6 text-center text-2xl outline-none transition-all duration-300 focus:border-cinnabar"
               style={{
                 backgroundColor: 'rgba(245, 240, 232, 0.08)',
                 borderColor: 'rgba(245, 240, 232, 0.15)',
@@ -194,6 +256,97 @@ function HeroSection() {
               <Search size={20} />
             </button>
           </div>
+          {/* Search mode selector */}
+          <div className="mt-3 flex items-center justify-center gap-1">
+            {SEARCH_MODES.map((mode) => (
+              <button
+                key={mode.key}
+                onClick={() => setSearchMode(mode.key)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 ${
+                  searchMode === mode.key
+                    ? 'bg-cinnabar text-white'
+                    : 'text-rice-paper/50 hover:text-rice-paper/80'
+                }`}
+                style={searchMode !== mode.key ? { background: 'rgba(245,240,232,0.06)' } : {}}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          {/* English search results panel */}
+          <AnimatePresence>
+            {enResults && (enResults.words.length > 0 || enResults.chars.length > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 mx-auto max-w-[540px] rounded-2xl p-5 text-left"
+                style={{
+                  background: 'rgba(245, 240, 232, 0.1)',
+                  border: '1px solid rgba(245, 240, 232, 0.12)',
+                }}
+              >
+                {/* Chinese words */}
+                {enResults.words.length > 0 && (
+                  <>
+                    <p className="mb-3 text-[0.6875rem] font-medium uppercase tracking-wider text-rice-paper/40">
+                      Chinese words — {searchChar}
+                    </p>
+                    <div className="space-y-2 mb-4">
+                      {enResults.words.slice(0, 12).map((w) => (
+                        <div key={w.w} className="flex items-center gap-3 text-sm group">
+                          <button
+                            onClick={() => {
+                              const firstChar = [...w.w].find(ch => {
+                                const cp = ch.codePointAt(0);
+                                return cp && cp >= 0x4E00 && cp <= 0x9FFF && hasCharacter(ch);
+                              });
+                              if (firstChar) navigate(`/explore?char=${encodeURIComponent(firstChar)}`);
+                            }}
+                            className="font-serif-cn text-xl font-semibold text-rice-paper min-w-[3rem] text-left hover:text-cinnabar transition-colors underline decoration-cinnabar/30 underline-offset-4 hover:decoration-cinnabar cursor-pointer"
+                            title={`View "${w.w}"`}
+                          >
+                            {w.w}
+                          </button>
+                          <span className="text-xs text-rice-paper/30 font-mono">{w.p}</span>
+                          <span className="text-xs text-rice-paper/50 truncate flex-1">{w.d}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {enResults.words.length > 12 && (
+                      <p className="text-[0.625rem] text-rice-paper/25 mb-3">
+                        +{enResults.words.length - 12} more words
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {/* Unique characters */}
+                {enResults.chars.length > 0 && (
+                  <div className="pt-3 border-t border-rice-paper/10">
+                    <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-rice-paper/40">
+                      All characters
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {enResults.chars.slice(0, 24).map((r) => (
+                        <button
+                          key={r.char}
+                          onClick={() => navigate(`/explore?char=${encodeURIComponent(r.char)}`)}
+                          className="rounded-lg px-3 py-1.5 text-lg font-serif-cn text-rice-paper hover:bg-cinnabar hover:text-white transition-all hover:scale-110"
+                          style={{ background: 'rgba(245,240,232,0.08)' }}
+                          title={`${r.pinyin}: ${r.definition}`}
+                        >
+                          {r.char}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {searchError && (
               <motion.div
@@ -250,7 +403,7 @@ function EntryCards() {
       title: '学习',
       subtitle: 'Learn',
       desc: '结构化知识卡片、笔顺演示、部件注释与字源讲解',
-      action: () => navigate('/about'),
+      action: () => navigate('/learn'),
       gradient: 'from-graph-node-component to-[#4A7DB5]',
     },
     {
@@ -266,7 +419,7 @@ function EntryCards() {
       title: '题库',
       subtitle: 'Quiz',
       desc: '单字随堂测、专项试卷、能力评分与学习报告',
-      action: () => navigate('/explore'),
+      action: () => navigate('/quiz'),
       gradient: 'from-green-sage to-[#8DA37E]',
     },
   ];

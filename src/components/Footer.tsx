@@ -39,6 +39,18 @@ export default function Footer() {
                 Explore
               </Link>
               <Link
+                to="/quiz"
+                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
+              >
+                Quiz
+              </Link>
+              <Link
+                to="/games"
+                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
+              >
+                Games
+              </Link>
+              <Link
                 to="/about"
                 className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
               >

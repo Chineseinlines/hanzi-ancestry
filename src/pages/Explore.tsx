@@ -9,14 +9,19 @@ import {
   Info,
 } from 'lucide-react';
 import type { DecompositionNode, HanziEntry, CognateResult } from '../data/types';
+import type { EnglishSearchResult } from '../data/hanziData';
 import {
   getCharacter,
   decomposeCharacter,
+  numberToMark,
   getCognates,
   hasCharacter,
   loadData,
   loadRelations,
   getTraditionalComponents,
+  searchByPinyin,
+  searchByEnglish,
+  hasCJK,
 } from '../data/hanziData';
 import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
@@ -84,6 +89,15 @@ function collectIDSLines(
 /*  Explore Page                                                       */
 /* ------------------------------------------------------------------ */
 
+type SearchMode = 'auto' | 'hanzi' | 'pinyin' | 'english';
+
+const SEARCH_MODES_EXPLORE: { key: SearchMode; label: string }[] = [
+  { key: 'auto', label: '自动' },
+  { key: 'hanzi', label: '汉字' },
+  { key: 'pinyin', label: '拼音' },
+  { key: 'english', label: 'EN' },
+];
+
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -91,6 +105,8 @@ export default function Explore() {
   const componentParam = searchParams.get('component') ?? '';
 
   const [query, setQuery] = useState(charParam);
+  const [searchMode, setSearchMode] = useState<SearchMode>('auto');
+  const [enResults, setEnResults] = useState<EnglishSearchResult | null>(null);
   const [currentChar, setCurrentChar] = useState(charParam);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'decomposition' | 'cognate'>('decomposition');
@@ -127,12 +143,60 @@ export default function Explore() {
     loadRelations();
   }, []);
 
-  // Process search – auto-extract CJK chars, filter noise
+  // Process search – auto-extract CJK chars, or try pinyin/English
   const processSearch = useCallback(
     (raw: string) => {
-      const hanzi = extractHanzi(raw);
-      if (hanzi.length === 0) return;
-      const first = hanzi[0];
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+
+      let first: string | null = null;
+
+      const tryHanzi = (): string | null => {
+        const hanzi = extractHanzi(trimmed);
+        return hanzi.length > 0 ? hanzi[0] : null;
+      };
+
+      const tryPinyin = (): string | null => {
+        const results = searchByPinyin(trimmed);
+        return results.length > 0 ? results[0].char : null;
+      };
+
+      switch (searchMode) {
+        case 'hanzi':
+          first = tryHanzi();
+          break;
+        case 'pinyin':
+          first = tryPinyin();
+          break;
+        case 'english': {
+          const enRes = searchByEnglish(trimmed);
+          setEnResults(enRes);
+          if (enRes.words.length === 0 && enRes.chars.length === 0) return;
+          setSelectedComponent(null);
+          return; // Show results panel
+        }
+        case 'auto':
+        default:
+          if (hasCJK(trimmed)) {
+            first = tryHanzi();
+          } else {
+            const pinyinChar = tryPinyin();
+            if (pinyinChar) {
+              first = pinyinChar;
+            } else {
+              const enRes = searchByEnglish(trimmed);
+              if (enRes.words.length > 0 || enRes.chars.length > 0) {
+                setEnResults(enRes);
+                setSelectedComponent(null);
+                return; // Show results panel
+              }
+            }
+          }
+          break;
+      }
+
+      if (!first) return;
+      setEnResults(null);
       setQuery(first);
       setCurrentChar(first);
       setSelectedComponent(null);
@@ -140,7 +204,7 @@ export default function Explore() {
       setLoading(true);
       setTimeout(() => setLoading(false), 400);
     },
-    [setSearchParams]
+    [searchMode, setSearchParams]
   );
 
   // Handle form submission
@@ -269,10 +333,10 @@ export default function Explore() {
                 ref={searchInputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => { setQuery(e.target.value); setEnResults(null); }}
                 maxLength={20}
-                placeholder="输入汉字（支持粘贴含拼音文本）..."
-                className="h-14 w-full rounded-full border border-border-light bg-white px-6 text-center font-serif-cn text-2xl text-ink-black shadow-sm transition-all duration-300 placeholder:text-charcoal/30 focus:border-cinnabar focus:shadow-cinnabar focus:outline-none"
+                placeholder="汉字 / pinyin / English word..."
+                className="h-14 w-full rounded-full border border-border-light bg-white px-6 text-center text-2xl text-ink-black shadow-sm transition-all duration-300 placeholder:text-charcoal/30 focus:border-cinnabar focus:shadow-cinnabar focus:outline-none"
               />
               <button
                 type="submit"
@@ -283,6 +347,108 @@ export default function Explore() {
               </button>
             </div>
           </motion.form>
+
+          {/* Search mode selector */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+            className="mt-3 flex items-center justify-center gap-1"
+          >
+            {SEARCH_MODES_EXPLORE.map((mode) => (
+              <button
+                key={mode.key}
+                type="button"
+                onClick={() => setSearchMode(mode.key)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 ${
+                  searchMode === mode.key
+                    ? 'bg-cinnabar text-white'
+                    : 'text-charcoal/40 hover:text-charcoal/70 bg-bg-warm'
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </motion.div>
+
+          {/* English search results panel */}
+          <AnimatePresence>
+            {enResults && (enResults.words.length > 0 || enResults.chars.length > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 mx-auto max-w-[540px] rounded-2xl bg-white p-5 text-left shadow-md border border-border-light"
+              >
+                {/* Chinese words */}
+                {enResults.words.length > 0 && (
+                  <>
+                    <p className="mb-3 text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">
+                      Chinese words
+                    </p>
+                    <div className="space-y-2 mb-4 max-h-72 overflow-y-auto">
+                      {enResults.words.slice(0, 15).map((w) => (
+                        <div key={w.w} className="flex items-center gap-2 text-sm group">
+                          <button
+                            onClick={() => {
+                              const firstChar = [...w.w].find(ch => {
+                                const cp = ch.codePointAt(0);
+                                return cp && cp >= 0x4E00 && cp <= 0x9FFF && hasCharacter(ch);
+                              });
+                              if (firstChar) {
+                                setEnResults(null);
+                                setQuery(firstChar);
+                                setCurrentChar(firstChar);
+                                setSearchParams({ char: firstChar });
+                              }
+                            }}
+                            className="font-serif-cn text-xl font-semibold text-ink-black min-w-[3rem] text-left hover:text-cinnabar transition-colors underline decoration-cinnabar/20 underline-offset-4 hover:decoration-cinnabar cursor-pointer"
+                            title={`View "${w.w}"`}
+                          >
+                            {w.w}
+                          </button>
+                          <span className="text-[0.625rem] text-charcoal/30 font-mono hidden sm:inline">{w.p}</span>
+                          <span className="text-xs text-charcoal/50 truncate flex-1">{w.d}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {enResults.words.length > 15 && (
+                      <p className="text-[0.625rem] text-charcoal/30 mb-3">
+                        +{enResults.words.length - 15} more words
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {/* Unique characters */}
+                {enResults.chars.length > 0 && (
+                  <div className="pt-3 border-t border-border-light">
+                    <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">
+                      All characters
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {enResults.chars.slice(0, 24).map((r) => (
+                        <button
+                          key={r.char}
+                          onClick={() => {
+                            setEnResults(null);
+                            setQuery(r.char);
+                            setCurrentChar(r.char);
+                            setSearchParams({ char: r.char });
+                          }}
+                          className="rounded-lg px-3 py-1.5 text-lg font-serif-cn text-ink-black hover:bg-cinnabar hover:text-white transition-all hover:scale-110"
+                          style={{ background: 'rgba(26,26,24,0.04)' }}
+                          title={`${r.pinyin}: ${r.definition}`}
+                        >
+                          {r.char}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Quick Character Chips */}
           <motion.div
@@ -332,7 +498,7 @@ export default function Explore() {
                 {charData.character}
               </motion.span>
               <span className="font-mono text-sm text-cinnabar">
-                {charData.pinyin.join(', ')}
+                {charData.pinyin.map(p => numberToMark(p)).join(', ')}
               </span>
               <span className="hidden text-border-light sm:inline">·</span>
               <span

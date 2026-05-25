@@ -22,6 +22,8 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
   const navLinks = [
     { label: 'Home', path: '/' },
     { label: 'Explore', path: '/explore' },
+    { label: 'Learn', path: '/learn' },
+    { label: 'Quiz', path: '/quiz' },
     { label: 'Games', path: '/games' },
     { label: 'About', path: '/about' },
   ];

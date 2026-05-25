@@ -7,6 +7,8 @@ import About from './pages/About'
 import CharacterDetail from './pages/CharacterDetail'
 import CharacterRelations from './pages/CharacterRelations'
 import Games from './pages/Games'
+import Quiz from './pages/Quiz'
+import Learn from './pages/Learn'
 
 const pageTransition = {
   initial: { opacity: 0, y: 12 },
@@ -24,10 +26,12 @@ export default function App() {
           <Routes location={location}>
             <Route path="/" element={<Home />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/learn" element={<Learn />} />
             <Route path="/about" element={<About />} />
             <Route path="/detail" element={<CharacterDetail />} />
             <Route path="/relations" element={<CharacterRelations />} />
             <Route path="/games" element={<Games />} />
+            <Route path="/quiz" element={<Quiz />} />
           </Routes>
         </motion.div>
       </AnimatePresence>

@@ -4,24 +4,28 @@ import { fadeUp, viewportOnce } from './variants';
 interface IDSOperator {
   operator: string;
   name: string;
+  nameZh: string;
   structure: string;
+  structureZh: string;
   example: string;
   result: string;
+  example2: string;
+  result2: string;
 }
 
 const operators: IDSOperator[] = [
-  { operator: '⿰', name: 'Left-Right', structure: 'A left, B right', example: '⿰氵又', result: '汉' },
-  { operator: '⿱', name: 'Top-Bottom', structure: 'A above B', example: '⿱日木', result: '杳' },
-  { operator: '⿴', name: 'Surround', structure: 'A surrounds B', example: '⿴囗玉', result: '国' },
-  { operator: '⿵', name: 'Surround from Above', structure: 'A covers B', example: '⿵冂人', result: '内' },
-  { operator: '⿶', name: 'Surround from Below', structure: 'B under A', example: '⿶凵㐅', result: '凶' },
-  { operator: '⿷', name: 'Surround from Left', structure: 'A wraps B left', example: '⿷匚矢', result: '医' },
-  { operator: '⿸', name: 'Surround from Upper Left', structure: 'A covers B top-left', example: '⿸厂火', result: '厅' },
-  { operator: '⿹', name: 'Surround from Upper Right', structure: 'A covers B top-right', example: '⿹勹口', result: '句' },
-  { operator: '⿺', name: 'Surround from Lower Left', structure: 'A wraps B bottom-left', example: '⿺辶寸', result: '过' },
-  { operator: '⿻', name: 'Overlay', structure: 'A overlays B', example: '⿻木日', result: '杳' },
-  { operator: '⿳', name: 'Top-Middle-Bottom', structure: 'A/B/C stacked', example: '⿳艹日十', result: '草' },
-  { operator: '⿲', name: 'Left-Middle-Right', structure: 'A/B/C side by side', example: '⿲辛讠辛', result: '辩' },
+  { operator: '⿰', name: 'Left-Right', nameZh: '左右结构', structure: 'A left, B right', structureZh: 'A在左，B在右', example: '⿰氵又', result: '汉', example2: '⿰亻尔', result2: '你' },
+  { operator: '⿱', name: 'Top-Bottom', nameZh: '上下结构', structure: 'A above B (pure vertical stack)', structureZh: 'A在上，B在下（纯垂直堆叠）', example: '⿱日一', result: '旦', example2: '⿱木子', result2: '李' },
+  { operator: '⿴', name: 'Surround', nameZh: '全包围结构', structure: 'A surrounds B', structureZh: 'A包围B', example: '⿴囗玉', result: '国', example2: '⿴囗员', result2: '圆' },
+  { operator: '⿵', name: 'Surround from Above', nameZh: '上三包围', structure: 'A covers B from top', structureZh: 'A从上方覆盖B', example: '⿵冂人', result: '内', example2: '⿵门马', result2: '闯' },
+  { operator: '⿶', name: 'Surround from Below', nameZh: '下三包围', structure: 'B under A (enclosed from below)', structureZh: 'B被A从下方包围', example: '⿶凵㐅', result: '凶', example2: '⿶凵氶', result2: '函' },
+  { operator: '⿷', name: 'Surround from Left', nameZh: '左三包围', structure: 'A wraps B from left', structureZh: 'A从左侧包围B', example: '⿷匚矢', result: '医', example2: '⿷匚元', result2: '园' },
+  { operator: '⿸', name: 'Surround from Upper Left', nameZh: '左上包围', structure: 'A covers B from top-left', structureZh: 'A从左上覆盖B', example: '⿸厂火', result: '厅', example2: '⿸尸毛', result2: '尾' },
+  { operator: '⿹', name: 'Surround from Upper Right', nameZh: '右上包围', structure: 'A covers B from top-right', structureZh: 'A从右上覆盖B', example: '⿹勹口', result: '句', example2: '⿹弋工', result2: '式' },
+  { operator: '⿺', name: 'Surround from Lower Left', nameZh: '左下包围', structure: 'A wraps B from bottom-left', structureZh: 'A从左下包围B', example: '⿺辶寸', result: '过', example2: '⿺走卜', result2: '赴' },
+  { operator: '⿻', name: 'Overlay', nameZh: '镶嵌/覆盖结构', structure: 'A overlays B (components interpenetrate)', structureZh: 'A覆盖B（部件视觉交叠）', example: '⿻日土', result: '里', example2: '⿻大丶', result2: '太' },
+  { operator: '⿳', name: 'Top-Middle-Bottom', nameZh: '上中下结构', structure: 'A/B/C stacked vertically', structureZh: 'A/B/C垂直堆叠', example: '⿳艹日十', result: '草', example2: '⿳亠口小', result2: '京' },
+  { operator: '⿲', name: 'Left-Middle-Right', nameZh: '左中右结构', structure: 'A/B/C side by side', structureZh: 'A/B/C水平排列', example: '⿲辛讠辛', result: '辩', example2: '⿲氵舟刂', result2: '测' },
 ];
 
 export default function IDSReferenceTable() {
@@ -96,7 +100,13 @@ export default function IDSReferenceTable() {
                     Structure
                   </th>
                   <th className="px-6 py-3 text-center text-[0.8125rem] font-medium uppercase tracking-wider text-rice-paper">
-                    Example
+                    Example 1
+                  </th>
+                  <th className="px-6 py-3 text-center text-[0.8125rem] font-medium uppercase tracking-wider text-rice-paper">
+                    Result
+                  </th>
+                  <th className="px-6 py-3 text-center text-[0.8125rem] font-medium uppercase tracking-wider text-rice-paper">
+                    Example 2
                   </th>
                   <th className="px-6 py-3 text-center text-[0.8125rem] font-medium uppercase tracking-wider text-rice-paper">
                     Result
@@ -120,11 +130,23 @@ export default function IDSReferenceTable() {
                         {op.operator}
                       </span>
                     </td>
-                    <td className="px-6 py-3 text-[0.9375rem] font-medium text-ink-black">
-                      {op.name}
+                    <td className="px-6 py-3">
+                      <span className="text-[0.9375rem] font-medium text-ink-black">
+                        {op.name}
+                      </span>
+                      <br />
+                      <span className="text-[0.8125rem] text-charcoal/70">
+                        {op.nameZh}
+                      </span>
                     </td>
-                    <td className="px-6 py-3 text-[0.875rem] text-charcoal">
-                      {op.structure}
+                    <td className="px-6 py-3">
+                      <span className="text-[0.875rem] text-charcoal">
+                        {op.structure}
+                      </span>
+                      <br />
+                      <span className="text-[0.75rem] text-charcoal/60">
+                        {op.structureZh}
+                      </span>
                     </td>
                     <td className="px-6 py-3 text-center">
                       <span className="font-mono text-[1.125rem] text-graph-node-component">
@@ -134,6 +156,16 @@ export default function IDSReferenceTable() {
                     <td className="px-6 py-3 text-center">
                       <span className="font-serif-cn text-[1.25rem] font-bold text-ink-black">
                         {op.result}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                      <span className="font-mono text-[1.125rem] text-graph-node-component">
+                        {op.example2}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                      <span className="font-serif-cn text-[1.25rem] font-bold text-ink-black">
+                        {op.result2}
                       </span>
                     </td>
                   </motion.tr>
@@ -152,24 +184,39 @@ export default function IDSReferenceTable() {
                 whileInView="visible"
                 viewport={viewportOnce}
                 custom={0.05 * i}
-                className={`flex items-center gap-4 px-4 py-3 ${i % 2 === 0 ? 'bg-white' : 'bg-bg-warm/50'}`}
+                className={`flex items-center gap-3 px-4 py-3 ${i % 2 === 0 ? 'bg-white' : 'bg-bg-warm/50'}`}
                 style={{ borderBottom: '1px solid var(--border-light)' }}
               >
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-ink-black font-mono text-[1.25rem] font-medium text-rice-paper">
                   {op.operator}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[0.875rem] font-medium text-ink-black">{op.name}</p>
+                  <p className="text-[0.875rem] font-medium text-ink-black">
+                    {op.name}
+                    <span className="ml-1 text-[0.75rem] font-normal text-charcoal/60">{op.nameZh}</span>
+                  </p>
                   <p className="text-[0.75rem] text-charcoal">{op.structure}</p>
+                  <p className="mt-0.5 text-[0.6875rem] text-charcoal/60">{op.structureZh}</p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <span className="font-mono text-[0.875rem] text-graph-node-component">
-                    {op.example}
-                  </span>
-                  <span className="mx-1 text-charcoal/40">→</span>
-                  <span className="font-serif-cn text-[1.125rem] font-bold text-ink-black">
-                    {op.result}
-                  </span>
+                  <div>
+                    <span className="font-mono text-[0.75rem] text-graph-node-component">
+                      {op.example}
+                    </span>
+                    <span className="mx-1 text-charcoal/40">→</span>
+                    <span className="font-serif-cn text-[1rem] font-bold text-ink-black">
+                      {op.result}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-mono text-[0.75rem] text-graph-node-component">
+                      {op.example2}
+                    </span>
+                    <span className="mx-1 text-charcoal/40">→</span>
+                    <span className="font-serif-cn text-[1rem] font-bold text-ink-black">
+                      {op.result2}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             ))}

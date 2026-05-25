@@ -151,7 +151,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
         <div
           className="relative flex items-center justify-center rounded-2xl overflow-hidden flex-1"
           style={{
-            minHeight: 200,
+            height: 280,
             background: 'linear-gradient(135deg, #F5F0E8 0%, #EDE6D8 100%)',
             boxShadow: 'inset 0 0 30px rgba(139,105,20,0.08)',
           }}

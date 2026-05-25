@@ -6,6 +6,14 @@ let charMap: Map<string, HanziEntry> | null = null;
 let reverseIndex: Map<string, string[]> | null = null;
 let dataLoadPromise: Promise<void> | null = null;
 
+// English word → Chinese word lookup index
+interface WordEntry {
+  w: string;   // Chinese word
+  p: string;   // pinyin
+  d: string;   // English definition
+}
+let enWordIndex: Map<string, WordEntry[]> | null = null;
+
 // Stroke & cultural data
 let culturalMap: Map<string, CulturalData> | null = null;
 let culturalPromise: Promise<void> | null = null;
@@ -68,6 +76,54 @@ function stripTone(pinyin: string): string {
     .normalize('NFD')
     .replace(/[̀-̄̆-̧̈-̨]/g, '')
     .normalize('NFC');
+}
+
+/** Strip tone NUMBER from pinyin, returning base syllable (e.g. "he2" → "he", "he4" → "he") */
+export function stripToneNumber(py: string): string {
+  return py.replace(/[1-5]$/, '');
+}
+
+/** Convert pinyin with tone number to diacritic marks. Handles single syllables ("he2"→"hé") and multi-syllable space/comma-separated strings ("tai4 yang2"→"tàiyáng"). */
+export function numberToMark(py: string): string {
+  // Handle multi-syllable: split on space, comma, or comma+space
+  if (/[ ,]/.test(py)) {
+    return py.split(/[ ,]+/).map(s => convertOneSyllable(s)).join('');
+  }
+  return convertOneSyllable(py);
+}
+
+function convertOneSyllable(py: string): string {
+  const match = py.match(/^([a-zü]+)([1-5])$/i);
+  if (!match) return py;
+  const [, base, tone] = match;
+  const t = parseInt(tone);
+  const lower = base.toLowerCase();
+
+  const toneMap: Record<string, Record<number, string>> = {
+    a: { 1: 'ā', 2: 'á', 3: 'ǎ', 4: 'à' },
+    e: { 1: 'ē', 2: 'é', 3: 'ě', 4: 'è' },
+    i: { 1: 'ī', 2: 'í', 3: 'ǐ', 4: 'ì' },
+    o: { 1: 'ō', 2: 'ó', 3: 'ǒ', 4: 'ò' },
+    u: { 1: 'ū', 2: 'ú', 3: 'ǔ', 4: 'ù' },
+    ü: { 1: 'ǖ', 2: 'ǘ', 3: 'ǚ', 4: 'ǜ' },
+  };
+
+  if (t === 5) return lower; // neutral tone
+
+  // Rule: a/e always gets the mark; in "ou", o gets it; otherwise last vowel
+  let vowel: string;
+  if (lower.includes('a')) vowel = 'a';
+  else if (lower.includes('e')) vowel = 'e';
+  else if (lower.includes('ou')) vowel = 'o';
+  else {
+    const vowels = [...lower].filter(c => 'aeiouü'.includes(c));
+    vowel = vowels[vowels.length - 1];
+  }
+
+  const marked = toneMap[vowel]?.[t];
+  if (!marked) return py;
+  const idx = lower.indexOf(vowel);
+  return lower.slice(0, idx) + marked + lower.slice(idx + 1);
 }
 
 /**
@@ -172,6 +228,17 @@ export async function loadData(): Promise<void> {
         if (!list) { list = []; radicalIndex.set(r, list); }
         list.push(entry.character);
       }
+
+      // Load English→Chinese word index (non-critical, failure is silent)
+      try {
+        const enRes = await fetch(`${import.meta.env.BASE_URL}en-word-index.json`);
+        if (enRes.ok) {
+          const raw = await enRes.json() as Record<string, WordEntry[]>;
+          enWordIndex = new Map(Object.entries(raw));
+        }
+      } catch {
+        console.warn('English word index not available — English search disabled');
+      }
     } catch (err) {
       console.error('Failed to load hanzi data:', err);
       charMap = null;
@@ -224,6 +291,168 @@ export function getCharacterEnriched(char: string): HanziEntry | undefined {
 
 export function hasCharacter(char: string): boolean {
   return charMap?.has(char) ?? false;
+}
+
+/** Search result from multi-mode query */
+export interface SearchResult {
+  char: string;
+  pinyin: string;
+  definition: string;
+  matchType: 'hanzi' | 'pinyin' | 'english';
+}
+
+/** Result from English word search — includes word-level results */
+export interface EnglishSearchResult {
+  words: { w: string; p: string; d: string }[];
+  chars: SearchResult[];
+}
+
+/**
+ * Search characters by pinyin (supports partial match, optionally with tone number).
+ * e.g. "he" matches all tones of 和/合/河/何; "he2" matches only 2nd tone.
+ * Results display pinyin with diacritic marks (he2→hé).
+ */
+export function searchByPinyin(query: string): SearchResult[] {
+  if (!charMap || !pinyinNoToneIndex) return [];
+  const q = query.toLowerCase().trim();
+  if (!q) return [];
+
+  // Detect tone number suffix: "shi4" → base="shi", tone=4; "shi" → base="shi", tone=null
+  const toneMatch = q.match(/(.+?)([1-5])$/);
+  const baseQuery = toneMatch ? toneMatch[1] : q;
+  const targetTone = toneMatch ? parseInt(toneMatch[2]) : null;
+
+  const seen = new Set<string>();
+  const results: SearchResult[] = [];
+
+  // Match: input is a prefix of the tone-stripped pinyin
+  for (const [pyNoTone, chars] of pinyinNoToneIndex.entries()) {
+    if (pyNoTone.startsWith(baseQuery)) {
+      for (const c of chars) {
+        if (seen.has(c)) continue;
+        const entry = charMap.get(c);
+        if (!entry) continue;
+
+        // If user specified a tone, only include chars with that exact tone
+        if (targetTone !== null) {
+          const hasTargetTone = entry.pinyin.some(p => {
+            const m = p.match(/([1-5])$/);
+            return m && parseInt(m[1]) === targetTone;
+          });
+          if (!hasTargetTone) continue;
+        }
+
+        seen.add(c);
+        // Convert tone numbers to diacritics for display
+        const displayPinyin = entry.pinyin.map(p => numberToMark(p)).join(', ');
+        results.push({
+          char: c,
+          pinyin: displayPinyin,
+          definition: entry.definition ?? '',
+          matchType: 'pinyin',
+        });
+      }
+    }
+  }
+
+  // Sort: shorter pinyin first (closer match), then by importance
+  results.sort((a, b) => {
+    const lenDiff = a.pinyin.length - b.pinyin.length;
+    if (lenDiff !== 0) return lenDiff;
+    return getImportance(b.char) - getImportance(a.char);
+  });
+
+  return results.slice(0, 50);
+}
+
+/**
+ * Search by English word using CC-CEDICT word-level index.
+ * Returns both the matching Chinese words AND the unique characters
+ * extracted from those words. Two-layer result for the UI.
+ *
+ * e.g. "sun" → words: [太阳, 阳光, 日光], chars: [日, 阳, 光, 太]
+ */
+export function searchByEnglish(query: string): EnglishSearchResult {
+  const empty: EnglishSearchResult = { words: [], chars: [] };
+  if (!charMap) return empty;
+  const q = query.toLowerCase().trim();
+  if (!q || q.length < 2) return empty;
+
+  // Path 1: Lookup in CC-CEDICT word index
+  if (enWordIndex) {
+    const entries = enWordIndex.get(q);
+    if (entries && entries.length > 0) {
+      const words = entries;
+
+      // Filter words: only keep those with at least one clickable char (common + in dict)
+      const filteredWords = words
+        .filter(w => [...w.w].some(ch => isCommonChar(ch) && charMap!.has(ch)))
+        .map(w => ({ ...w, p: numberToMark(w.p) }));
+
+      // Extract unique common characters from all matched words
+      const charSet = new Set<string>();
+      const charSeen = new Set<string>();
+      for (const e of filteredWords) {
+        for (const ch of e.w) {
+          const cp = ch.codePointAt(0);
+          if (cp && cp >= 0x4E00 && cp <= 0x9FFF && isCommonChar(ch) && charMap.has(ch) && !charSeen.has(ch)) {
+            charSeen.add(ch);
+            charSet.add(ch);
+          }
+        }
+      }
+
+      const chars: SearchResult[] = [];
+      for (const c of charSet) {
+        const entry = charMap.get(c);
+        if (!entry) continue;
+        chars.push({
+          char: c,
+          pinyin: entry.pinyin?.map(p => numberToMark(p)).join(', ') ?? '',
+          definition: entry.definition ?? '',
+          matchType: 'english',
+        });
+      }
+
+      return { words: filteredWords, chars };
+    }
+  }
+
+  // Path 2: Fallback — substring match on definitions
+  const charSeen = new Set<string>();
+  const chars: SearchResult[] = [];
+  for (const [c, entry] of charMap) {
+    const def = entry.definition?.toLowerCase();
+    if (def && def.includes(q)) {
+      charSeen.add(c);
+      chars.push({
+        char: c,
+        pinyin: entry.pinyin?.map(p => numberToMark(p)).join(', ') ?? '',
+        definition: entry.definition ?? '',
+        matchType: 'english',
+      });
+    }
+  }
+  chars.sort((a, b) => getImportance(b.char) - getImportance(a.char));
+  return { words: [], chars: chars.slice(0, 30) };
+}
+
+/**
+ * Check if string contains any CJK character.
+ */
+export function hasCJK(input: string): boolean {
+  for (const ch of input) {
+    const cp = ch.codePointAt(0);
+    if (cp && cp >= 0x4E00 && cp <= 0x9FFF) return true;
+  }
+  return false;
+}
+
+/**
+ * Check if string looks like pinyin (lowercase latin letters only).
+ */
+export function looksLikePinyin(input: string): boolean {
+  return /^[a-z]+$/.test(input.trim().toLowerCase());
 }
 
 /**
@@ -824,13 +1053,13 @@ export function computeRelations(char: string): CharRelations {
 
   const differentiations = takeList(diffSet, 30);
   const antonyms         = takeList(antSet, 30);
-  const phoneticFamily   = takeList(pfSet, 30);
-  const semanticFamily   = takeList(sfSet, 30);
-  const sharedComponents = takeList(scSet, 30);
-  const containedIn      = takeList(ciSet, 30);
+  const phoneticFamily   = takeList(pfSet, 50);
+  const semanticFamily   = takeList(sfSet, 50);
+  const sharedComponents = takeList(scSet, 50);
+  const containedIn      = takeList(ciSet, 40);
   const homophones       = takeList(homoSet, 20);
   const nearHomophones   = takeList(nearHomoSet, 20);
-  const radicalFamily    = takeList(radSet, 30);
+  const radicalFamily    = takeList(radSet, 40);
 
   return {
     differentiations, phoneticFamily, semanticFamily,
@@ -921,6 +1150,9 @@ export function scoreRelations(char: string, limit: number = 80): ScoredRelation
   if (phonetic && charMap.has(phonetic)) {
     const sibs = phoneticIndex?.get(phonetic);
     if (sibs) for (const s of sibs) { if (s !== char) candidates.add(s); }
+    // Cross-role: chars containing the phonetic component in any role
+    const containing = reverseIndex?.get(phonetic);
+    if (containing) for (const c of containing) { if (c !== char) candidates.add(c); }
   }
   if (children) for (const c of children) candidates.add(c);
 
@@ -928,6 +1160,9 @@ export function scoreRelations(char: string, limit: number = 80): ScoredRelation
   if (semantic && charMap.has(semantic)) {
     const sibs = semanticIndex?.get(semantic);
     if (sibs) for (const s of sibs) { if (s !== char) candidates.add(s); }
+    // Cross-role: chars containing the semantic component in any role
+    const containing = reverseIndex?.get(semantic);
+    if (containing) for (const c of containing) { if (c !== char) candidates.add(c); }
   }
 
   // Contained in
@@ -953,11 +1188,11 @@ export function scoreRelations(char: string, limit: number = 80): ScoredRelation
     }
   }
 
-  // Chars sharing components with target (top 8 per component)
+  // Chars sharing components with target (top 20 per component)
   for (const comp of targetComponents) {
     const compChars = reverseIndex?.get(comp);
     if (compChars) {
-      for (const c of sortByImportance([...compChars]).slice(0, 8)) {
+      for (const c of sortByImportance([...compChars]).slice(0, 20)) {
         if (c !== char) candidates.add(c);
       }
     }

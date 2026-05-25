@@ -398,7 +398,7 @@ export default function CharacterDetail() {
       </section>
 
       {/* ── Tab Bar ── */}
-      <div className="sticky top-16 z-30 border-b" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
+      <div className="sticky top-16 z-30 border-b shadow-sm" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
         <div className="max-w-5xl mx-auto px-4 overflow-x-auto">
           <div className="flex min-w-max gap-0">
             {TABS.map((tab) => {
@@ -408,14 +408,14 @@ export default function CharacterDetail() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className="relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-all duration-200"
+                  className="relative flex items-center gap-2 px-5 py-3.5 text-[0.9375rem] font-semibold transition-all duration-200"
                   style={{
-                    color: isActive ? '#C23B2A' : '#8B6914',
+                    color: isActive ? '#C23B2A' : '#5A5548',
                     fontFamily: 'Inter, sans-serif',
-                    borderBottom: isActive ? '2px solid #C23B2A' : '2px solid transparent',
+                    borderBottom: isActive ? '3px solid #C23B2A' : '3px solid transparent',
                   }}
                 >
-                  <Icon size={16} />
+                  <Icon size={18} />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               );

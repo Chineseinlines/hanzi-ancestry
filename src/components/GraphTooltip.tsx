@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { HanziEntry } from '../data/types';
 import { PHONETIC_COLORS, RED_WARNING_TEXT, type PhoneticRating } from '../data/phoneticRating';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation } from '../data/componentAnnotations';
+import { numberToMark } from '../data/hanziData';
 import { getGhostSuggestion } from '../data/ghostComponents';
 import MiniStrokePreview from './MiniStrokePreview';
 
@@ -98,7 +99,7 @@ const GraphTooltip = memo(function GraphTooltip({
             {entry.character}
           </div>
           <div className="mb-1 font-mono text-[0.75rem] text-cinnabar">
-            {entry.pinyin.join(', ')}
+            {entry.pinyin.map(p => numberToMark(p)).join(', ')}
           </div>
           <div className="mb-1.5 text-[0.75rem] leading-snug text-charcoal" style={{ fontFamily: 'Inter, sans-serif' }}>
             {entry.definition}
