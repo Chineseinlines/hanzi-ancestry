@@ -74,7 +74,7 @@ function HeroSection() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchChar.trim()) return;
     const raw = searchChar.trim();
 
@@ -105,7 +105,7 @@ function HeroSection() {
         if (!char) { setSearchError('No matching characters found for this pinyin.'); return; }
         break;
       case 'english': {
-        const enRes = searchByEnglish(raw);
+        const enRes = await searchByEnglish(raw);
         if (enRes.words.length === 0 && enRes.chars.length === 0) {
           setSearchError('No matching results found for this English word.');
           setEnResults(null);
@@ -127,7 +127,7 @@ function HeroSection() {
             char = pinyinChar;
           } else {
             // English search — show results panel
-            const enRes = searchByEnglish(raw);
+            const enRes = await searchByEnglish(raw);
             if (enRes.words.length > 0 || enRes.chars.length > 0) {
               setSearchError('');
               setEnResults(enRes);

@@ -13,6 +13,25 @@ interface WordEntry {
   d: string;   // English definition
 }
 let enWordIndex: Map<string, WordEntry[]> | null = null;
+let enWordLoadPromise: Promise<void> | null = null;
+
+/** Lazily load the English→Chinese word index (15+ MB) — only on first use */
+async function ensureEnWordIndex(): Promise<void> {
+  if (enWordIndex) return;
+  if (enWordLoadPromise) return enWordLoadPromise;
+  enWordLoadPromise = (async () => {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}en-word-index.json`);
+      if (res.ok) {
+        const raw = await res.json() as Record<string, WordEntry[]>;
+        enWordIndex = new Map(Object.entries(raw));
+      }
+    } catch {
+      console.warn('English word index not available — English search disabled');
+    }
+  })();
+  return enWordLoadPromise;
+}
 
 // Stroke & cultural data
 let culturalMap: Map<string, CulturalData> | null = null;
@@ -229,16 +248,8 @@ export async function loadData(): Promise<void> {
         list.push(entry.character);
       }
 
-      // Load English→Chinese word index (non-critical, failure is silent)
-      try {
-        const enRes = await fetch(`${import.meta.env.BASE_URL}en-word-index.json`);
-        if (enRes.ok) {
-          const raw = await enRes.json() as Record<string, WordEntry[]>;
-          enWordIndex = new Map(Object.entries(raw));
-        }
-      } catch {
-        console.warn('English word index not available — English search disabled');
-      }
+      // English→Chinese word index is loaded lazily on first searchByEnglish() call
+      // (15+ MB file, not needed for most pages)
     } catch (err) {
       console.error('Failed to load hanzi data:', err);
       charMap = null;
@@ -372,11 +383,14 @@ export function searchByPinyin(query: string): SearchResult[] {
  *
  * e.g. "sun" → words: [太阳, 阳光, 日光], chars: [日, 阳, 光, 太]
  */
-export function searchByEnglish(query: string): EnglishSearchResult {
+export async function searchByEnglish(query: string): Promise<EnglishSearchResult> {
   const empty: EnglishSearchResult = { words: [], chars: [] };
   if (!charMap) return empty;
   const q = query.toLowerCase().trim();
   if (!q || q.length < 2) return empty;
+
+  // Lazy-load English word index on first use (15+ MB)
+  await ensureEnWordIndex();
 
   // Path 1: Lookup in CC-CEDICT word index
   if (enWordIndex) {

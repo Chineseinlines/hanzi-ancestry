@@ -145,7 +145,7 @@ export default function Explore() {
 
   // Process search – auto-extract CJK chars, or try pinyin/English
   const processSearch = useCallback(
-    (raw: string) => {
+    async (raw: string) => {
       const trimmed = raw.trim();
       if (!trimmed) return;
 
@@ -169,7 +169,7 @@ export default function Explore() {
           first = tryPinyin();
           break;
         case 'english': {
-          const enRes = searchByEnglish(trimmed);
+          const enRes = await searchByEnglish(trimmed);
           setEnResults(enRes);
           if (enRes.words.length === 0 && enRes.chars.length === 0) return;
           setSelectedComponent(null);
@@ -184,7 +184,7 @@ export default function Explore() {
             if (pinyinChar) {
               first = pinyinChar;
             } else {
-              const enRes = searchByEnglish(trimmed);
+              const enRes = await searchByEnglish(trimmed);
               if (enRes.words.length > 0 || enRes.chars.length > 0) {
                 setEnResults(enRes);
                 setSelectedComponent(null);
