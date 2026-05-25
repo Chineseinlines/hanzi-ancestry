@@ -3,6 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, ArrowRight, Trophy, Sparkles } from 'lucide-react';
 import type { GameMode, GameState, PuzzleRound } from '../data/types';
 import { getCharacter, getCognates, getCharactersWithComponent } from '../data/hanziData';
+import { COMMON_CHAR_SET } from '../data/commonChars';
+
+const COMMON_6500 = new Set(COMMON_CHAR_SET);
+
+function filterCommon(chars: string[]): string[] {
+  return chars.filter(c => COMMON_6500.has(c));
+}
 
 interface CharPuzzleGameProps {
   targetChar: string;
@@ -59,8 +66,9 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
       const correct = components.slice(0, 4);
       // Generate distractors: random components that exist in other chars
       const allComps = new Set<string>();
-      const cognates = getCognates(targetChar, 15);
+      const cognates = getCognates(targetChar, 30);
       for (const c of cognates) {
+        if (!COMMON_6500.has(c.character)) continue;
         const comps = getComponents(c.character);
         comps.forEach((comp) => {
           if (!correct.includes(comp)) allComps.add(comp);
@@ -84,17 +92,20 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
       // Find chars that contain these components
       const candidateChars = new Set<string>();
       for (const comp of comps) {
-        const chars = getCharactersWithComponent(comp);
+        const chars = filterCommon(getCharactersWithComponent(comp));
         chars.forEach((c) => candidateChars.add(c));
       }
       const candidates = Array.from(candidateChars).filter((c) => {
+        if (!COMMON_6500.has(c)) return false;
         const ceComps = getComponents(c);
         return comps.every((comp) => ceComps.includes(comp));
       });
 
       if (candidates.length === 0) {
         // Fallback: use targetChar + random unrelated chars
-        const allCognates = getCognates(targetChar, 10).map((c) => c.character);
+        const allCognates = getCognates(targetChar, 20)
+          .map((c) => c.character)
+          .filter(c => COMMON_6500.has(c));
         const options = shuffle([targetChar, ...allCognates.filter((c) => c !== targetChar).slice(0, 3)]);
         return {
           mode: 'assemble',
@@ -110,7 +121,7 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
       // Distractors: chars that share some but not all components
       const distractors = new Set<string>();
       for (const comp of comps.slice(0, 1)) {
-        const chars = getCharactersWithComponent(comp);
+        const chars = filterCommon(getCharactersWithComponent(comp));
         chars.forEach((c) => {
           if (c !== correct) distractors.add(c);
         });
@@ -133,8 +144,8 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
       const comps = components.slice(0, 3);
       const matched: { comp: string; char: string }[] = [];
       for (const comp of comps) {
-        const chars = getCharactersWithComponent(comp);
-        const valid = chars.filter((c) => c !== targetChar && getCharacter(c));
+        const chars = filterCommon(getCharactersWithComponent(comp));
+        const valid = chars.filter((c) => c !== targetChar && getCharacter(c) && COMMON_6500.has(c));
         if (valid.length > 0) {
           matched.push({ comp, char: valid[0] });
         }

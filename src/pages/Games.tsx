@@ -7,6 +7,9 @@ import {
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import AncientGlyphGame from '../components/AncientGlyphGame';
 import { getAllCharacters, hasCharacter } from '../data/hanziData';
+import { COMMON_CHAR_SET } from '../data/commonChars';
+
+const COMMON_6500 = new Set(COMMON_CHAR_SET);
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -19,7 +22,7 @@ const fadeUp = {
 const RANDOM_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语', '尊', '界', '汉', '休', '林', '信', '清', '湖', '花', '草', '海', '灯'];
 
 function getRandomChar(): string {
-  const all = getAllCharacters();
+  const all = getAllCharacters().filter(e => COMMON_6500.has(e.character));
   if (all.length > 0) {
     const common = all.filter(e => RANDOM_CHARS.includes(e.character) || (e.etymology?.type === 'pictophonetic'));
     if (common.length > 0) return common[Math.floor(Math.random() * common.length)].character;
