@@ -2,13 +2,19 @@ import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, ArrowRight, Trophy, Sparkles } from 'lucide-react';
 import type { GameMode, GameState, PuzzleRound } from '../data/types';
-import { getCharacter, getCognates, getCharactersWithComponent } from '../data/hanziData';
+import { getCharacter, getCognates, getCharactersWithComponent, getAllCharacters } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
 
 const COMMON_6500 = new Set(COMMON_CHAR_SET);
 
 function filterCommon(chars: string[]): string[] {
   return chars.filter(c => COMMON_6500.has(c));
+}
+
+function getRandomCommonChar(): string {
+  const all = getAllCharacters().filter(e => COMMON_6500.has(e.character));
+  if (all.length === 0) return '国';
+  return all[Math.floor(Math.random() * all.length)].character;
 }
 
 interface CharPuzzleGameProps {
@@ -182,55 +188,55 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
   const [matchSelections, setMatchSelections] = useState<Record<string, string>>({});
   const [gameOver, setGameOver] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [currentChar, setCurrentChar] = useState(targetChar);
+  const [gameKey, setGameKey] = useState(0);
+  const isSingleMode = (modes && modes.length === 1);
 
   const gameModes: GameMode[] = modes ?? ['decompose', 'assemble', 'match'];
 
-  const nextRound = useCallback(() => {
-    if (gameState.round >= TOTAL_ROUNDS) {
-      setGameOver(true);
-      return;
+  const doGenerate = useCallback((char: string) => {
+    const shuffledModes = shuffle([...gameModes]);
+    let newPuzzle: PuzzleRound | null = null;
+    for (const mode of shuffledModes) {
+      newPuzzle = generatePuzzle(char, mode);
+      if (newPuzzle) break;
     }
-    setGenerating(true);
-    // Try modes until one generates a valid puzzle
-    setTimeout(() => {
-      const shuffledModes = shuffle([...gameModes]);
-      let newPuzzle: PuzzleRound | null = null;
-      for (const mode of shuffledModes) {
-        newPuzzle = generatePuzzle(targetChar, mode);
-        if (newPuzzle) break;
-      }
-      if (!newPuzzle) {
-        // Ultimate fallback: simple decompose
-        const comps = getComponents(targetChar);
-        newPuzzle = {
-          mode: 'decompose',
-          targetChar,
-          components: comps.slice(0, 4),
-          options: shuffle([...comps.slice(0, 4), '火', '山', '水', '木']).slice(0, 6),
-          correctAnswer: comps.slice(0, 4),
-          points: 10,
-        };
-      }
-      setPuzzle(newPuzzle);
-      setSelectedOptions(new Set());
-      setMatchSelections({});
-      setGameState((prev) => ({
-        ...prev,
-        mode: newPuzzle!.mode,
-        feedback: null,
-        correctAnswer: null,
-        round: prev.round + 1,
-      }));
-      setGenerating(false);
-    }, 200);
-  }, [gameState.round]);
+    if (!newPuzzle) {
+      const comps = getComponents(char);
+      newPuzzle = {
+        mode: 'decompose',
+        targetChar: char,
+        components: comps.slice(0, 4),
+        options: shuffle([...comps.slice(0, 4), '火', '山', '水', '木']).slice(0, 6),
+        correctAnswer: comps.slice(0, 4),
+        points: 10,
+      };
+    }
+    setPuzzle(newPuzzle);
+    setSelectedOptions(new Set());
+    setMatchSelections({});
+    setGameState((prev) => ({
+      ...prev,
+      mode: newPuzzle!.mode,
+      feedback: null,
+      correctAnswer: null,
+      round: prev.round + 1,
+    }));
+    setGenerating(false);
+  }, [gameModes]);
 
-  // Start first round
+  // Start a new round for the given character
+  const startRound = useCallback((char: string) => {
+    setGenerating(true);
+    const timer = setTimeout(() => doGenerate(char), 50);
+    return () => clearTimeout(timer);
+  }, [doGenerate]);
+
+  // Kick off first round on mount and on key change (restart)
   useEffect(() => {
-    if (!puzzle && !gameOver) {
-      nextRound();
-    }
-  }, []);
+    startRound(currentChar);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameKey]);
 
   const handleDecomposeSelect = (opt: string) => {
     setSelectedOptions((prev) => {
@@ -336,7 +342,14 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
       setGameOver(true);
       return;
     }
-    nextRound();
+    // For single-mode games, rotate character each round for variety
+    if (isSingleMode) {
+      const nextChar = getRandomCommonChar();
+      setCurrentChar(nextChar);
+      startRound(nextChar);
+    } else {
+      startRound(currentChar);
+    }
   };
 
   const handleRestart = () => {
@@ -353,6 +366,10 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
     setSelectedOptions(new Set());
     setMatchSelections({});
     setGameOver(false);
+    setGenerating(false);
+    const nextChar = getRandomCommonChar();
+    setCurrentChar(nextChar);
+    setGameKey(k => k + 1);
   };
 
   if (gameOver) {
