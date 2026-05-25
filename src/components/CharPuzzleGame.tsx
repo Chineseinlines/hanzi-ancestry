@@ -14,6 +14,8 @@ function filterCommon(chars: string[]): string[] {
 interface CharPuzzleGameProps {
   targetChar: string;
   onNavigate?: (char: string) => void;
+  modes?: GameMode[];
+  title?: string;
 }
 
 const TOTAL_ROUNDS = 10;
@@ -165,7 +167,7 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
   }
 }
 
-export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate }: CharPuzzleGameProps) {
+export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, modes, title }: CharPuzzleGameProps) {
   const [gameState, setGameState] = useState<GameState>({
     score: 0,
     streak: 0,
@@ -181,7 +183,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate }: 
   const [gameOver, setGameOver] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const modes: GameMode[] = ['decompose', 'assemble', 'match'];
+  const gameModes: GameMode[] = modes ?? ['decompose', 'assemble', 'match'];
 
   const nextRound = useCallback(() => {
     if (gameState.round >= TOTAL_ROUNDS) {
@@ -191,7 +193,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate }: 
     setGenerating(true);
     // Try modes until one generates a valid puzzle
     setTimeout(() => {
-      const shuffledModes = shuffle([...modes]);
+      const shuffledModes = shuffle([...gameModes]);
       let newPuzzle: PuzzleRound | null = null;
       for (const mode of shuffledModes) {
         newPuzzle = generatePuzzle(targetChar, mode);
@@ -400,7 +402,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate }: 
           </div>
           <div>
             <h2 className="text-lg font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-              汉字拼拆工坊
+              {title || '汉字拼拆工坊'}
             </h2>
             <p className="text-xs" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
               Round {gameState.round}/{TOTAL_ROUNDS}

@@ -178,6 +178,8 @@ export default function Games() {
   // ── Game play mode ──────────────────────────────────────────────
   if (activeGame) {
     const isGlyphGame = activeGame === '古字形猜字';
+    const isRadicalMatch = activeGame === '部首连连看';
+    const isComponentBuilder = activeGame === '部件拼字闯关';
 
     return (
       <div className="min-h-screen bg-bg-primary pb-20">
@@ -236,6 +238,10 @@ export default function Games() {
         <div className="mx-auto max-w-2xl px-4 py-8">
           {isGlyphGame
             ? <AncientGlyphGame key={activeGame} />
+            : isRadicalMatch
+            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['match']} title="部首连连看" />
+            : isComponentBuilder
+            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['decompose', 'assemble']} title="部件拼字闯关" />
             : <CharPuzzleGame key={gameChar} targetChar={gameChar} />
           }
         </div>
