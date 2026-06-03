@@ -59,6 +59,8 @@ const SEARCH_MODES: { key: SearchMode; label: string }[] = [
   { key: 'english', label: 'EN' },
 ];
 
+const PRESET_CHARS = ['家', '国', '朋', '友', '好'];
+
 function HeroSection() {
   const navigate = useNavigate();
   const [searchChar, setSearchChar] = useState('');
@@ -182,7 +184,10 @@ function HeroSection() {
           animate="visible"
           custom={0.4}
         >
-          Explore the structure of
+          探索汉字的结构
+          <span className="block text-[0.6rem] normal-case tracking-[0.08em] mt-1" style={{ color: 'rgba(245, 240, 232, 0.3)' }}>
+            Explore the structure of
+          </span>
         </motion.p>
 
         {/* Chinese title */}
@@ -218,7 +223,10 @@ function HeroSection() {
           animate="visible"
           custom={1.2}
         >
-          Discover how Chinese characters decompose into components and find their etymological relatives
+          通过交互式拆解与系联网络，发现汉字背后的隐藏结构
+          <span className="block text-sm mt-1" style={{ color: 'rgba(245, 240, 232, 0.45)' }}>
+            Discover how Chinese characters decompose into components and find their etymological relatives
+          </span>
         </motion.p>
 
         {/* Search bar */}
@@ -240,7 +248,7 @@ function HeroSection() {
                 setEnResults(null);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="输入汉字 / pinyin / English word..."
+              placeholder="输入汉字 / 拼音 / 英文..."
               className="h-14 w-full rounded-full border px-6 text-center text-2xl outline-none transition-all duration-300 focus:border-cinnabar"
               style={{
                 backgroundColor: 'rgba(245, 240, 232, 0.08)',
@@ -274,6 +282,28 @@ function HeroSection() {
             ))}
           </div>
 
+          {/* Preset character chips */}
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <span className="text-[0.625rem] text-rice-paper/25 mr-1">Try:</span>
+            {PRESET_CHARS.map((c) => (
+              <button
+                key={c}
+                onClick={() => {
+                  setSearchChar(c);
+                  navigate(`/explore?char=${encodeURIComponent(c)}`);
+                }}
+                className="rounded-full border px-3 py-1.5 font-serif-cn text-lg transition-all duration-200 hover:scale-110 hover:bg-cinnabar hover:text-white hover:border-cinnabar"
+                style={{
+                  borderColor: 'rgba(245, 240, 232, 0.18)',
+                  color: '#F5F0E8',
+                  background: 'rgba(245, 240, 232, 0.06)',
+                }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
           {/* English search results panel */}
           <AnimatePresence>
             {enResults && (enResults.words.length > 0 || enResults.chars.length > 0) && (
@@ -291,7 +321,7 @@ function HeroSection() {
                 {enResults.words.length > 0 && (
                   <>
                     <p className="mb-3 text-[0.6875rem] font-medium uppercase tracking-wider text-rice-paper/40">
-                      Chinese words — {searchChar}
+                      中文词语 — {searchChar}
                     </p>
                     <div className="space-y-2 mb-4">
                       {enResults.words.slice(0, 12).map((w) => (
@@ -326,7 +356,7 @@ function HeroSection() {
                 {enResults.chars.length > 0 && (
                   <div className="pt-3 border-t border-rice-paper/10">
                     <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-rice-paper/40">
-                      All characters
+                      所有字符
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {enResults.chars.slice(0, 24).map((r) => (
@@ -357,7 +387,7 @@ function HeroSection() {
               >
                 <p className="text-sm text-vermilion-light">{searchError}</p>
                 <p className="mt-2 text-xs text-rice-paper/40">
-                  Try: 国 · 森 · 明 · 好 · 尊 · 界 · 道 · 武 · 家 · 想
+                  Try: 家 · 国 · 朋 · 友 · 好
                 </p>
               </motion.div>
             )}
@@ -436,10 +466,13 @@ function EntryCards() {
           custom={0}
         >
           <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
-            Explore Chinese Characters
+            探索汉字世界
           </h2>
           <p className="mt-3 text-base text-charcoal">
-            Four ways to discover the hidden architecture of the writing system
+            四种方式，揭示汉字书写系统的隐藏架构
+            <span className="block text-xs text-charcoal/40 mt-0.5">
+              Explore Chinese Characters — Four ways to discover the hidden architecture of the writing system
+            </span>
           </p>
         </motion.div>
 
@@ -496,8 +529,11 @@ function HowItWorks() {
     <section className="bg-bg-warm py-20 md:py-28">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <motion.div className="mb-14 text-center" variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} custom={0}>
-          <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>How It Works</h2>
-          <p className="mt-3 text-base text-charcoal">三步揭示汉字的隐藏结构</p>
+          <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>如何使用</h2>
+          <p className="mt-3 text-base text-charcoal">
+            三步揭示汉字的隐藏结构
+            <span className="block text-xs text-charcoal/40 mt-0.5">How It Works</span>
+          </p>
         </motion.div>
 
         <motion.div className="grid grid-cols-1 gap-6 md:grid-cols-3" variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} custom={0.2}>
@@ -542,6 +578,9 @@ function CTABanner() {
           custom={0}
         >
           Ready to Explore?
+          <span className="block text-lg font-normal mt-1" style={{ color: 'rgba(245, 240, 232, 0.3)' }}>
+            准备好探索了吗？
+          </span>
         </motion.h2>
 
         <motion.p
@@ -553,7 +592,10 @@ function CTABanner() {
           viewport={{ once: true, amount: 0.15 }}
           custom={0.15}
         >
-          Start with any character and discover the hidden network beneath
+          从任意汉字开始，发现它背后隐藏的系联网络
+          <span className="block text-xs mt-1" style={{ color: 'rgba(245, 240, 232, 0.35)' }}>
+            Start with any character and discover the hidden network beneath
+          </span>
         </motion.p>
 
         <motion.div
@@ -567,7 +609,7 @@ function CTABanner() {
             onClick={() => navigate('/explore')}
             className="mt-8 inline-flex items-center rounded-full bg-cinnabar px-8 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:bg-vermilion-light hover:shadow-cinnabar"
           >
-            Start Exploring
+            开始探索
           </button>
         </motion.div>
       </div>

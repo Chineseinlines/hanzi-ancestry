@@ -15,6 +15,9 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm leading-relaxed text-rice-paper/50">
+              通过交互式拆解与词源探索，揭示汉字的内部架构。
+            </p>
+            <p className="text-xs leading-relaxed text-rice-paper/30 mt-1.5">
               Unveiling the architecture of Chinese characters through interactive
               decomposition and etymological exploration.
             </p>
@@ -23,38 +26,44 @@ export default function Footer() {
           {/* Column 2: Navigation */}
           <div>
             <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-rice-paper/40">
-              Navigation
+              导航
             </h4>
             <div className="flex flex-col gap-2">
               <Link
                 to="/"
                 className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
               >
-                Home
+                首页
               </Link>
               <Link
                 to="/explore"
                 className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
               >
-                Explore
+                探索
+              </Link>
+              <Link
+                to="/learn"
+                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
+              >
+                学习
               </Link>
               <Link
                 to="/quiz"
                 className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
               >
-                Quiz
+                题库
               </Link>
               <Link
                 to="/games"
                 className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
               >
-                Games
+                游戏
               </Link>
               <Link
                 to="/about"
                 className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
               >
-                About
+                关于
               </Link>
               <a
                 href="https://github.com/skishore/makemeahanzi"
@@ -71,10 +80,10 @@ export default function Footer() {
           {/* Column 3: Data attribution */}
           <div>
             <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-rice-paper/40">
-              Data
+              数据来源
             </h4>
             <p className="text-sm leading-relaxed text-rice-paper/50">
-              Data from{' '}
+              数据来自{' '}
               <a
                 href="https://github.com/skishore/makemeahanzi"
                 target="_blank"
@@ -84,7 +93,7 @@ export default function Footer() {
                 Make Me A Hanzi
               </a>
               {' · '}
-              1,111 characters with full decomposition data.
+              收录 1,111 个汉字的完整拆解数据。
             </p>
           </div>
         </div>
@@ -92,7 +101,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 border-t border-rice-paper/10 pt-6 text-center">
           <p className="text-xs text-rice-paper/40">
-            &copy; {new Date().getFullYear()} 字里行间 LINES. Built with care for the love of characters.
+            &copy; {new Date().getFullYear()} 字里行间 LINES. 用心构建，为汉字之美。
           </p>
         </div>
       </div>

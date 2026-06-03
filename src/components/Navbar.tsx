@@ -20,12 +20,12 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
   }, []);
 
   const navLinks = [
-    { label: 'Home', path: '/' },
-    { label: 'Explore', path: '/explore' },
-    { label: 'Learn', path: '/learn' },
-    { label: 'Quiz', path: '/quiz' },
-    { label: 'Games', path: '/games' },
-    { label: 'About', path: '/about' },
+    { label: '首页', enLabel: 'Home', path: '/' },
+    { label: '探索', enLabel: 'Explore', path: '/explore' },
+    { label: '学习', enLabel: 'Learn', path: '/learn' },
+    { label: '题库', enLabel: 'Quiz', path: '/quiz' },
+    { label: '游戏', enLabel: 'Games', path: '/games' },
+    { label: '关于', enLabel: 'About', path: '/about' },
   ];
 
   return (
@@ -59,6 +59,7 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
               <Link
                 key={link.path}
                 to={link.path}
+                title={link.enLabel}
                 className="group relative text-[0.875rem] font-medium uppercase tracking-[0.08em] text-charcoal transition-colors duration-200 hover:text-cinnabar"
               >
                 {link.label}
@@ -107,6 +108,7 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
               <Link
                 key={link.path}
                 to={link.path}
+                title={link.enLabel}
                 onClick={() => setMobileOpen(false)}
                 className="text-sm font-medium uppercase tracking-[0.08em] text-charcoal transition-colors duration-200 hover:text-cinnabar"
               >

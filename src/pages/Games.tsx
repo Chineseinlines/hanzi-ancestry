@@ -19,7 +19,7 @@ const fadeUp = {
   }),
 };
 
-const RANDOM_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语', '尊', '界', '汉', '休', '林', '信', '清', '湖', '花', '草', '海', '灯'];
+const RANDOM_CHARS = ['家', '国', '朋', '友', '好', '明', '武', '森', '想', '语', '尊', '界', '汉', '休', '林', '信', '清', '湖', '花', '草', '海', '灯'];
 
 function getRandomChar(): string {
   const all = getAllCharacters().filter(e => COMMON_6500.has(e.character));
@@ -303,7 +303,7 @@ export default function Games() {
             className="mt-3 text-base text-rice-paper/60"
             style={{ fontFamily: 'Inter, sans-serif' }}
           >
-            Game-based learning — 游戏即练习，练习即巩固
+            游戏即练习，练习即巩固 — Game-based learning
           </motion.p>
         </div>
       </section>

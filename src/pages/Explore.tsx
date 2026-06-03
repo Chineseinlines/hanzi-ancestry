@@ -27,7 +27,7 @@ import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
 import { getAnnotation, getMoonAnnotation } from '../data/componentAnnotations';
 
-const QUICK_CHARS = ['国', '森', '明', '好', '武', '家', '想', '语', '尊', '界'];
+const QUICK_CHARS = ['家', '国', '朋', '友', '好', '明', '武', '想', '语', '尊'];
 
 /** Extract CJK characters from raw input, filtering spaces/punctuation/symbols. */
 function extractHanzi(raw: string): string[] {
@@ -307,7 +307,7 @@ export default function Explore() {
             transition={{ duration: 0.6, ease: EASE_INK }}
             className="font-display text-[clamp(2rem,4vw,3.5rem)] font-bold leading-tight text-ink-black"
           >
-            Character Explorer
+            汉字探索
           </motion.h1>
 
           <motion.p
@@ -315,9 +315,11 @@ export default function Explore() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.15, ease: EASE_GENTLE }}
             className="mt-2 text-base text-charcoal"
-            style={{ fontFamily: 'Inter, sans-serif' }}
           >
-            Input a character to reveal its components and find its relatives
+            输入汉字，揭示部件结构，发现同源系联
+            <span className="block text-xs text-charcoal/40 mt-0.5">
+              Input a character to reveal its components and find its relatives
+            </span>
           </motion.p>
 
           {/* Search Bar */}
@@ -335,7 +337,7 @@ export default function Explore() {
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setEnResults(null); }}
                 maxLength={20}
-                placeholder="汉字 / pinyin / English word..."
+                placeholder="输入汉字 / 拼音 / 英文..."
                 className="h-14 w-full rounded-full border border-border-light bg-white px-6 text-center text-2xl text-ink-black shadow-sm transition-all duration-300 placeholder:text-charcoal/30 focus:border-cinnabar focus:shadow-cinnabar focus:outline-none"
               />
               <button
@@ -384,7 +386,7 @@ export default function Explore() {
                 {enResults.words.length > 0 && (
                   <>
                     <p className="mb-3 text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">
-                      Chinese words
+                      中文词语
                     </p>
                     <div className="space-y-2 mb-4 max-h-72 overflow-y-auto">
                       {enResults.words.slice(0, 15).map((w) => (
@@ -424,7 +426,7 @@ export default function Explore() {
                 {enResults.chars.length > 0 && (
                   <div className="pt-3 border-t border-border-light">
                     <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">
-                      All characters
+                      所有字符
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {enResults.chars.slice(0, 24).map((r) => (
@@ -512,7 +514,7 @@ export default function Explore() {
                 className="rounded-full border border-border-light bg-bg-warm px-2.5 py-1 text-xs font-medium text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                Radical: {charData.radical}
+                部首: {charData.radical}
               </span>
 
               {/* Traditional form badge */}
@@ -525,7 +527,7 @@ export default function Explore() {
                     color: '#C23B2A',
                   }}
                 >
-                  Traditional: {charData.traditional}
+                  繁体: {charData.traditional}
                 </span>
               )}
 
@@ -536,7 +538,7 @@ export default function Explore() {
                     className="text-xs text-charcoal/60"
                     style={{ fontFamily: 'Inter, sans-serif' }}
                   >
-                    Original:
+                    原部件:
                   </span>
                   {traditionalComponents.map((comp) => (
                     <button
@@ -564,7 +566,7 @@ export default function Explore() {
                     color: '#6B7F5E',
                   }}
                 >
-                  Etymology
+                  字源
                 </span>
               )}
               {charData.etymologyHint && (
@@ -600,10 +602,10 @@ export default function Explore() {
                 className="mt-4 text-lg text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                Enter a character above to begin your exploration
+                在上方输入汉字，开始探索之旅
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {['国', '明', '好', '尊', '界'].map((c) => (
+                {['家', '国', '朋', '友', '好'].map((c) => (
                   <button
                     key={c}
                     onClick={() => processSearch(c)}
@@ -633,13 +635,12 @@ export default function Explore() {
             >
               <Info size={48} className="mb-4 text-cinnabar" />
               <h2 className="font-serif-cn text-xl font-semibold text-ink-black">
-                Character Not Found
+                未找到该汉字
               </h2>
               <p
                 className="mt-2 max-w-md text-center text-base text-charcoal"
-                style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                This character is not in our current database. Try one of the suggested characters below.
+                此汉字不在当前数据库中，请尝试下方推荐汉字。
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {QUICK_CHARS.map((c) => (
@@ -675,7 +676,7 @@ export default function Explore() {
                 className="mt-4 text-sm text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                Analyzing character structure...
+                正在分析汉字结构...
               </p>
             </motion.div>
           )}
@@ -704,7 +705,7 @@ export default function Explore() {
                     }`}
                     style={{ fontFamily: 'Inter, sans-serif' }}
                   >
-                    Decomposition
+                    部件拆解
                   </button>
                   <button
                     onClick={() => setActiveTab('cognate')}
@@ -713,9 +714,8 @@ export default function Explore() {
                         ? 'bg-white text-ink-black shadow-sm'
                         : 'text-charcoal'
                     }`}
-                    style={{ fontFamily: 'Inter, sans-serif' }}
                   >
-                    Etymological Network
+                    系联网络
                   </button>
                 </div>
               </div>
@@ -731,13 +731,12 @@ export default function Explore() {
                     <div className="flex items-center gap-2 border-b border-border-light px-4 py-3">
                       <GitBranch size={16} className="text-cinnabar" />
                       <span
-                        className="text-[0.8125rem] font-semibold uppercase tracking-[0.06em] text-charcoal"
-                        style={{ fontFamily: 'Inter, sans-serif' }}
+                        className="text-[0.8125rem] font-semibold text-charcoal"
                       >
-                        Character Decomposition
+                        汉字拆解
                       </span>
-                      <span className="ml-auto font-serif-cn text-sm text-charcoal/50">
-                        拆解图
+                      <span className="ml-auto text-xs text-charcoal/40" style={{ fontFamily: 'Inter' }}>
+                        Decomposition
                       </span>
                     </div>
                     <div className="px-4 pb-1">
@@ -761,9 +760,8 @@ export default function Explore() {
                       <div className="flex flex-wrap gap-1.5 border-t border-border-light px-4 py-2.5">
                         <span
                           className="text-xs text-charcoal/60"
-                          style={{ fontFamily: 'Inter, sans-serif' }}
                         >
-                          Components:
+                          部件:
                         </span>
                         {traditionalComponents.map((comp) => (
                           <button
@@ -797,15 +795,14 @@ export default function Explore() {
                       <div className="flex items-center gap-2">
                         <Layers size={16} className="text-cinnabar" />
                         <span
-                          className="text-[0.8125rem] font-semibold uppercase tracking-[0.06em] text-charcoal"
-                          style={{ fontFamily: 'Inter, sans-serif' }}
+                          className="text-[0.8125rem] font-semibold text-charcoal"
                         >
                           {selectedComponent
-                            ? `Characters containing ${selectedComponent}`
-                            : `Related to ${currentChar}`}
+                            ? `含「${selectedComponent}」的汉字`
+                            : `与「${currentChar}」相关的字`}
                         </span>
-                        <span className="ml-auto font-serif-cn text-sm text-charcoal/50">
-                          {selectedComponent ? '部件系联' : '同源图'}
+                        <span className="ml-auto text-xs text-charcoal/40" style={{ fontFamily: 'Inter' }}>
+                          {selectedComponent ? 'Component Network' : 'Etymological Network'}
                         </span>
                       </div>
                       <div className="px-4 pb-1">
@@ -825,7 +822,7 @@ export default function Explore() {
                             }`}
                             style={{ fontFamily: 'Inter, sans-serif' }}
                           >
-                            All
+                            全部
                           </button>
                           {traditionalComponents.map((comp) => (
                             <button
@@ -882,7 +879,7 @@ export default function Explore() {
                   className="text-sm font-medium text-ink-black"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
-                  View Full Decomposition Text
+                  查看完整拆解文本
                 </span>
                 <ChevronDown
                   size={18}

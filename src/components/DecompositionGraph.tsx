@@ -234,8 +234,8 @@ const DecompositionGraph = memo(function DecompositionGraph({
 
     // Layout: core at top center, children in a row below
     const centerX = width / 2;
-    const topY = 70;
-    const childY = topY + 130;
+    const topY = 90;
+    const childY = topY + 140;
 
     root.x = centerX;
     root.y = topY;
@@ -275,7 +275,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
 
       g.append('text')
         .attr('x', centerX)
-        .attr('y', 24)
+        .attr('y', 28)
         .attr('text-anchor', 'middle')
         .attr('font-family', 'Inter, sans-serif')
         .attr('font-size', '11px')
@@ -285,12 +285,12 @@ const DecompositionGraph = memo(function DecompositionGraph({
       if (ety.hint) {
         g.append('text')
           .attr('x', centerX)
-          .attr('y', 42)
+          .attr('y', 48)
           .attr('text-anchor', 'middle')
           .attr('font-family', 'Inter, sans-serif')
           .attr('font-size', '10px')
           .attr('fill', '#A39E93')
-          .text(ety.hint.length > 60 ? ety.hint.slice(0, 60) + '...' : ety.hint);
+          .text(ety.hint.length > 40 ? ety.hint.slice(0, 40) + '...' : ety.hint);
       }
     }
 
