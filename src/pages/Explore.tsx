@@ -146,6 +146,7 @@ export default function Explore() {
   // Process search – auto-extract CJK chars, or try pinyin/English
   const processSearch = useCallback(
     async (raw: string) => {
+      await loadData(); // Ensure data is loaded before searching
       const trimmed = raw.trim();
       if (!trimmed) return;
 

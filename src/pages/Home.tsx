@@ -78,6 +78,7 @@ function HeroSection() {
 
   const handleSearch = async () => {
     if (!searchChar.trim()) return;
+    await loadData(); // Ensure data is loaded before searching
     const raw = searchChar.trim();
 
     const tryHanzi = (): string | null => {
