@@ -27,6 +27,9 @@ import DecompositionGraph from '../components/DecompositionGraph';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
 import { ratePhonetic, PHONETIC_COLORS, type PhoneticRatingResult } from '../data/phoneticRating';
 import { getGhostSuggestion } from '../data/ghostComponents';
+import { computePhoneticLevelMulti, getPhoneticLevelInfo, type PhoneticLevel } from '../data/phoneticLevels';
+import { getCuratedSemanticLevel, guessSemanticLevel, getSemanticLevelInfo, type SemanticLevel } from '../data/semanticLevels';
+import { getModernClassification, getFormationModeInfo, getComponentTypeInfo, getStructureModeInfo, COMPONENT_TYPES, type ModernClassification } from '../data/modernTaxonomy';
 
 const TAG_COLORS: Record<string, string> = {
   '源流分化': '#C23B2A',
@@ -173,7 +176,7 @@ export default function CharacterDetail() {
     return results;
   }, [decomposition, entry]);
 
-  // Phonetic rating for pictophonetic characters
+  // Phonetic rating for pictophonetic characters (3-color simplified)
   const phoneticRating = useMemo((): PhoneticRatingResult | null => {
     if (!entry?.etymology || entry.etymology.type !== 'pictophonetic') return null;
     const phonetic = entry.etymology.phonetic;
@@ -182,6 +185,47 @@ export default function CharacterDetail() {
     if (!phoneticEntry?.pinyin?.[0]) return null;
     return ratePhonetic(entry.pinyin[0], phoneticEntry.pinyin[0]);
   }, [entry]);
+
+  // Detailed 6-level phonetic relation for pictophonetic characters
+  const phoneticLevelDetail = useMemo((): { level: PhoneticLevel; bestMatch: string } | null => {
+    if (!entry?.etymology || entry.etymology.type !== 'pictophonetic') return null;
+    const phonetic = entry.etymology.phonetic;
+    if (!phonetic) return null;
+    const phoneticEntry = getCharacter(phonetic);
+    if (!phoneticEntry?.pinyin?.length) return null;
+    return computePhoneticLevelMulti(entry.pinyin, phoneticEntry.pinyin);
+  }, [entry]);
+
+  // Semantic relation level for pictophonetic characters
+  const semanticLevelDetail = useMemo((): { level: SemanticLevel; note: string } | null => {
+    if (!entry?.etymology || entry.etymology.type !== 'pictophonetic') return null;
+    const semantic = entry.etymology.semantic;
+    if (!semantic) return null;
+
+    // Check curated data first
+    const curated = getCuratedSemanticLevel(char);
+    if (curated && curated.semantic === semantic) {
+      return { level: curated.level, note: curated.note };
+    }
+
+    // Fall back to heuristic
+    const semanticEntry = getCharacter(semantic);
+    if (!semanticEntry?.definition) return null;
+    const level = guessSemanticLevel(entry.definition, semanticEntry.definition);
+    return { level, note: `基于定义自动推断 (${semantic}: ${semanticEntry.definition.slice(0, 30)}...)` };
+  }, [entry, char]);
+
+  // Modern taxonomy (Wang Ning) classification
+  const modernTaxonomy = useMemo((): ModernClassification | null => {
+    if (!entry?.etymology?.type) return null;
+    return getModernClassification(
+      entry.etymology.type,
+      entry.etymology.phonetic,
+      entry.etymology.semantic,
+      entry.decomposition,
+      char,
+    );
+  }, [entry, char]);
 
   // Ghost component detection for the current character
   const ghostInfo = useMemo(() => {
@@ -339,6 +383,29 @@ export default function CharacterDetail() {
               </p>
             )}
 
+            {/* Traditional form display */}
+            {entry.traditional && entry.traditional !== char && (
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <div className="text-center">
+                  <span className="text-[0.625rem] uppercase tracking-wider block mb-1" style={{ color: 'rgba(245,240,232,0.4)', fontFamily: 'Inter' }}>
+                    简体
+                  </span>
+                  <span className="font-display-cn text-3xl" style={{ color: '#F5F0E8', fontFamily: '"Ma Shan Zheng", cursive' }}>
+                    {char}
+                  </span>
+                </div>
+                <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: '1.5rem' }}>→</span>
+                <div className="text-center">
+                  <span className="text-[0.625rem] uppercase tracking-wider block mb-1" style={{ color: 'rgba(196,162,101,0.6)', fontFamily: 'Inter' }}>
+                    繁体
+                  </span>
+                  <span className="font-display-cn text-3xl" style={{ color: '#C4A265', fontFamily: '"Ma Shan Zheng", cursive' }}>
+                    {entry.traditional}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Phonetic Rating Badge */}
             {phoneticRating && (
               <div className="mt-3 flex justify-center">
@@ -355,6 +422,51 @@ export default function CharacterDetail() {
                   声旁可靠性: {phoneticRating.label}
                   <span className="font-mono text-[0.6875rem] opacity-70">
                     ({phoneticRating.charPinyin} ← {phoneticRating.phoneticPinyin})
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {/* Detailed Phonetic Level (6-level) — for pictophonetic chars */}
+            {phoneticLevelDetail && (
+              <div className="mt-2 flex justify-center">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                  style={{
+                    background: getPhoneticLevelInfo(phoneticLevelDetail.level).color + '18',
+                    color: getPhoneticLevelInfo(phoneticLevelDetail.level).color,
+                    border: `1px solid ${getPhoneticLevelInfo(phoneticLevelDetail.level).color}40`,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  title={getPhoneticLevelInfo(phoneticLevelDetail.level).description}
+                >
+                  声旁关系: {getPhoneticLevelInfo(phoneticLevelDetail.level).label}
+                  <span className="font-mono text-[0.625rem] opacity-70">
+                    ({getPhoneticLevelInfo(phoneticLevelDetail.level).enLabel})
+                  </span>
+                  <span className="text-[0.625rem] opacity-50 ml-0.5">
+                    — {getPhoneticLevelInfo(phoneticLevelDetail.level).example.split('。')[0]}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {/* Semantic Relation Level (8-level) — for pictophonetic chars */}
+            {semanticLevelDetail && (
+              <div className="mt-2 flex justify-center">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+                  style={{
+                    background: getSemanticLevelInfo(semanticLevelDetail.level).color + '18',
+                    color: getSemanticLevelInfo(semanticLevelDetail.level).color,
+                    border: `1px solid ${getSemanticLevelInfo(semanticLevelDetail.level).color}40`,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  title={semanticLevelDetail.note}
+                >
+                  意符关系: {getSemanticLevelInfo(semanticLevelDetail.level).label}
+                  <span className="font-mono text-[0.625rem] opacity-70">
+                    ({getSemanticLevelInfo(semanticLevelDetail.level).enLabel})
                   </span>
                 </span>
               </div>
@@ -483,9 +595,18 @@ export default function CharacterDetail() {
               {/* Shuowen structure & classification */}
               {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.shuowen) && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
                     <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>说文解字</h2>
                     <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}>Shuowen</span>
+                    <a
+                      href={`https://ctext.org/dictionary.pl?if=en&char=${encodeURIComponent(char)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto text-[0.625rem] px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors hover:underline"
+                      style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter' }}
+                    >
+                      查看 ctext.org →
+                    </a>
                   </div>
                   <div className="flex flex-wrap gap-3 mb-3">
                     {shuowen.structure && (
@@ -510,6 +631,119 @@ export default function CharacterDetail() {
                       </p>
                     </details>
                   )}
+                </div>
+              )}
+
+              {/* Modern Taxonomy (Wang Ning) — dual classification panel */}
+              {modernTaxonomy && (
+                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)', border: '1px solid rgba(106,27,154,0.12)' }}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>现代构形学分析</h2>
+                    <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(106,27,154,0.1)', color: '#6A1B9A', fontFamily: 'Inter' }}>王宁《汉字构形学》</span>
+                    {modernTaxonomy.curated && (
+                      <span className="text-[0.5625rem] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(45,95,138,0.1)', color: '#2D5F8A', fontFamily: 'Inter' }}>人工标注</span>
+                    )}
+                  </div>
+
+                  {/* Formation mode + Structure mode */}
+                  <div className="flex flex-wrap gap-3 mb-4">
+                    <span
+                      className="text-sm px-3 py-1.5 rounded-lg font-medium"
+                      style={{
+                        background: getFormationModeInfo(modernTaxonomy.formationMode).color + '14',
+                        color: getFormationModeInfo(modernTaxonomy.formationMode).color,
+                        border: `1px solid ${getFormationModeInfo(modernTaxonomy.formationMode).color}30`,
+                        fontFamily: 'Inter',
+                      }}
+                    >
+                      构形模式: {getFormationModeInfo(modernTaxonomy.formationMode).label}
+                      <span className="ml-1.5 text-[0.625rem] opacity-60">
+                        ({getFormationModeInfo(modernTaxonomy.formationMode).enLabel})
+                      </span>
+                    </span>
+                    <span
+                      className="text-sm px-3 py-1.5 rounded-lg font-medium"
+                      style={{
+                        background: 'rgba(45,95,138,0.08)',
+                        color: '#2D5F8A',
+                        border: '1px solid rgba(45,95,138,0.15)',
+                        fontFamily: 'Inter',
+                      }}
+                    >
+                      结构模式: {getStructureModeInfo(modernTaxonomy.structure).label}
+                      <span className="ml-1.5 text-[0.625rem] opacity-60">
+                        ({getStructureModeInfo(modernTaxonomy.structure).enLabel})
+                      </span>
+                    </span>
+                    {getFormationModeInfo(modernTaxonomy.formationMode).sixBookEquivalent && (
+                      <span
+                        className="text-sm px-3 py-1.5 rounded-lg font-medium"
+                        style={{
+                          background: 'rgba(107,127,94,0.08)',
+                          color: '#6B7F5E',
+                          border: '1px solid rgba(107,127,94,0.15)',
+                          fontFamily: 'Inter',
+                        }}
+                      >
+                        对应六书: {getFormationModeInfo(modernTaxonomy.formationMode).sixBookEquivalent}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-sm leading-relaxed mb-4" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                    {getFormationModeInfo(modernTaxonomy.formationMode).description}
+                  </p>
+
+                  {/* Component breakdown */}
+                  {modernTaxonomy.components.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                        构件分析
+                        <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>Component Analysis</span>
+                      </h3>
+                      <div className="flex flex-col gap-2">
+                        {modernTaxonomy.components.map((comp, i) => {
+                          const typeInfo = getComponentTypeInfo(comp.componentType);
+                          return (
+                            <div key={i} className="flex items-start gap-3 rounded-xl p-3 transition-all" style={{ background: typeInfo.color + '0A', border: `1px solid ${typeInfo.color}20` }}>
+                              <span className="text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: typeInfo.color + '20', color: typeInfo.color, fontFamily: 'Inter' }}>
+                                {typeInfo.icon}
+                              </span>
+                              <div className="flex flex-col gap-0.5 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-semibold" style={{ color: '#1A1A18', fontFamily: 'Inter' }}>
+                                    {typeInfo.label}
+                                  </span>
+                                  <span className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: typeInfo.color + '14', color: typeInfo.color }}>
+                                    {comp.character}
+                                  </span>
+                                </div>
+                                <p className="text-xs leading-relaxed" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                                  {comp.role}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Legend for component type colors */}
+                  <details className="mt-4 pt-3 border-t" style={{ borderColor: 'rgba(26,26,24,0.06)' }}>
+                    <summary className="text-[0.625rem] font-medium cursor-pointer" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                      构件类型图例
+                    </summary>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {COMPONENT_TYPES.map(ct => (
+                        <span key={ct.key} className="text-[0.625rem] px-2 py-1 rounded-full inline-flex items-center gap-1"
+                          style={{ background: ct.color + '12', color: ct.color, border: `1px solid ${ct.color}30`, fontFamily: 'Inter' }}>
+                          <span className="font-bold">{ct.icon}</span> {ct.label}
+                        </span>
+                      ))}
+                    </div>
+                  </details>
                 </div>
               )}
             </motion.div>

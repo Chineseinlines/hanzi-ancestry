@@ -518,6 +518,24 @@ export default function Explore() {
                 部首: {charData.radical}
               </span>
 
+              {/* Etymology / 六书 classification badge */}
+              {charData.etymology?.type && (
+                <span
+                  className="rounded-full px-2.5 py-1 text-xs font-medium"
+                  style={{
+                    fontFamily: 'Inter, sans-serif',
+                    backgroundColor: 'rgba(107, 127, 94, 0.12)',
+                    color: '#5A8A6B',
+                  }}
+                >
+                  六书: {charData.etymology.type === 'pictographic' ? '象形' :
+                         charData.etymology.type === 'indicative' ? '指事' :
+                         charData.etymology.type === 'ideographic' ? '会意' :
+                         charData.etymology.type === 'pictophonetic' ? '形声' :
+                         charData.etymology.type}
+                </span>
+              )}
+
               {/* Traditional form badge */}
               {charData.traditional && (
                 <span
@@ -531,6 +549,17 @@ export default function Explore() {
                   繁体: {charData.traditional}
                 </span>
               )}
+
+              {/* External reference links */}
+              <a
+                href={`https://ctext.org/dictionary.pl?if=en&char=${encodeURIComponent(currentChar)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full px-2 py-0.5 text-[0.625rem] font-medium inline-flex items-center gap-1 transition-colors hover:underline ml-auto"
+                style={{ background: 'rgba(45,95,138,0.06)', color: '#2D5F8A', fontFamily: 'Inter' }}
+              >
+                ctext.org →
+              </a>
 
               {/* Original components as clickable chips */}
               {traditionalComponents.length > 0 && (

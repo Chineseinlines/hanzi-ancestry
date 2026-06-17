@@ -4,6 +4,8 @@ import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import type { DecompositionNode, HanziEntry } from '../data/types';
 import { getCharacter } from '../data/hanziData';
 import { ratePhonetic, PHONETIC_COLORS, type PhoneticRating } from '../data/phoneticRating';
+import { computePhoneticLevelMulti, getPhoneticLevelInfo, type PhoneticLevel } from '../data/phoneticLevels';
+import { getCuratedSemanticLevel, guessSemanticLevel, getSemanticLevelInfo, type SemanticLevel } from '../data/semanticLevels';
 import { getGhostAnnotation } from '../data/ghostComponents';
 import GraphLegend from './GraphLegend';
 import GraphTooltip from './GraphTooltip';
@@ -28,6 +30,10 @@ interface TreeNode {
   x?: number;
   y?: number;
   phoneticRating?: PhoneticRating | null;
+  phoneticLevel?: PhoneticLevel | null;
+  phoneticBestMatch?: string | null;
+  semanticLevel?: SemanticLevel | null;
+  semanticNote?: string | null;
   isGhost?: boolean;
 }
 
@@ -45,9 +51,9 @@ const GHOST_COLOR = '#B0ADA5';
 
 const LEGEND_ITEMS = [
   { color: CORE_COLOR, label: 'Target character', shape: 'circle' as const },
-  { color: SEMANTIC_COLOR, label: 'Semantic (meaning) 表意', shape: 'circle' as const },
-  { color: PHONETIC_COLOR, label: 'Phonetic (sound) 表音', shape: 'diamond' as const },
-  { color: IDEOGRAPHIC_COLOR, label: 'Ideographic component', shape: 'circle' as const },
+  { color: SEMANTIC_COLOR, label: 'Semantic radical 形旁/意符', shape: 'circle' as const },
+  { color: PHONETIC_COLOR, label: 'Phonetic component 示音构件', shape: 'diamond' as const },
+  { color: IDEOGRAPHIC_COLOR, label: 'Semantic component 表意构件', shape: 'circle' as const },
   { color: GHOST_COLOR, label: 'Simplified ghost 简体衍生', shape: 'circle' as const },
 ];
 
@@ -92,13 +98,29 @@ function annotateTypes(root: TreeNode): void {
 
   for (const child of root.children) {
     if (ety.type === 'pictophonetic') {
-      if (child.character === semantic) child.type = 'semantic';
-      else if (child.character === phonetic) {
+      if (child.character === semantic) {
+        child.type = 'semantic';
+        // Compute semantic relation level
+        const curated = getCuratedSemanticLevel(root.character);
+        if (curated && curated.semantic === semantic) {
+          child.semanticLevel = curated.level;
+          child.semanticNote = curated.note;
+        } else if (child.entry?.definition && rootEntry?.definition) {
+          child.semanticLevel = guessSemanticLevel(rootEntry.definition, child.entry.definition);
+          child.semanticNote = `基于定义自动推断`;
+        }
+      } else if (child.character === phonetic) {
         child.type = 'phonetic';
-        // Compute phonetic reliability rating
+        // Compute 3-color phonetic reliability rating
         if (rootPinyin && child.entry?.pinyin?.[0]) {
           const result = ratePhonetic(rootPinyin, child.entry.pinyin[0]);
           child.phoneticRating = result?.rating ?? null;
+        }
+        // Compute detailed 6-level phonetic relation
+        if (rootEntry?.pinyin?.length && child.entry?.pinyin?.length) {
+          const detail = computePhoneticLevelMulti(rootEntry.pinyin, child.entry.pinyin);
+          child.phoneticLevel = detail.level;
+          child.phoneticBestMatch = detail.bestMatch;
         }
       }
     } else if (ety.type === 'ideographic') {
@@ -165,6 +187,7 @@ function getNodeLabel(type: TreeNode['type'], phoneticRating?: PhoneticRating | 
         return phoneticRating === 'green' ? '声✓' : phoneticRating === 'yellow' ? '声~' : '声✗';
       }
       return '声';
+    case 'ideographic': return '意';
     default: return '';
   }
 }
@@ -196,6 +219,10 @@ const DecompositionGraph = memo(function DecompositionGraph({
     nodeRadius: number;
     nodeType?: TreeNode['type'];
     phoneticRating?: PhoneticRating | null;
+    phoneticLevel?: PhoneticLevel | null;
+    phoneticBestMatch?: string | null;
+    semanticLevel?: SemanticLevel | null;
+    semanticNote?: string | null;
     isGhost?: boolean;
   }>({ visible: false, x: 0, y: 0, entry: null, nodeRadius: 22 });
 
@@ -369,8 +396,8 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .attr('pointer-events', 'none')
       .text((d) => d.character);
 
-    // Type badges (形/声) — with phonetic rating color
-    nodeGroup.filter((d) => d.type === 'semantic' || d.type === 'phonetic')
+    // Type badges (形/声/意) — with phonetic rating color
+    nodeGroup.filter((d) => d.type === 'semantic' || d.type === 'phonetic' || d.type === 'ideographic')
       .append('text')
       .attr('text-anchor', 'middle')
       .attr('dy', (d) => -getNodeRadius(d.type) - 8)
@@ -436,6 +463,10 @@ const DecompositionGraph = memo(function DecompositionGraph({
             nodeRadius: r + 4,
             nodeType: d.type,
             phoneticRating: d.phoneticRating ?? null,
+            phoneticLevel: d.phoneticLevel ?? null,
+            phoneticBestMatch: d.phoneticBestMatch ?? null,
+            semanticLevel: d.semanticLevel ?? null,
+            semanticNote: d.semanticNote ?? null,
             isGhost: d.isGhost ?? false,
           });
         }
@@ -499,6 +530,10 @@ const DecompositionGraph = memo(function DecompositionGraph({
         nodeRadius={tooltip.nodeRadius}
         nodeType={tooltip.nodeType}
         phoneticRating={tooltip.phoneticRating}
+        phoneticLevel={tooltip.phoneticLevel}
+        phoneticBestMatch={tooltip.phoneticBestMatch}
+        semanticLevel={tooltip.semanticLevel}
+        semanticNote={tooltip.semanticNote}
         isGhost={tooltip.isGhost}
       />
     </div>

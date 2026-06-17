@@ -406,6 +406,28 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
         })}
       </div>
 
+      {/* External reference links */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href={`https://hanziyuan.net/#${encodeURIComponent(displayChar)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[0.6875rem] inline-flex items-center gap-1 rounded-full px-3 py-1 transition-colors hover:underline"
+          style={{ background: 'rgba(45,95,138,0.06)', color: '#2D5F8A', fontFamily: 'Inter' }}
+        >
+          查看汉字源字形 →
+        </a>
+        <a
+          href={`https://ctext.org/dictionary.pl?if=en&char=${encodeURIComponent(displayChar)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[0.6875rem] inline-flex items-center gap-1 rounded-full px-3 py-1 transition-colors hover:underline"
+          style={{ background: 'rgba(107,127,94,0.08)', color: '#6B7F5E', fontFamily: 'Inter' }}
+        >
+          查看 ctext.org →
+        </a>
+      </div>
+
       {/* No shuowen data at all */}
       {!hasShuowen && (
         <p className="mt-3 text-[0.6875rem] text-center" style={{ color: 'rgba(139,105,20,0.35)', fontFamily: 'Inter' }}>

@@ -475,7 +475,7 @@ export function looksLikePinyin(input: string): boolean {
  * Rules:
  * - pictographic / indicative → atomic (no children), don't split
  * - pictophonetic → one level: semantic + phonetic as leaf nodes
- * - ideographic → one level: extract components from IDS as leaf nodes
+ * - ideographic (会意) → one level: extract semantic components from IDS as leaf nodes
  * - No recursive decomposition for any type.
  */
 function buildTree(char: string, showEtymology: boolean = true): DecompositionNode {
@@ -541,12 +541,24 @@ export function getCharacterLeaves(char: string): string[] {
   return node.children.map(c => c.character);
 }
 
-export function getTraditional(_char: string): string | null {
-  return null; // New data source doesn't include traditional forms
+export function getTraditional(char: string): string | null {
+  return simpToTrad?.get(char) ?? null;
 }
 
-export function getTraditionalComponents(_char: string): string[] {
-  return []; // New data source doesn't include traditional components
+export function getTraditionalComponents(char: string): string[] {
+  const trad = simpToTrad?.get(char);
+  if (!trad) return [];
+  const entry = charMap?.get(trad);
+  if (!entry?.decomposition) return [];
+  // Extract CJK components from the traditional form's decomposition
+  const comps: string[] = [];
+  for (let i = 0; i < entry.decomposition.length; i++) {
+    const cp = entry.decomposition.codePointAt(i);
+    if (cp && cp >= 0x4E00 && cp <= 0x9FFF && entry.decomposition[i] !== trad) {
+      comps.push(entry.decomposition[i]);
+    }
+  }
+  return [...new Set(comps)].filter(c => !STROKE_BLACKLIST.has(c));
 }
 
 // ── Stroke data (async, from CDN) ─────────────────────────────────
@@ -1002,7 +1014,7 @@ export function computeRelations(char: string): CharRelations {
 
   // ── Shared component family ──────────────────────────────────────
   // Chars sharing any CJK component with the target, regardless of role.
-  // This is the catch-all that makes the system symmetric for ideographic
+  // This is the catch-all that makes the system symmetric for ideographic (会意) characters
   // characters (which lack phonetic/semantic labels).
   const scSet = new Set<string>();
   const allComps = extractCJK(entry.decomposition || '')

@@ -2,6 +2,8 @@ import { memo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { HanziEntry } from '../data/types';
 import { PHONETIC_COLORS, RED_WARNING_TEXT, type PhoneticRating } from '../data/phoneticRating';
+import { getPhoneticLevelInfo, type PhoneticLevel } from '../data/phoneticLevels';
+import { getSemanticLevelInfo, type SemanticLevel } from '../data/semanticLevels';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation } from '../data/componentAnnotations';
 import { numberToMark } from '../data/hanziData';
 import { getGhostSuggestion } from '../data/ghostComponents';
@@ -16,6 +18,10 @@ interface GraphTooltipProps {
   nodeRadius?: number;
   nodeType?: string;
   phoneticRating?: PhoneticRating | null;
+  phoneticLevel?: PhoneticLevel | null;
+  phoneticBestMatch?: string | null;
+  semanticLevel?: SemanticLevel | null;
+  semanticNote?: string | null;
   isGhost?: boolean;
 }
 
@@ -33,6 +39,10 @@ const GraphTooltip = memo(function GraphTooltip({
   nodeRadius = 22,
   nodeType,
   phoneticRating,
+  phoneticLevel,
+  phoneticBestMatch,
+  semanticLevel,
+  semanticNote,
   isGhost: _isGhost,
 }: GraphTooltipProps) {
   const [pos, setPos] = useState({ left: 0, top: 0 });
@@ -105,7 +115,7 @@ const GraphTooltip = memo(function GraphTooltip({
             {entry.definition}
           </div>
 
-          {/* Phonetic rating badge */}
+          {/* Phonetic rating badge (3-color simplified) */}
           {nodeType === 'phonetic' && phoneticRating && (
             <div
               className="mb-1.5 rounded-md px-2 py-1 text-[0.6875rem] font-medium"
@@ -119,6 +129,46 @@ const GraphTooltip = memo(function GraphTooltip({
               {phoneticRating === 'green' && '准确 — 声韵一致，可直接参考声旁读音'}
               {phoneticRating === 'yellow' && '近似 — 声韵部分匹配，仅可部分参考'}
               {phoneticRating === 'red' && `失效 — ${RED_WARNING_TEXT}`}
+            </div>
+          )}
+
+          {/* Detailed phonetic level badge (6-level) */}
+          {nodeType === 'phonetic' && phoneticLevel && (
+            <div
+              className="mb-1.5 rounded-md px-2 py-1 text-[0.6875rem]"
+              style={{
+                background: getPhoneticLevelInfo(phoneticLevel).color + '14',
+                color: getPhoneticLevelInfo(phoneticLevel).color,
+                border: `1px solid ${getPhoneticLevelInfo(phoneticLevel).color}30`,
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              <span className="font-semibold">示音关系 Lv.{phoneticLevel}</span>
+              <span className="mx-1">—</span>
+              {getPhoneticLevelInfo(phoneticLevel).label}
+              {phoneticBestMatch && (
+                <span className="ml-1 opacity-60">({phoneticBestMatch})</span>
+              )}
+            </div>
+          )}
+
+          {/* Semantic level badge (8-level) */}
+          {nodeType === 'semantic' && semanticLevel && (
+            <div
+              className="mb-1.5 rounded-md px-2 py-1 text-[0.6875rem]"
+              style={{
+                background: getSemanticLevelInfo(semanticLevel).color + '14',
+                color: getSemanticLevelInfo(semanticLevel).color,
+                border: `1px solid ${getSemanticLevelInfo(semanticLevel).color}30`,
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              <span className="font-semibold">意符关系 Lv.{semanticLevel}</span>
+              <span className="mx-1">—</span>
+              {getSemanticLevelInfo(semanticLevel).label}
+              {semanticNote && (
+                <div className="mt-0.5 opacity-70 text-[0.625rem]">{semanticNote}</div>
+              )}
             </div>
           )}
 
