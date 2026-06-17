@@ -5,7 +5,6 @@
 import { motion } from 'framer-motion';
 import { Layout, Grid3X3, CheckCircle2, XCircle } from 'lucide-react';
 import { fadeUp, viewportOnce } from './variants';
-import { STRUCTURE_TEMPLATES, POSITIONS } from '../../data/visualGrammar';
 
 const EXAMPLE_STRUCTURES = [
   { ids: '⿰', label: '左右 (Left-Right)', example: '明 = 日 + 月', icon: '├┤' },
