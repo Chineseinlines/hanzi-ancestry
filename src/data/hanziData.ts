@@ -263,7 +263,14 @@ export async function loadData(): Promise<void> {
 
 export function getCharacter(char: string): HanziEntry | undefined {
   const entry = charMap?.get(char);
-  if (entry) return entry;
+  if (entry) {
+    // Enrich with traditional form from simp-trad map
+    if (!entry.traditional) {
+      const trad = simpToTrad?.get(char);
+      if (trad) return { ...entry, traditional: trad };
+    }
+    return entry;
+  }
 
   // Fall back to traditional form entry
   const trad = simpToTrad?.get(char);

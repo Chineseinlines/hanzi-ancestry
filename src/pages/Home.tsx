@@ -59,7 +59,7 @@ const SEARCH_MODES: { key: SearchMode; label: string }[] = [
   { key: 'english', label: 'EN' },
 ];
 
-const PRESET_CHARS = ['家', '国', '朋', '友', '好'];
+const PRESET_CHARS = ['家', '国'];
 
 function HeroSection() {
   const navigate = useNavigate();
@@ -388,7 +388,7 @@ function HeroSection() {
               >
                 <p className="text-sm text-vermilion-light">{searchError}</p>
                 <p className="mt-2 text-xs text-rice-paper/40">
-                  Try: 家 · 国 · 朋 · 友 · 好
+                  Try: 家 · 国
                 </p>
               </motion.div>
             )}

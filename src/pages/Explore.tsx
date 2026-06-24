@@ -27,7 +27,7 @@ import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
 import { getAnnotation, getMoonAnnotation } from '../data/componentAnnotations';
 
-const QUICK_CHARS = ['家', '国', '朋', '友', '好'];
+const QUICK_CHARS = ['家', '国'];
 
 /** Extract CJK characters from raw input, filtering spaces/punctuation/symbols. */
 function extractHanzi(raw: string): string[] {
@@ -635,7 +635,7 @@ export default function Explore() {
                 在上方输入汉字，开始探索之旅
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                {['家', '国', '朋', '友', '好'].map((c) => (
+                {['家', '国'].map((c) => (
                   <button
                     key={c}
                     onClick={() => processSearch(c)}

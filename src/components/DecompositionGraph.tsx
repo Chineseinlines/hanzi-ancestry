@@ -50,11 +50,11 @@ const IDEOGRAPHIC_COLOR = '#8B6914';
 const GHOST_COLOR = '#B0ADA5';
 
 const LEGEND_ITEMS = [
-  { color: CORE_COLOR, label: 'Target character', shape: 'circle' as const },
-  { color: SEMANTIC_COLOR, label: 'Semantic radical 形旁/意符', shape: 'circle' as const },
-  { color: PHONETIC_COLOR, label: 'Phonetic component 示音构件', shape: 'diamond' as const },
-  { color: IDEOGRAPHIC_COLOR, label: 'Semantic component 表意构件', shape: 'circle' as const },
-  { color: GHOST_COLOR, label: 'Simplified ghost 简体衍生', shape: 'circle' as const },
+  { color: CORE_COLOR, label: '目标字', shape: 'circle' as const },
+  { color: SEMANTIC_COLOR, label: '形符（义符）', shape: 'circle' as const },
+  { color: PHONETIC_COLOR, label: '声符', shape: 'diamond' as const },
+  { color: IDEOGRAPHIC_COLOR, label: '会意部件', shape: 'circle' as const },
+  { color: GHOST_COLOR, label: '简体衍生', shape: 'circle' as const },
 ];
 
 function decompToTree(node: DecompositionNode, depth = 0): TreeNode {
