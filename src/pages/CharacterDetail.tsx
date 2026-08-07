@@ -535,8 +535,8 @@ export default function CharacterDetail() {
 
       {/* ── Tab Bar ── */}
       <div className="sticky top-16 z-30 border-b shadow-sm" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
-        <div className="max-w-5xl mx-auto px-4 overflow-x-auto">
-          <div className="flex min-w-max gap-0">
+        <div className="max-w-5xl mx-auto px-4 flex items-center">
+          <div className="flex min-w-max gap-0 flex-1 overflow-x-auto">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -557,6 +557,19 @@ export default function CharacterDetail() {
               );
             })}
           </div>
+          {/* Prominent WordBook button */}
+          <button
+            onClick={() => toggleWordBook(char)}
+            className="flex-shrink-0 ml-3 px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 hover:shadow-md"
+            style={{
+              background: hasInWordBook(char) ? '#2D5F8A' : '#FDFBF6',
+              color: hasInWordBook(char) ? '#fff' : '#2D5F8A',
+              border: hasInWordBook(char) ? 'none' : '2px solid #2D5F8A',
+              fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            {hasInWordBook(char) ? '📗 已在生字本' : '📖 加入生字本'}
+          </button>
         </div>
       </div>
 

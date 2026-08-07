@@ -46,6 +46,8 @@ export async function saveQuizAttempt(
   if (!isSupabaseConfigured()) return null;
 
   // Insert attempt
+  console.log('[saveQuizAttempt] Saving:', { userId, gameType, score, total, answersCount: answers.length });
+
   const { data: attempt, error: attemptError } = await supabase
     .from('quiz_attempts')
     .insert({
@@ -61,9 +63,11 @@ export async function saveQuizAttempt(
     .single();
 
   if (attemptError || !attempt) {
-    console.error('Failed to save quiz attempt:', attemptError);
+    console.error('[saveQuizAttempt] Failed to save attempt:', attemptError);
     return null;
   }
+
+  console.log('[saveQuizAttempt] Attempt saved, id:', attempt.id);
 
   // Insert per-question answers (convert camelCase → snake_case for DB)
   const answersWithAttemptId = answers.map(a => ({

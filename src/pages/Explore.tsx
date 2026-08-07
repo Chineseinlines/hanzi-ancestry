@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { DecompositionNode, HanziEntry, CognateResult } from '../data/types';
 import type { EnglishSearchResult } from '../data/hanziData';
+import { useWordBook } from '../hooks/useWordBook';
 import {
   getCharacter,
   decomposeCharacter,
@@ -115,6 +116,8 @@ export default function Explore() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Derived data
+  const { has: hasInWB, toggle: toggleWB } = useWordBook();
+
   const charData: HanziEntry | undefined = useMemo(
     () => (currentChar ? getCharacter(currentChar) : undefined),
     [currentChar]
@@ -536,6 +539,19 @@ export default function Explore() {
                          charData.etymology.type}
                 </span>
               )}
+              {/* WordBook button */}
+              <button
+                onClick={() => toggleWB(charData.character)}
+                className="rounded-full px-2.5 py-1 text-xs font-medium border transition-all hover:scale-105"
+                style={{
+                  fontFamily: 'Inter, sans-serif',
+                  borderColor: hasInWB(charData.character) ? '#2D5F8A' : '#E5E0D8',
+                  background: hasInWB(charData.character) ? 'rgba(45,95,138,0.1)' : 'transparent',
+                  color: hasInWB(charData.character) ? '#2D5F8A' : '#9CA3AF',
+                }}
+              >
+                {hasInWB(charData.character) ? '📗 生字本' : '📖 加生字本'}
+              </button>
 
               {/* Traditional form badge */}
               {charData.traditional && (
