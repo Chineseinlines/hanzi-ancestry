@@ -8,6 +8,9 @@ interface StudentWithStats extends UserProfile {
   totalAttempts?: number;
   avgScore?: number;
   totalFavorites?: number;
+  quizAvg?: number;
+  puzzleAvg?: number;
+  glyphAvg?: number;
 }
 
 export default function Admin() {
@@ -31,11 +34,19 @@ export default function Admin() {
     const withStats = await Promise.all(
       all.map(async (s) => {
         const stats = await getStudentStats(s.id);
+        // Calculate overall average from per-type data
+        const typeStats = stats?.byType ? Object.values(stats.byType).filter(t => t.attempts > 0) : [];
+        const overallAvg = typeStats.length > 0
+          ? Math.round(typeStats.reduce((sum, t) => sum + t.averageScore, 0) / typeStats.length)
+          : 0;
         return {
           ...s,
           totalAttempts: stats?.totalAttempts || 0,
-          avgScore: stats?.averageScore || 0,
+          avgScore: overallAvg,
           totalFavorites: stats?.totalFavorites || 0,
+          quizAvg: stats?.byType?.quiz?.averageScore || 0,
+          puzzleAvg: stats?.byType?.puzzle?.averageScore || 0,
+          glyphAvg: stats?.byType?.glyph?.averageScore || 0,
         };
       })
     );
@@ -94,35 +105,33 @@ export default function Admin() {
         <table className="w-full text-sm">
           <thead style={{ background: '#FDFBF6' }}>
             <tr>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: '#3D3D3B' }}>Student</th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: '#3D3D3B' }}>Attempts</th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: '#3D3D3B' }}>Avg Score</th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: '#3D3D3B' }}>Favorites</th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: '#3D3D3B' }}>Joined</th>
+              <th className="text-left px-3 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>Student</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>📝 Quiz</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>🧩 Puzzle</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>🏺 Glyph</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>⭐ Fav</th>
+              <th className="text-right px-3 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>Joined</th>
             </tr>
           </thead>
           <tbody>
             {students.map(s => (
               <tr key={s.id} className="border-t" style={{ borderColor: '#E5E0D8' }}>
-                <td className="px-4 py-3">
-                  <span className="font-medium" style={{ color: '#1A1A18' }}>
+                <td className="px-3 py-3">
+                  <span className="font-medium text-sm" style={{ color: '#1A1A18' }}>
                     {s.display_name || s.username || s.id.slice(0, 8)}
                   </span>
                 </td>
-                <td className="text-center px-4 py-3" style={{ color: '#3D3D3B' }}>{s.totalAttempts}</td>
-                <td className="text-center px-4 py-3">
-                  <span
-                    className="px-2 py-0.5 rounded-lg text-xs font-medium"
-                    style={{
-                      color: (s.avgScore || 0) >= 70 ? '#4A7C59' : (s.avgScore || 0) >= 40 ? '#B8860B' : '#C23B2A',
-                      background: (s.avgScore || 0) >= 70 ? 'rgba(74,124,89,0.1)' : (s.avgScore || 0) >= 40 ? 'rgba(184,134,11,0.1)' : 'rgba(194,59,42,0.1)',
-                    }}
-                  >
-                    {s.avgScore || 0}%
-                  </span>
+                <td className="text-center px-2 py-3 text-xs" style={{ color: s.quizAvg! > 0 ? '#3D3D3B' : '#C4C4C4' }}>
+                  {s.quizAvg! > 0 ? `${s.quizAvg}%` : '—'}
                 </td>
-                <td className="text-center px-4 py-3" style={{ color: '#3D3D3B' }}>{s.totalFavorites}</td>
-                <td className="text-right px-4 py-3 text-xs" style={{ color: '#9CA3AF' }}>
+                <td className="text-center px-2 py-3 text-xs" style={{ color: s.puzzleAvg! > 0 ? '#3D3D3B' : '#C4C4C4' }}>
+                  {s.puzzleAvg! > 0 ? `${s.puzzleAvg}%` : '—'}
+                </td>
+                <td className="text-center px-2 py-3 text-xs" style={{ color: s.glyphAvg! > 0 ? '#3D3D3B' : '#C4C4C4' }}>
+                  {s.glyphAvg! > 0 ? `${s.glyphAvg}%` : '—'}
+                </td>
+                <td className="text-center px-2 py-3 text-xs" style={{ color: '#3D3D3B' }}>{s.totalFavorites}</td>
+                <td className="text-right px-3 py-3 text-xs" style={{ color: '#9CA3AF' }}>
                   {new Date(s.created_at).toLocaleDateString()}
                 </td>
               </tr>

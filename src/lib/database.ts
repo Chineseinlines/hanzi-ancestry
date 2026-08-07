@@ -153,25 +153,72 @@ export async function recordCharView(userId: string, char: string) {
 
 // ── Stats ────────────────────────────────────────────────────
 
-export async function getUserStats(userId: string) {
+export interface GameTypeStats {
+  label: string;
+  icon: string;
+  attempts: number;
+  averageScore: number;
+  bestScore: number;
+  lastPlayed: string | null;
+}
+
+export interface UserStats {
+  totalFavorites: number;
+  uniqueCharsViewed: number;
+  totalAttempts: number;
+  byType: Record<string, GameTypeStats>;
+  recentAttempts: Array<{ game_type: string; score: number; total: number; created_at: string }>;
+}
+
+const GAME_CONFIG: Record<string, { label: string; icon: string }> = {
+  'quiz': { label: '汉字题库', icon: '📝' },
+  'puzzle': { label: '部件拼字', icon: '🧩' },
+  'glyph': { label: '古字形猜字', icon: '🏺' },
+};
+
+export async function getUserStats(userId: string): Promise<UserStats | null> {
   if (!isSupabaseConfigured()) return null;
   const [attempts, favCount, viewCount] = await Promise.all([
-    supabase.from('quiz_attempts').select('game_type,score,total,created_at').eq('user_id', userId),
+    supabase.from('quiz_attempts').select('game_type,score,total,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
     supabase.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('char_views').select('char').eq('user_id', userId),
   ]);
 
-  // Unique chars viewed
-  const uniqueChars = new Set((viewCount.data || []).map(v => v.char));
+  const allAttempts = (attempts.data || []) as Array<{ game_type: string; score: number; total: number; created_at: string }>;
+  const uniqueChars = new Set((viewCount.data || []).map((v: { char: string }) => v.char));
+
+  // Group by game type
+  const byType: Record<string, GameTypeStats> = {};
+  for (const [key, config] of Object.entries(GAME_CONFIG)) {
+    const typeAttempts = allAttempts.filter(a => a.game_type === key);
+    if (typeAttempts.length > 0) {
+      const scores = typeAttempts.map(a => Math.round((a.score / a.total) * 100));
+      byType[key] = {
+        label: config.label,
+        icon: config.icon,
+        attempts: typeAttempts.length,
+        averageScore: Math.round(scores.reduce((s, v) => s + v, 0) / scores.length),
+        bestScore: Math.max(...scores),
+        lastPlayed: typeAttempts[0].created_at,
+      };
+    } else {
+      byType[key] = {
+        label: config.label,
+        icon: config.icon,
+        attempts: 0,
+        averageScore: 0,
+        bestScore: 0,
+        lastPlayed: null,
+      };
+    }
+  }
 
   return {
-    totalAttempts: (attempts.data || []).length,
     totalFavorites: favCount.count || 0,
     uniqueCharsViewed: uniqueChars.size,
-    recentAttempts: (attempts.data || []).slice(0, 10),
-    averageScore: (attempts.data || []).length > 0
-      ? Math.round((attempts.data || []).reduce((s, a) => s + (a.score / a.total) * 100, 0) / attempts.data!.length)
-      : 0,
+    totalAttempts: allAttempts.length,
+    byType,
+    recentAttempts: allAttempts.slice(0, 10),
   };
 }
 
