@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteAccount } from '../../lib/database';
 import { AuthModal } from './AuthModal';
@@ -87,32 +88,32 @@ export function UserMenu() {
           </div>
 
           <a
-            href="/#/profile"
+            to="/profile"
             className="block px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
             style={{ color: '#3D3D3B' }}
             onClick={() => setShowDropdown(false)}
           >
             📊 My Profile
-          </a>
+          </Link>
 
           <a
-            href="/#/wordbook"
+            to="/wordbook"
             className="block px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
             style={{ color: '#3D3D3B' }}
             onClick={() => setShowDropdown(false)}
           >
             📖 Word Book
-          </a>
+          </Link>
 
           {(profile?.role === 'teacher' || profile?.role === 'admin') && (
             <a
-              href="/#/admin"
+              to="/admin"
               className="block px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
               style={{ color: '#3D3D3B' }}
               onClick={() => setShowDropdown(false)}
             >
               🏫 Admin Dashboard
-            </a>
+            </Link>
           )}
 
           <div className="border-t mt-1 pt-1" style={{ borderColor: '#E5E0D8' }}>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserStats } from '../lib/database';
 
@@ -72,10 +73,10 @@ export default function Profile() {
           {profile?.display_name || user.email}
         </p>
         <div className="flex gap-3">
-          <a href="/#/wordbook" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:shadow-sm"
+          <Link to="/wordbook" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:shadow-sm"
             style={{ borderColor: '#2D5F8A', color: '#2D5F8A' }}>
             📖 Word Book
-          </a>
+          </Link>
         </div>
       </div>
 
