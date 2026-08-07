@@ -11,6 +11,7 @@ import Games from './pages/Games'
 import Quiz from './pages/Quiz'
 import Learn from './pages/Learn'
 import Profile from './pages/Profile'
+import WordBook from './pages/WordBook'
 import Admin from './pages/Admin'
 
 const pageTransition = {
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/games" element={<Games />} />
               <Route path="/quiz" element={<Quiz />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/wordbook" element={<WordBook />} />
               <Route path="/admin" element={<Admin />} />
             </Routes>
           </motion.div>

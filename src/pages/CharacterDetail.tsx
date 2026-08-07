@@ -5,6 +5,7 @@ import {
   GitBranch, BookOpen, ScrollText, Globe, Puzzle, ChevronDown, Heart,
 } from 'lucide-react';
 import { useFavorites } from '../hooks/useFavorites';
+import { useWordBook } from '../hooks/useWordBook';
 import { useAuth } from '../contexts/AuthContext';
 import { recordCharView } from '../lib/database';
 import {
@@ -293,6 +294,7 @@ export default function CharacterDetail() {
   }, [char]);
 
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { has: hasInWordBook, toggle: toggleWordBook } = useWordBook();
   const { user } = useAuth();
 
   // Record character view when page loads
@@ -382,6 +384,18 @@ export default function CharacterDetail() {
               >
                 <Heart size={12} fill={charIsFav ? '#C23B2A' : 'none'} />
                 {charIsFav ? '已收藏' : '收藏'}
+              </button>
+              <button
+                onClick={() => toggleWordBook(char)}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all hover:scale-105"
+                style={{
+                  background: hasInWordBook(char) ? 'rgba(45,95,138,0.2)' : 'rgba(245,240,232,0.1)',
+                  color: hasInWordBook(char) ? '#2D5F8A' : 'rgba(245,240,232,0.5)',
+                  fontFamily: 'Inter',
+                }}
+                title={hasInWordBook(char) ? '移出生字本' : '加入生字本'}
+              >
+                {hasInWordBook(char) ? '📗' : '📖'} {hasInWordBook(char) ? '生字本' : '加生字本'}
               </button>
             </div>
             <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: 'rgba(245,240,232,0.75)', fontFamily: 'Inter' }}>

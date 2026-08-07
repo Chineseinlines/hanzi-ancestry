@@ -95,6 +95,15 @@ export function UserMenu() {
             📊 My Profile
           </a>
 
+          <a
+            href="/#/wordbook"
+            className="block px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
+            style={{ color: '#3D3D3B' }}
+            onClick={() => setShowDropdown(false)}
+          >
+            📖 Word Book
+          </a>
+
           {(profile?.role === 'teacher' || profile?.role === 'admin') && (
             <a
               href="/#/admin"

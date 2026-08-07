@@ -171,6 +171,28 @@ export async function getUserStats(userId: string) {
   };
 }
 
+// ── Word Book (生字本) ───────────────────────────────────────
+
+export async function fetchWordBook(userId: string): Promise<string[]> {
+  if (!isSupabaseConfigured()) return [];
+  const { data } = await supabase
+    .from('wordbook')
+    .select('char')
+    .eq('user_id', userId)
+    .order('added_at', { ascending: false });
+  return (data || []).map(r => r.char);
+}
+
+export async function addToWordBook(userId: string, char: string) {
+  if (!isSupabaseConfigured()) return;
+  await supabase.from('wordbook').upsert({ user_id: userId, char, added_at: new Date().toISOString() });
+}
+
+export async function removeFromWordBook(userId: string, char: string) {
+  if (!isSupabaseConfigured()) return;
+  await supabase.from('wordbook').delete().eq('user_id', userId).eq('char', char);
+}
+
 // ── Account Deletion ─────────────────────────────────────────
 
 export async function deleteAccount(): Promise<{ error?: string }> {

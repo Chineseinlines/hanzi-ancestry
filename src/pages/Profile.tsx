@@ -68,9 +68,15 @@ export default function Profile() {
         <h1 className="text-3xl font-display mb-1" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
           My Profile
         </h1>
-        <p className="text-sm" style={{ color: '#6B7280' }}>
+        <p className="text-sm mb-3" style={{ color: '#6B7280' }}>
           {profile?.display_name || user.email}
         </p>
+        <div className="flex gap-3">
+          <a href="/#/wordbook" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:shadow-sm"
+            style={{ borderColor: '#2D5F8A', color: '#2D5F8A' }}>
+            📖 Word Book
+          </a>
+        </div>
       </div>
 
       {loading ? (
