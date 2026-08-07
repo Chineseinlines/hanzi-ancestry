@@ -87,7 +87,7 @@ export function UserMenu() {
             <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{user.email}</p>
           </div>
 
-          <a
+          <Link
             to="/profile"
             className="block px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
             style={{ color: '#3D3D3B' }}
@@ -96,7 +96,7 @@ export function UserMenu() {
             📊 My Profile
           </Link>
 
-          <a
+          <Link
             to="/wordbook"
             className="block px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
             style={{ color: '#3D3D3B' }}
@@ -106,7 +106,7 @@ export function UserMenu() {
           </Link>
 
           {(profile?.role === 'teacher' || profile?.role === 'admin') && (
-            <a
+            <Link
               to="/admin"
               className="block px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
               style={{ color: '#3D3D3B' }}
