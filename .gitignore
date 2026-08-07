@@ -10,3 +10,15 @@ hanzi-qr.png
 .vs/
 *.backup.json
 国际交流合作赛道*.pptx
+PPT*.docx
+PPT*.pptx
+chart_images/
+screenshots/
+convert_*.py
+create_*.py
+generate_*.py
+empty_chars.txt
+zhishi_*.txt
+ppt_C__*.txt
+*.docx
+*.pptx
