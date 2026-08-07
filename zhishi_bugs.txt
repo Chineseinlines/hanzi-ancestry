@@ -1,0 +1,60 @@
+=== 54个误标为ideographic的指事字拆解检查 ===
+
+非 | decomposition: ⿰？？ | OK-无错误拆解
+太 | decomposition: ⿵大丶 | OK-无错误拆解
+卑 | decomposition: ⿱白十 | OK-无错误拆解
+一 | decomposition: ？ | OK-无错误拆解
+公 | decomposition: ⿱八厶 | OK-无错误拆解
+卓 | decomposition: ⿱⺊早 | OK-无错误拆解
+卅 | decomposition: ⿻一川 | OK-无错误拆解
+八 | decomposition: ？ | OK-无错误拆解
+不 | decomposition: ⿱一？ | OK-无错误拆解
+乒 | decomposition: ⿱丘丿 | OK-无错误拆解
+章 | decomposition: ⿱音十 | OK-无错误拆解
+乓 | decomposition: ⿱丘丶 | OK-无错误拆解
+乏 | decomposition: ⿱丿之 | OK-无错误拆解
+音 | decomposition: ⿱立日 | OK-无错误拆解
+甘 | decomposition: ⿵卄二 | OK-无错误拆解
+竟 | decomposition: ⿱音儿 | OK-无错误拆解
+卡 | decomposition: ⿱上卜 | OK-无错误拆解
+叉 | decomposition: ⿴又丶 | OK-无错误拆解
+即 | decomposition: ⿰？卩 | OK-无错误拆解
+尺 | decomposition: ⿸尸乚 | OK-无错误拆解
+夫 | decomposition: ⿻一大 | OK-无错误拆解
+五 | decomposition: ⿴二？ | OK-无错误拆解
+本 | decomposition: ⿻木一 | OK-无错误拆解
+至 | decomposition: ⿱⿱一厶土 | OK-无错误拆解
+亡 | decomposition: ⿱亠？ | OK-无错误拆解
+下 | decomposition: ⿱一卜 | OK-无错误拆解
+凶 | decomposition: ⿶凵乂 | OK-无错误拆解
+旦 | decomposition: ⿱日一 | OK-无错误拆解
+未 | decomposition: ⿻一木 | OK-无错误拆解
+交 | decomposition: ⿱六乂 | OK-无错误拆解
+幻 | decomposition: ⿰幺？ | OK-无错误拆解
+牵 | decomposition: ⿱大⿱冖牛 | OK-无错误拆解
+函 | decomposition: ⿶凵⿻了？ | OK-无错误拆解
+亦 | decomposition: ⿱亠？ | OK-无错误拆解
+中 | decomposition: ⿻口丨 | OK-无错误拆解
+王 | decomposition: ⿱一土 | OK-无错误拆解
+朱 | decomposition: ⿻一木 | OK-无错误拆解
+二 | decomposition: ⿱一一 | OK-无错误拆解
+末 | decomposition: ⿻木一 | OK-无错误拆解
+天 | decomposition: ⿱一大 | OK-无错误拆解
+丹 | decomposition: ⿻冂亠 | OK-无错误拆解
+四 | decomposition: ⿴囗儿 | OK-无错误拆解
+上 | decomposition: ⿱⺊一 | OK-无错误拆解
+寸 | decomposition: ？ | OK-无错误拆解
+三 | decomposition: ⿱一二 | OK-无错误拆解
+引 | decomposition: ⿰弓丨 | OK-无错误拆解
+廿 | decomposition: ⿻廾一 | OK-无错误拆解
+曰 | decomposition: ⿴口一 | OK-无错误拆解
+司 | decomposition: ⿹？口 | OK-无错误拆解
+克 | decomposition: ⿱十兄 | OK-无错误拆解
+血 | decomposition: ⿱丿皿 | OK-无错误拆解
+半 | decomposition: ⿻丷牛 | OK-无错误拆解
+爻 | decomposition: ⿱乂乂 | OK-无错误拆解
+刃 | decomposition: ⿹刀丶 | OK-无错误拆解
+
+真的有问题(有声旁标注): 0
+真的有问题(有形旁标注): 0
+无错误拆解: 54

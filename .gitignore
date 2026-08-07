@@ -7,3 +7,6 @@ dist
 thumbs.db
 .claude/
 hanzi-qr.png
+.vs/
+*.backup.json
+国际交流合作赛道*.pptx

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { addFavoriteToCloud, removeFavoriteFromCloud } from '../lib/database';
 
 export interface FavoriteEntry {
   char: string;
@@ -34,7 +36,9 @@ function saveFolders(folders: string[]): void {
 export function useFavorites() {
   const [favorites, setFavorites] = useState<FavoriteEntry[]>(loadFavorites);
   const [folders, setFolders] = useState<string[]>(loadFolders);
+  const { user, configured } = useAuth();
 
+  // Persist to localStorage
   useEffect(() => {
     saveFavorites(favorites);
   }, [favorites]);
@@ -52,26 +56,42 @@ export function useFavorites() {
       if (prev.some((f) => f.char === char)) return prev;
       return [...prev, { char, addedAt: Date.now(), folder }];
     });
-  }, []);
+    // Cloud sync
+    if (user && configured) {
+      addFavoriteToCloud(user.id, char, folder);
+    }
+  }, [user, configured]);
 
   const removeFavorite = useCallback((char: string) => {
     setFavorites((prev) => prev.filter((f) => f.char !== char));
-  }, []);
+    // Cloud sync
+    if (user && configured) {
+      removeFavoriteFromCloud(user.id, char);
+    }
+  }, [user, configured]);
 
   const toggleFavorite = useCallback((char: string, folder = '默认') => {
     setFavorites((prev) => {
       if (prev.some((f) => f.char === char)) {
+        // Remove
+        if (user && configured) removeFavoriteFromCloud(user.id, char);
         return prev.filter((f) => f.char !== char);
       }
+      // Add
+      if (user && configured) addFavoriteToCloud(user.id, char, folder);
       return [...prev, { char, addedAt: Date.now(), folder }];
     });
-  }, []);
+  }, [user, configured]);
 
   const moveToFolder = useCallback((char: string, newFolder: string) => {
     setFavorites((prev) =>
       prev.map((f) => (f.char === char ? { ...f, folder: newFolder } : f)),
     );
-  }, []);
+    // Cloud sync (re-add with new folder)
+    if (user && configured) {
+      addFavoriteToCloud(user.id, char, newFolder);
+    }
+  }, [user, configured]);
 
   const getByFolder = useCallback((folder: string): FavoriteEntry[] => {
     return favorites.filter((f) => f.folder === folder);

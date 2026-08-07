@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Menu, X } from 'lucide-react';
+import { UserMenu } from './auth/UserMenu';
 
 interface NavbarProps {
   onSearchClick?: () => void;
@@ -79,7 +80,7 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
           })}
         </div>
 
-        {/* Right side: search trigger */}
+        {/* Right side: search trigger + user menu */}
         <div className="flex items-center gap-3">
           <button
             onClick={onSearchClick}
@@ -88,6 +89,7 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
           >
             <Search size={18} />
           </button>
+          <UserMenu />
 
           {/* Mobile menu toggle */}
           <button

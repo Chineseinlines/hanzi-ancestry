@@ -1,5 +1,5 @@
 export interface EtymologyData {
-  type: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic';
+  type: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic' | 'loan';
   phonetic?: string;
   semantic?: string;
   hint?: string;

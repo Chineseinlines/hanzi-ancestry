@@ -532,6 +532,7 @@ export default function Explore() {
                          charData.etymology.type === 'indicative' ? '指事' :
                          charData.etymology.type === 'ideographic' ? '会意' :
                          charData.etymology.type === 'pictophonetic' ? '形声' :
+                         charData.etymology.type === 'loan' ? '假借' :
                          charData.etymology.type}
                 </span>
               )}

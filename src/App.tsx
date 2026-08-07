@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Explore from './pages/Explore'
@@ -9,6 +10,8 @@ import CharacterRelations from './pages/CharacterRelations'
 import Games from './pages/Games'
 import Quiz from './pages/Quiz'
 import Learn from './pages/Learn'
+import Profile from './pages/Profile'
+import Admin from './pages/Admin'
 
 const pageTransition = {
   initial: { opacity: 0, y: 12 },
@@ -20,21 +23,25 @@ const pageTransition = {
 export default function App() {
   const location = useLocation()
   return (
-    <Layout>
-      <AnimatePresence mode="wait">
-        <motion.div key={location.pathname} {...pageTransition}>
-          <Routes location={location}>
-            <Route path="/" element={<Home />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/learn" element={<Learn />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/detail" element={<CharacterDetail />} />
-            <Route path="/relations" element={<CharacterRelations />} />
-            <Route path="/games" element={<Games />} />
-            <Route path="/quiz" element={<Quiz />} />
-          </Routes>
-        </motion.div>
-      </AnimatePresence>
-    </Layout>
+    <AuthProvider>
+      <Layout>
+        <AnimatePresence mode="wait">
+          <motion.div key={location.pathname} {...pageTransition}>
+            <Routes location={location}>
+              <Route path="/" element={<Home />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/learn" element={<Learn />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/detail" element={<CharacterDetail />} />
+              <Route path="/relations" element={<CharacterRelations />} />
+              <Route path="/games" element={<Games />} />
+              <Route path="/quiz" element={<Quiz />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
+      </Layout>
+    </AuthProvider>
   )
 }

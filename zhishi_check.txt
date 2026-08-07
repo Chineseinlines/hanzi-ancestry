@@ -1,0 +1,101 @@
+=== 指事字在数据库中的分类情况 ===
+
+[ideographic] (54个):
+  非|Two bird's wings opposed; two people back-to-back
+  太|A giant 大 with a normal-sized man 丶 for scale
+  卑|A hand 又(altered) holding an empty shell 甲 (altered)
+  一|Represents heaven (天), earth (旦), or the number 1
+  公|To divide 八 what is private 厶
+  卓|To foresee ⺊ the dawn 早 coming; 早 also provides the pronunciation
+  卅|Three tally marks; compare ten 十 and twenty 廿
+  八|Two bent lines meaning "to divide"
+  不|A bird flying toward the sky 一
+  乒|A ball bouncing back and forth; compare 乓
+  章|The ten 十 movements of a piece of music 音
+  乓|A ball bouncing back and forth; compare 乒
+  乏|A foot 之 running into a wall or barrier 丿
+  音|A tongue 立 forming a sound in the mouth 日
+  甘|Picture of a tongue with 一 marking the sweet spot
+  竟|A person 儿 finishing a musical piece 音
+  卡|A card squeezed between 上 and 下
+  叉|A hand 又 grasping an object 丶
+  即|A hungry person卩 kneeling over food 皀; compare 既
+  尺|Picture of a man measuring by pacing
+  夫|A man 大 wearing a coming-of-age hairpin 一
+  五|Five elements (the cross with the extra stroke) between heaven 一 and earth 一 
+  本|A tree 木 with its roots highlighted
+  至|A bird alighting on the ground 土
+  亡|A man 人 in a coffin; see 亾
+  下|One stroke under another; compare 上 (above)
+  凶|A container 凵 of wickedness 乂
+  旦|The sun 日 rising over the horizon 一
+  未|A wheat plant that has not yet borne fruit; compare 來
+  交|A person with crossed (intersecting) legs
+  幻|An inversion of 予, "to give"
+  牵|A person 大 pulling an ox 牛 by a rope 冖
+  函|Letters placed in a container 凵
+  亦|A man standing with arrows pointing to his armpits
+  中|A line 丨 through the center of a box 口
+  王|A man 十 bridging heaven and earth (both 一)
+  朱|The color of the sap 一 of some trees 木
+  二|Two  parallel lines; compare 一 (one) and 三 (three)
+  末|The top 一 of a tree 木
+  天|The heavens 一 above a man 大
+  丹|A red pellet 丶 from a mine 井
+  四|A child 儿 in a room with four walls 囗
+  上|One stroke on top of another; compare 下 (below)
+  寸|A hand with a dot indicating where the pulse can be felt, about an inch up the w
+  三|Three  parallel lines; compare 一 (one) and 二 (two)
+  引|To pull back a bow's 弓 drawstring 丨
+  廿|Two tens 十 side by side
+  曰|Picture of an open 一 mouth 口
+  司|A person speaking orders 口 and raising their arm
+  克|A weapon 十 used to subdue a beast 兄
+  血|A chalice 皿 filled with blood 丿
+  半|A cow 牛 splitting 丷 wood in half
+  爻|Two marks 乂 on an oracle bone
+  刃|A knife 刀 sharp enough to draw blood 丶
+
+[(empty)] (15个):
+  丑|
+  屯|
+  兮|
+  丨|
+  丩|
+  齐|
+  亟|
+  六|
+  午|
+  七|
+  十|
+  臣|
+  派|
+  乎|
+  永|
+
+[pictographic] (10个):
+  立|A man standing on the ground 一
+  九|An elbow
+  世|Three leaves on a branch
+  尹|A scepter
+  元|A man 儿 with two lines emphasizing their head 二
+  片|Half of a tree trunk; compare 爿
+  示|An altar
+  南|A musical bell
+  少|Grains of sand; 小 provides the pronunciation and meaning
+  卒|A soldier in armor
+
+[pictophonetic] (3个):
+  牟|ox
+  尤|
+  象|boar
+
+不在数据库中 (2个): 必 言
+
+=== 汇总 ===
+指事字在库总数: 82
+被标记为ideographic(会意): 54 <- 错误!
+被标记为(empty): 15 <- 未标注
+被标记为pictographic(象形): 10
+被标记为pictophonetic(形声): 3
+不在库中: 2

@@ -298,7 +298,8 @@ const DecompositionGraph = memo(function DecompositionGraph({
       const typeLabel = ety.type === 'pictophonetic' ? '形声字 (Phono-semantic)'
         : ety.type === 'ideographic' ? '会意字 (Compound Ideograph)'
         : ety.type === 'pictographic' ? '象形字 (Pictograph)'
-        : ety.type === 'indicative' ? '指事字 (Indicative)' : '';
+        : ety.type === 'indicative' ? '指事字 (Indicative)'
+        : ety.type === 'loan' ? '假借字 (Phonetic Loan)' : '';
 
       g.append('text')
         .attr('x', centerX)

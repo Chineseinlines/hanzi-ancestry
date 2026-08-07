@@ -2,9 +2,11 @@
  * Fix 指事字 (indicative) classifications in hanzi-dict.json.
  *
  * Background: 82+ 指事字 were misclassified:
- *   - 54 as "ideographic" (会意) → should be "indicative" (指事)
+ *   - 52 as "ideographic" (会意) → should be "indicative" (指事)
+ *     (章, 引 removed: 说文 confirms they are 会意, not 指事)
  *   - 15 as empty/missing         → should be "indicative"
- *   - 10 as "pictographic" (象形)  → reviewed, some corrected
+ *   - 4  as "pictographic" (象形)  → reviewed, some corrected
+ *     (少 removed: 说文 从小丿声=形声, reclassified by fix-misclassifications.ts)
  *   - 3  as "pictophonetic" (形声) → reviewed, corrected
  *
  * Run: npx tsx scripts/fix-indicative.ts
@@ -22,10 +24,13 @@ const DICT_PATH = path.resolve(__dirname, '..', 'public', 'hanzi-dict.json');
 // ── Characters currently marked "ideographic" that are really 指事 ──
 const IDEOGRAPHIC_TO_INDICATIVE = new Set([
   '非', '太', '卑', '一', '公', '卓', '卅', '八', '不', '乒',
-  '章', '乓', '乏', '音', '甘', '竟', '卡', '叉', '即', '尺',
+  // '章' — REMOVED: 说文 从音从十=会意, not 指事
+  '乓', '乏', '音', '甘', '竟', '卡', '叉', '即', '尺',
   '夫', '五', '本', '至', '亡', '下', '凶', '旦', '未', '交',
   '幻', '牵', '函', '亦', '中', '王', '朱', '二', '末', '天',
-  '丹', '四', '上', '寸', '三', '引', '廿', '曰', '司', '克',
+  '丹', '四', '上', '寸', '三',
+  // '引' — REMOVED: 说文 从弓丨=会意 (开弓也), not 指事
+  '廿', '曰', '司', '克',
   '血', '半', '爻', '刃',
 ]);
 
@@ -41,7 +46,7 @@ const PICTOGRAPHIC_TO_INDICATIVE = new Set([
   '立', // A man standing on the ground — the line 一 indicates standing position → 指事
   '元', // A man with lines emphasizing the head — lines indicate/point to head → 指事
   '片', // Half of a tree trunk — indicates "half" → 指事
-  '少', // Grains of sand, dots indicating "few/little" → 指事
+  // '少' — REMOVED: 说文 从小丿声=形声; reclassified to pictophonetic by fix-misclassifications.ts
   '卒', // A soldier in armor, mark on clothing indicates status → 指事
 ]);
 

@@ -207,7 +207,7 @@ export interface ModernComponent {
  * This is a heuristic — not all characters map perfectly.
  */
 function mapSixBookToFormation(
-  sixBookType: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic',
+  sixBookType: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic' | 'loan',
   hasPhonetic: boolean,
   hasSemantic: boolean,
 ): FormationMode {
@@ -221,6 +221,9 @@ function mapSixBookToFormation(
       return hasPhonetic ? 'form-meaning' : 'meaning-meaning';
     case 'pictophonetic':
       return 'meaning-sound';
+    case 'loan':
+      // 假借字 — borrowed for sound, original formation mode unknown
+      return 'zero-combination';
   }
 }
 
@@ -229,7 +232,7 @@ function mapSixBookToFormation(
  * Returns null if insufficient data for classification.
  */
 export function classifyCharacter(
-  etymologyType: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic' | undefined,
+  etymologyType: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic' | 'loan' | undefined,
   phonetic: string | undefined,
   semantic: string | undefined,
   decomposition: string | undefined,
@@ -290,6 +293,12 @@ export function classifyCharacter(
       character: '（整体象形）',
       componentType: 'form-depicting',
       role: '全功能零合成 — 字形本身即为独立表形构件',
+    });
+  } else if (etymologyType === 'loan') {
+    components.push({
+      character: '（同音假借）',
+      componentType: 'sign',
+      role: '假借字 — 借用同音字的字形表示另一个词，本义与本形分离',
     });
   }
 
@@ -388,7 +397,7 @@ const CURATED_CLASSIFICATIONS: Record<string, ModernClassification> = {
  * Checks curated data first, then falls back to auto-classification.
  */
 export function getModernClassification(
-  etymologyType: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic' | undefined,
+  etymologyType: 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic' | 'loan' | undefined,
   phonetic: string | undefined,
   semantic: string | undefined,
   decomposition: string | undefined,

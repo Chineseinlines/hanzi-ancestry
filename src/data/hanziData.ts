@@ -181,7 +181,7 @@ export async function loadData(): Promise<void> {
         };
         if (raw.etymology?.type) {
           entry.etymology = {
-            type: raw.etymology.type as 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic',
+            type: raw.etymology.type as 'pictographic' | 'indicative' | 'ideographic' | 'pictophonetic' | 'loan',
             phonetic: raw.etymology.phonetic,
             semantic: raw.etymology.semantic,
             hint: raw.etymology.hint,
@@ -493,8 +493,8 @@ function buildTree(char: string, showEtymology: boolean = true): DecompositionNo
 
   const ety = entry.etymology;
 
-  // Pictographic / indicative: always atomic
-  if (ety && (ety.type === 'pictographic' || ety.type === 'indicative')) {
+  // Pictographic / indicative / loan (假借): always atomic
+  if (ety && (ety.type === 'pictographic' || ety.type === 'indicative' || ety.type === 'loan')) {
     return { character: char, decomposition: char, children: [], isLeaf: true };
   }
 
