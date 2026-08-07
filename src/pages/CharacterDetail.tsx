@@ -5,6 +5,8 @@ import {
   GitBranch, BookOpen, ScrollText, Globe, Puzzle, ChevronDown, Heart,
 } from 'lucide-react';
 import { useFavorites } from '../hooks/useFavorites';
+import { useAuth } from '../contexts/AuthContext';
+import { recordCharView } from '../lib/database';
 import {
   getCharacter,
   getCharacterEnriched,
@@ -291,6 +293,14 @@ export default function CharacterDetail() {
   }, [char]);
 
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { user } = useAuth();
+
+  // Record character view when page loads
+  useEffect(() => {
+    if (char && user) {
+      recordCharView(user.id, char);
+    }
+  }, [char, user]);
   const charIsFav = char ? isFavorite(char) : false;
 
   const goToDetail = (c: string) => {

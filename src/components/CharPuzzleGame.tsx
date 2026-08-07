@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, ArrowRight, Trophy, Sparkles } from 'lucide-react';
 import type { GameMode, GameState, PuzzleRound } from '../data/types';
 import { getCharacter, getCognates, getCharactersWithComponent, getAllCharacters } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
+import { useAuth } from '../contexts/AuthContext';
+import { saveQuizAttempt } from '../lib/database';
 
 const COMMON_6500 = new Set(COMMON_CHAR_SET);
 
@@ -174,6 +176,9 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
 }
 
 export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, modes, title }: CharPuzzleGameProps) {
+  const { user } = useAuth();
+  const maxStreakRef = useRef(0);
+  const resultsRef = useRef<Array<{ questionIndex: number; questionType: string; prompt: string; correctChar: string; userAnswer: string; isCorrect: boolean }>>([]);
   const [gameState, setGameState] = useState<GameState>({
     score: 0,
     streak: 0,
@@ -256,15 +261,19 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
       correct.every((c) => selected.includes(c));
 
     if (isCorrect) {
+      const newStreak = gameState.streak + 1;
+      if (newStreak > maxStreakRef.current) maxStreakRef.current = newStreak;
       const streakBonus = gameState.streak >= 3 ? gameState.streak * 2 : 0;
+      resultsRef.current.push({ questionIndex: gameState.round, questionType: 'decompose', prompt: puzzle.targetChar || targetChar, correctChar: correct.join('+'), userAnswer: selected.join('+'), isCorrect: true });
       setGameState((prev) => ({
         ...prev,
         score: prev.score + puzzle.points + streakBonus,
-        streak: prev.streak + 1,
+        streak: newStreak,
         feedback: 'correct',
         correctAnswer: null,
       }));
     } else {
+      resultsRef.current.push({ questionIndex: gameState.round, questionType: 'decompose', prompt: puzzle.targetChar || targetChar, correctChar: correct.join('+'), userAnswer: selected.join('+'), isCorrect: false });
       setGameState((prev) => ({
         ...prev,
         streak: 0,
@@ -279,15 +288,19 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
     const correct = puzzle?.correctAnswer as string;
     const isCorrect = char === correct;
     if (isCorrect) {
+      const newStreak = gameState.streak + 1;
+      if (newStreak > maxStreakRef.current) maxStreakRef.current = newStreak;
       const streakBonus = gameState.streak >= 3 ? gameState.streak * 2 : 0;
+      resultsRef.current.push({ questionIndex: gameState.round, questionType: 'assemble', prompt: puzzle?.targetChar || targetChar, correctChar: correct, userAnswer: char, isCorrect: true });
       setGameState((prev) => ({
         ...prev,
         score: prev.score + (puzzle?.points || 10) + streakBonus,
-        streak: prev.streak + 1,
+        streak: newStreak,
         feedback: 'correct',
         correctAnswer: null,
       }));
     } else {
+      resultsRef.current.push({ questionIndex: gameState.round, questionType: 'assemble', prompt: puzzle?.targetChar || targetChar, correctChar: correct, userAnswer: char, isCorrect: false });
       setGameState((prev) => ({
         ...prev,
         streak: 0,
@@ -318,16 +331,21 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
     if (!allMatched) return;
 
     const allCorrect = comps.every((c, i) => matchSelections[c] === correct[i]);
+    const userAnswerStr = comps.map(c => `${c}→${matchSelections[c] || '?'}`).join(',');
     if (allCorrect) {
+      const newStreak = gameState.streak + 1;
+      if (newStreak > maxStreakRef.current) maxStreakRef.current = newStreak;
       const streakBonus = gameState.streak >= 3 ? gameState.streak * 2 : 0;
+      resultsRef.current.push({ questionIndex: gameState.round, questionType: 'match', prompt: puzzle.targetChar || targetChar, correctChar: correct.join(','), userAnswer: userAnswerStr, isCorrect: true });
       setGameState((prev) => ({
         ...prev,
         score: prev.score + (puzzle.points || 15) + streakBonus,
-        streak: prev.streak + 1,
+        streak: newStreak,
         feedback: 'correct',
         correctAnswer: null,
       }));
     } else {
+      resultsRef.current.push({ questionIndex: gameState.round, questionType: 'match', prompt: puzzle.targetChar || targetChar, correctChar: correct.join(','), userAnswer: userAnswerStr, isCorrect: false });
       setGameState((prev) => ({
         ...prev,
         streak: 0,
@@ -336,6 +354,17 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
       }));
     }
   };
+
+  // Save results when game over
+  useEffect(() => {
+    if (gameOver && user && resultsRef.current.length > 0) {
+      const modeLabels = modes ?? gameModes;
+      saveQuizAttempt(user.id, 'puzzle', gameState.score, TOTAL_ROUNDS, resultsRef.current, {
+        max_streak: maxStreakRef.current,
+        modes: modeLabels,
+      });
+    }
+  }, [gameOver, user, gameState.score]);
 
   const handleContinue = () => {
     if (gameState.round >= TOTAL_ROUNDS) {
@@ -353,6 +382,8 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
   };
 
   const handleRestart = () => {
+    resultsRef.current = [];
+    maxStreakRef.current = 0;
     setGameState({
       score: 0,
       streak: 0,

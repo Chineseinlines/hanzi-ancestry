@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Check, X } from 'lucide-react';
 import { getCharacter } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
+import { useAuth } from '../contexts/AuthContext';
+import { saveQuizAttempt } from '../lib/database';
 
 const TOTAL_ROUNDS = 10;
 const BASE_URL = import.meta.env.BASE_URL;
@@ -40,6 +42,8 @@ interface Question {
 }
 
 export default function AncientGlyphGame() {
+  const { user } = useAuth();
+  const resultsRef = useRef<Array<{ questionIndex: number; questionType: string; prompt: string; correctChar: string; userAnswer: string; isCorrect: boolean }>>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -49,6 +53,7 @@ export default function AncientGlyphGame() {
   const [loading, setLoading] = useState(true);
 
   const generateQuestions = useCallback(async () => {
+    resultsRef.current = [];
     setLoading(true);
 
     // Load pre-verified glyph character list (only chars with real images)
@@ -114,11 +119,28 @@ export default function AncientGlyphGame() {
 
   useEffect(() => { generateQuestions(); }, [generateQuestions]);
 
+  // Save results when game finishes
+  useEffect(() => {
+    if (finished && user && resultsRef.current.length > 0) {
+      saveQuizAttempt(user.id, 'glyph', score, questions.length, resultsRef.current);
+    }
+  }, [finished, user, score]);
+
   const handleSelect = (idx: number) => {
     if (answered) return;
+    const q = questions[currentQ];
+    const isCorrect = idx === q.correctIndex;
     setSelected(idx);
     setAnswered(true);
-    if (idx === questions[currentQ].correctIndex) setScore(s => s + 1);
+    if (isCorrect) setScore(s => s + 1);
+    resultsRef.current.push({
+      questionIndex: currentQ,
+      questionType: q.scriptLabel,
+      prompt: q.imageUrl.split('/').pop() || q.char,
+      correctChar: q.char,
+      userAnswer: q.options[idx],
+      isCorrect,
+    });
   };
 
   const handleNext = () => {

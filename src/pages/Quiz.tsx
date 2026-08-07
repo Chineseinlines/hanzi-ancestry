@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Check, X } from 'lucide-react';
 import { loadData, getAllCharacters, numberToMark, stripToneNumber, decomposeCharacter } from '../data/hanziData';
@@ -7,6 +7,8 @@ import { COMMON_CHAR_SET } from '../data/commonChars';
 // 一级字表 (3500 most common chars), ordered by frequency
 const COMMON_3500 = new Set([...COMMON_CHAR_SET].slice(0, 3500));
 import type { HanziEntry, DecompositionNode } from '../data/types';
+import { useAuth } from '../contexts/AuthContext';
+import { saveQuizAttempt } from '../lib/database';
 
 type QuestionType = 'pinyin2char' | 'char2pinyin' | 'ids2char';
 
@@ -123,6 +125,7 @@ function genIds2Char(entries: HanziEntry[]): Question | null {
 }
 
 export default function Quiz() {
+  const { user } = useAuth();
   const [entries, setEntries] = useState<HanziEntry[] | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -133,6 +136,9 @@ export default function Quiz() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [started, setStarted] = useState(false);
+  const startTimeRef = useRef<number>(0);
+  // Per-question results for saving
+  const resultsRef = useRef<Array<{ questionIndex: number; questionType: string; prompt: string; correctChar: string; userAnswer: string; isCorrect: boolean }>>([]);
 
   useEffect(() => {
     loadData()
@@ -156,6 +162,8 @@ export default function Quiz() {
 
   const startQuiz = useCallback(() => {
     if (!entries) return;
+    resultsRef.current = [];
+    startTimeRef.current = Date.now();
     const pool: Question[] = [];
     const gens = [genPinyin2Char, genChar2Pinyin, genIds2Char];
     let attempts = 0;
@@ -174,11 +182,30 @@ export default function Quiz() {
     setStarted(true);
   }, [entries]);
 
+  // Save results to Supabase when quiz finishes
+  useEffect(() => {
+    if (finished && user && resultsRef.current.length > 0) {
+      const duration = startTimeRef.current ? Date.now() - startTimeRef.current : undefined;
+      saveQuizAttempt(user.id, 'quiz', score, questions.length, resultsRef.current, { duration_ms: duration });
+    }
+  }, [finished, user, score]);
+
   const handleSelect = (idx: number) => {
     if (answered) return;
+    const q = questions[currentQ];
+    const isCorrect = idx === q.correctIndex;
     setSelected(idx);
     setAnswered(true);
-    if (idx === questions[currentQ].correctIndex) setScore(s => s + 1);
+    if (isCorrect) setScore(s => s + 1);
+    // Record result
+    resultsRef.current.push({
+      questionIndex: currentQ,
+      questionType: q.type,
+      prompt: q.prompt,
+      correctChar: q.correctChar,
+      userAnswer: q.options[idx],
+      isCorrect,
+    });
   };
 
   const handleNext = () => {

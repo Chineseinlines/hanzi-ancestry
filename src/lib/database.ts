@@ -40,7 +40,7 @@ export async function saveQuizAttempt(
   gameType: QuizAttempt['game_type'],
   score: number,
   total: number,
-  answers: Omit<QuizAnswer, 'id' | 'attempt_id'>[],
+  answers: Array<{ questionIndex: number; questionType: string; prompt: string; correctChar: string; userAnswer: string; isCorrect: boolean }>,
   extra?: { max_streak?: number; modes?: string[]; duration_ms?: number }
 ): Promise<number | null> {
   if (!isSupabaseConfigured()) return null;
@@ -65,10 +65,15 @@ export async function saveQuizAttempt(
     return null;
   }
 
-  // Insert per-question answers
+  // Insert per-question answers (convert camelCase → snake_case for DB)
   const answersWithAttemptId = answers.map(a => ({
-    ...a,
     attempt_id: attempt.id,
+    question_index: a.questionIndex,
+    question_type: a.questionType,
+    prompt: a.prompt,
+    correct_char: a.correctChar,
+    user_answer: a.userAnswer,
+    is_correct: a.isCorrect,
   }));
 
   const { error: answersError } = await supabase
