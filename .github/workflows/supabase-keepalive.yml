@@ -1,0 +1,25 @@
+# 防止 Supabase 免费版项目因 7 天无 API 活动被停用。
+# 每天通过 cron 向 auth 健康检查端点发一次请求（返回 200 即视为活动）。
+#
+# 依赖两个仓库 Secrets（Settings → Secrets and variables → Actions）：
+#   SUPABASE_URL       例如 https://exmcbyloaneoyngktjlc.supabase.co
+#   SUPABASE_ANON_KEY  项目 anon key（与前端 .env 中 VITE_SUPABASE_ANON_KEY 相同）
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # UTC 4:37 = 北京时间 12:37，每天一次（避开整点/半点）
+    - cron: '37 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase auth health endpoint
+        run: |
+          curl -sf --max-time 30 \
+            "${{ secrets.SUPABASE_URL }}/auth/v1/health" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -o /dev/null \
+            && echo "Supabase keep-alive ping OK"
