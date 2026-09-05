@@ -19,6 +19,9 @@ import {
   hasCharacter,
   loadData,
   loadRelations,
+  loadSimpTradMap,
+  getTraditional,
+  getSimplifiedForm,
   getTraditionalComponents,
   searchByPinyin,
   searchByEnglish,
@@ -27,6 +30,7 @@ import {
 import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
 import { getAnnotation, getMoonAnnotation } from '../data/componentAnnotations';
+import { getSimpTradOrigin } from '../data/simpTradOrigins';
 
 const QUICK_CHARS = ['家', '国'];
 
@@ -113,38 +117,70 @@ export default function Explore() {
   const [activeTab, setActiveTab] = useState<'decomposition' | 'cognate'>('decomposition');
   const [idsExpanded, setIdsExpanded] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState<string | null>(componentParam || null);
+  // 左侧「汉字拆解」板块：简体拆法 / 繁体拆法
+  const [decompMode, setDecompMode] = useState<'simp' | 'trad'>('simp');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Derived data
   const { has: hasInWB, toggle: toggleWB } = useWordBook();
 
+  // 数据加载完成后才 set —— 避免首次渲染（charMap 未就绪）把 null 缓存住
+  const [dataReady, setDataReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadData();
+      await loadRelations();
+      await loadSimpTradMap();
+      if (!cancelled) setDataReady(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const charData: HanziEntry | undefined = useMemo(
     () => (currentChar ? getCharacter(currentChar) : undefined),
-    [currentChar]
+    [currentChar, dataReady]
   );
 
   const decomposition: DecompositionNode | null = useMemo(
-    () => (currentChar ? decomposeCharacter(currentChar) : null),
-    [currentChar]
+    () => (currentChar && dataReady ? decomposeCharacter(currentChar) : null),
+    [currentChar, dataReady]
+  );
+
+  // 简/繁拆法切换：繁体目标（curated 溯源数据优先，其次简繁映射）
+  const simpTradOrigin = useMemo(() => (currentChar ? getSimpTradOrigin(currentChar) : null), [currentChar]);
+  const tradTarget = useMemo(() => {
+    if (!currentChar) return null;
+    return simpTradOrigin?.traditionals?.[0] ?? getTraditional(currentChar);
+  }, [currentChar, simpTradOrigin, dataReady]);
+  const tradDecomposition = useMemo(
+    () => (tradTarget && tradTarget !== currentChar ? decomposeCharacter(tradTarget) : null),
+    [tradTarget, currentChar, dataReady],
+  );
+  const activeDecomposition = decompMode === 'trad' && tradDecomposition ? tradDecomposition : decomposition;
+
+  // 当前模式下拆解图的直接部件（跟随简/繁切换）
+  const activeComponents = useMemo(
+    () => (activeDecomposition ? activeDecomposition.children.map(c => c.character) : []),
+    [activeDecomposition],
   );
 
   const traditionalComponents: string[] = useMemo(
-    () => (currentChar ? getTraditionalComponents(currentChar) : []),
-    [currentChar]
+    () => (currentChar && dataReady ? getTraditionalComponents(currentChar) : []),
+    [currentChar, dataReady]
   );
 
   const cognates: CognateResult[] = useMemo(
-    () => (currentChar ? getCognates(currentChar) : []),
-    [currentChar]
+    () => (currentChar && dataReady ? getCognates(currentChar) : []),
+    [currentChar, dataReady]
   );
 
   const isNotFound = currentChar !== '' && !hasCharacter(currentChar);
 
-  // Load data on mount
+  // 切换目标字时重置为简体拆法
   useEffect(() => {
-    loadData();
-    loadRelations();
-  }, []);
+    setDecompMode('simp');
+  }, [currentChar]);
 
   // Process search – auto-extract CJK chars, or try pinyin/English
   const processSearch = useCallback(
@@ -220,10 +256,15 @@ export default function Explore() {
     [query, processSearch]
   );
 
-  // Click on graph node → navigate to detail page
+  // Click on graph node → navigate to detail page (繁体部件不在词典时回退到其简体字)
   const handleNodeClick = useCallback(
     (char: string) => {
-      navigate(`/detail?char=${encodeURIComponent(char)}`);
+      if (hasCharacter(char)) {
+        navigate(`/detail?char=${encodeURIComponent(char)}`);
+        return;
+      }
+      const simp = getSimplifiedForm(char);
+      if (simp && hasCharacter(simp)) navigate(`/detail?char=${encodeURIComponent(simp)}`);
     },
     [navigate]
   );
@@ -231,7 +272,9 @@ export default function Explore() {
   // Double-click on graph node → expand cognate network (explore that character)
   const handleNodeDoubleClick = useCallback(
     (char: string) => {
-      processSearch(char);
+      const simp = hasCharacter(char) ? null : getSimplifiedForm(char);
+      const target = hasCharacter(char) ? char : simp && hasCharacter(simp) ? simp : char;
+      processSearch(target);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
     [processSearch]
@@ -287,9 +330,9 @@ export default function Explore() {
 
   // IDS panel data
   const idsLines = useMemo(() => {
-    if (!decomposition) return [];
-    return collectIDSLines(decomposition);
-  }, [decomposition]);
+    if (!activeDecomposition) return [];
+    return collectIDSLines(activeDecomposition);
+  }, [activeDecomposition]);
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -731,7 +774,7 @@ export default function Explore() {
 
         {/* Graphs */}
         <AnimatePresence>
-          {!loading && currentChar && !isNotFound && decomposition && (
+          {!loading && currentChar && !isNotFound && activeDecomposition && (
             <motion.div
               key={`graphs-${currentChar}`}
               initial={{ opacity: 0 }}
@@ -782,9 +825,29 @@ export default function Explore() {
                       >
                         汉字拆解
                       </span>
-                      <span className="ml-auto text-xs text-charcoal/40" style={{ fontFamily: 'Inter' }}>
-                        Decomposition
-                      </span>
+                      {tradTarget && tradTarget !== currentChar && tradDecomposition && decomposition ? (
+                        /* 简/繁拆法切换：整个板块（图、部件、拆解树）一起切换 */
+                        <div className="ml-auto flex items-center gap-1 rounded-lg p-0.5" style={{ background: 'rgba(245,240,232,0.8)', border: '1px solid rgba(26,26,24,0.08)' }}>
+                          <button
+                            onClick={() => setDecompMode('simp')}
+                            className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
+                            style={decompMode === 'simp' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
+                          >
+                            简体 <span className="font-serif-cn text-sm">{currentChar}</span>
+                          </button>
+                          <button
+                            onClick={() => setDecompMode('trad')}
+                            className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
+                            style={decompMode === 'trad' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
+                          >
+                            繁体 <span className="font-serif-cn text-sm">{tradTarget}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="ml-auto text-xs text-charcoal/40" style={{ fontFamily: 'Inter' }}>
+                          Decomposition
+                        </span>
+                      )}
                     </div>
                     <div className="px-4 pb-1">
                       <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>
@@ -794,23 +857,24 @@ export default function Explore() {
                     {/* Graph */}
                     <div className="flex-1 overflow-hidden p-2">
                       <DecompositionGraph
-                        decomposition={decomposition}
+                        key={decompMode}
+                        decomposition={activeDecomposition}
                         onNodeClick={handleNodeClick}
                         onNodeDoubleClick={handleNodeDoubleClick}
                         onComponentClick={handleComponentClick}
-                        selectableComponents={traditionalComponents}
+                        selectableComponents={activeComponents}
                         highlightedComponent={selectedComponent}
                       />
                     </div>
                     {/* Component chips below graph */}
-                    {traditionalComponents.length > 0 && (
+                    {activeComponents.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 border-t border-border-light px-4 py-2.5">
                         <span
                           className="text-xs text-charcoal/60"
                         >
                           部件:
                         </span>
-                        {traditionalComponents.map((comp) => (
+                        {activeComponents.map((comp) => (
                           <button
                             key={comp}
                             onClick={() => handleComponentClick(comp)}

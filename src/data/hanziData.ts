@@ -477,6 +477,46 @@ export function looksLikePinyin(input: string): boolean {
 }
 
 /**
+ * Curated BMP-safe IDS decompositions for common traditional characters missing
+ * from the main dictionary — used by 拆字「繁体拆法」toggle.
+ * Values are adapted from CHISE ids.txt (CDP placeholders / non-BMP parts replaced).
+ * Atomic entries (self) render as a single node without children.
+ */
+const TRADITIONAL_IDS_FALLBACK: Record<string, string> = {
+  優: '⿰亻憂', 專: '⿱叀寸', 後: '⿰彳⿱幺夂', 憶: '⿰忄意',
+  應: '⿸广⿱⿰亻隹心', 檯: '⿰木臺', 歡: '⿰雚欠', 為: '為', 爲: '爲',
+  發: '⿱癶殳', 級: '⿰糹及', 經: '⿰糹巠', 網: '⿰糹罔', 線: '⿰糹泉',
+  繫: '⿱⿱車殳糸', 葉: '⿱艹枼', 蘋: '⿱艹頻', 見: '⿱目儿', 親: '⿰亲見',
+  覺: '⿱⿳⺍冖爻見', 觀: '⿰雚見', 記: '⿰言己', 試: '⿰言式',
+  認: '⿰言忍', 語: '⿰言吾', 説: '⿰言兑', 說: '⿰言兌',
+  請: '⿰言青', 論: '⿰言侖', 讓: '⿰言襄', 貝: '⿱目八',
+  趙: '⿺走肖', 轟: '⿱車⿰車車', 醜: '⿰酉鬼', 銀: '⿰金艮',
+  錢: '⿰金戔', 鍾: '⿰金重', 鐘: '⿰金童', 門: '門', 車: '車',
+  闆: '⿵門品', 頁: '頁', 頭: '⿰豆頁', 風: '⿵几虫',
+  颱: '⿺風台', 飛: '飛', 馬: '馬', 鳥: '鳥', 鳳: '⿵几⿱一鳥', 龍: '龍',
+};
+
+/** Build a 1-level decomposition tree from a raw IDS string (fallback for chars not in dict). */
+function buildTreeFromIDS(char: string, ids: string): DecompositionNode {
+  // Extract CJK characters (U+4E00-U+9FFF) from the IDS string
+  const cjkChars: string[] = [];
+  for (let i = 0; i < ids.length; i++) {
+    const cp = ids.codePointAt(i);
+    if (cp && cp >= 0x4E00 && cp <= 0x9FFF) {
+      cjkChars.push(ids[i]);
+    }
+  }
+  const unique = [...new Set(cjkChars)].filter(c => c !== char && !STROKE_BLACKLIST.has(c));
+  if (unique.length === 0) {
+    return { character: char, decomposition: char, children: [], isLeaf: true };
+  }
+  const children = unique.map(c => ({
+    character: c, decomposition: c, children: [], isLeaf: true,
+  }));
+  return { character: char, decomposition: ids, children, isLeaf: false };
+}
+
+/**
  * Build etymology-driven decomposition tree.
  *
  * Rules:
@@ -538,8 +578,11 @@ function buildTree(char: string, showEtymology: boolean = true): DecompositionNo
 
 export function decomposeCharacter(char: string): DecompositionNode | null {
   if (!charMap) return null;
-  if (!charMap.has(char)) return null;
-  return buildTree(char, true);
+  if (charMap.has(char)) return buildTree(char, true);
+  // Fallback: common traditional chars missing from dict (for 拆字「繁体拆法」)
+  const ids = TRADITIONAL_IDS_FALLBACK[char];
+  if (!ids) return null;
+  return buildTreeFromIDS(char, ids);
 }
 
 export function getCharacterLeaves(char: string): string[] {
@@ -856,6 +899,11 @@ export function getTraditionalForm(char: string): string {
 /** Check if a char is simplified and has a traditional counterpart. */
 export function hasTraditional(char: string): boolean {
   return simpToTrad?.has(char) ?? false;
+}
+
+/** Get the simplified form of a traditional character, or null if none exists. */
+export function getSimplifiedForm(char: string): string | null {
+  return tradToSimp?.get(char) ?? null;
 }
 
 // ── Character relations (computed in-memory, no JSON fetch) ─────────────

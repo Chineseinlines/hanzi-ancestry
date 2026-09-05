@@ -21,13 +21,18 @@ import {
   loadRelations,
   getShuowen,
   scoreRelations,
+  getTraditional,
+  getSimplifiedForm,
+  hasCharacter,
 } from '../data/hanziData';
 import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations, ScoredRelation } from '../data/types';
 import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
+import SimpTradTimeline from '../components/SimpTradTimeline';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
+import { getSimpTradOrigin } from '../data/simpTradOrigins';
 import { ratePhonetic, PHONETIC_COLORS, type PhoneticRatingResult } from '../data/phoneticRating';
 import { getGhostSuggestion } from '../data/ghostComponents';
 import { computePhoneticLevelMulti, getPhoneticLevelInfo, type PhoneticLevel } from '../data/phoneticLevels';
@@ -119,6 +124,8 @@ export default function CharacterDetail() {
   const [expandedAllusion, setExpandedAllusion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('card');
   const [idsExpanded, setIdsExpanded] = useState(true);
+  // 拆字 tab：简体拆法 / 繁体拆法
+  const [decompMode, setDecompMode] = useState<'simp' | 'trad'>('simp');
 
   useEffect(() => {
     let cancelled = false;
@@ -142,15 +149,34 @@ export default function CharacterDetail() {
     return () => { cancelled = true; };
   }, [char]);
 
-  const decomposition = useMemo(() => (char ? decomposeCharacter(char) : null), [char]);
+  // entry 在数据加载完成后才 set —— 以它为依赖，避免首次渲染（charMap 未就绪）时把 null 缓存住
+  const decomposition = useMemo(() => (char && entry ? decomposeCharacter(char) : null), [char, entry]);
+
+  // 简/繁拆法切换：繁体目标（curated 溯源数据优先，其次简繁映射）
+  const simpTradOrigin = useMemo(() => (char ? getSimpTradOrigin(char) : null), [char]);
+  const tradTarget = useMemo(() => {
+    if (!char) return null;
+    return simpTradOrigin?.traditionals?.[0] ?? getTraditional(char);
+  }, [char, simpTradOrigin, entry]);
+  const tradDecomposition = useMemo(
+    () => (tradTarget && tradTarget !== char ? decomposeCharacter(tradTarget) : null),
+    [tradTarget, char, entry],
+  );
+  const activeDecomposition = decompMode === 'trad' && tradDecomposition ? tradDecomposition : decomposition;
+
+  // 切换目标字时重置为简体拆法
+  useEffect(() => {
+    setDecompMode('simp');
+  }, [char]);
+
   const idsLines = useMemo(() => {
-    if (!decomposition) return [];
-    return collectIDSLines(decomposition);
-  }, [decomposition]);
+    if (!activeDecomposition) return [];
+    return collectIDSLines(activeDecomposition);
+  }, [activeDecomposition]);
 
   // Collect component annotations from decomposition tree
   const componentAnnotations = useMemo(() => {
-    if (!decomposition) return [];
+    if (!activeDecomposition) return [];
     const results: { component: string; annotation: ComponentAnnotation }[] = [];
     const seen = new Set<string>();
 
@@ -175,9 +201,9 @@ export default function CharacterDetail() {
         walk(child);
       }
     }
-    walk(decomposition);
+    walk(activeDecomposition);
     return results;
-  }, [decomposition, entry]);
+  }, [activeDecomposition, entry]);
 
   // Phonetic rating for pictophonetic characters (3-color simplified)
   const phoneticRating = useMemo((): PhoneticRatingResult | null => {
@@ -309,6 +335,24 @@ export default function CharacterDetail() {
     navigate(`/detail?char=${encodeURIComponent(c)}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // 拆解图节点跳转：繁体部件不在词典时，回退到其简体字
+  const navigateToChar = (c: string) => {
+    if (hasCharacter(c)) {
+      goToDetail(c);
+      return;
+    }
+    const simp = getSimplifiedForm(c);
+    if (simp && hasCharacter(simp)) goToDetail(simp);
+  };
+  const navigateToExploreChar = (c: string) => {
+    if (hasCharacter(c)) {
+      navigate(`/explore?char=${encodeURIComponent(c)}`);
+      return;
+    }
+    const simp = getSimplifiedForm(c);
+    if (simp && hasCharacter(simp)) navigate(`/explore?char=${encodeURIComponent(simp)}`);
+  };
   /* ── Loading ── */
   if (loading) {
     return (
@@ -362,6 +406,8 @@ export default function CharacterDetail() {
           </div>
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center">
+            {/* 简繁溯源时间线：现行规范简体在上方大字展示，其上有先后线索 */}
+            <SimpTradTimeline character={char} onNavigate={goToDetail} />
             <span className="font-display-cn leading-none block" style={{ fontSize: 'clamp(5rem, 12vw, 8rem)', color: '#F5F0E8', fontFamily: '"Ma Shan Zheng", cursive', textShadow: '0 4px 30px rgba(194,59,42,0.2)' }}>
               {char}
             </span>
@@ -405,29 +451,6 @@ export default function CharacterDetail() {
               <p className="mt-3 text-sm italic max-w-md mx-auto" style={{ color: 'rgba(245,240,232,0.5)', fontFamily: 'Inter' }}>
                 {entry.etymologyHint}
               </p>
-            )}
-
-            {/* Traditional form display */}
-            {entry.traditional && entry.traditional !== char && (
-              <div className="mt-4 flex items-center justify-center gap-4">
-                <div className="text-center">
-                  <span className="text-[0.625rem] uppercase tracking-wider block mb-1" style={{ color: 'rgba(245,240,232,0.4)', fontFamily: 'Inter' }}>
-                    简体
-                  </span>
-                  <span className="font-display-cn text-3xl" style={{ color: '#F5F0E8', fontFamily: '"Ma Shan Zheng", cursive' }}>
-                    {char}
-                  </span>
-                </div>
-                <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: '1.5rem' }}>→</span>
-                <div className="text-center">
-                  <span className="text-[0.625rem] uppercase tracking-wider block mb-1" style={{ color: 'rgba(196,162,101,0.6)', fontFamily: 'Inter' }}>
-                    繁体
-                  </span>
-                  <span className="font-display-cn text-3xl" style={{ color: '#C4A265', fontFamily: '"Ma Shan Zheng", cursive' }}>
-                    {entry.traditional}
-                  </span>
-                </div>
-              </div>
             )}
 
             {/* Phonetic Rating Badge */}
@@ -799,20 +822,41 @@ export default function CharacterDetail() {
           {/* ── Tab: 部件拆解 ── */}
           {activeTab === 'decomp' && (
             <motion.div key="decomp" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-6">
-              {/* Decomposition Graph */}
-              {decomposition && (
+              {/* Decomposition Graph（含简/繁拆法切换：整个板块一起切换） */}
+              {activeDecomposition && (
                 <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <div className="flex items-center gap-2 mb-2 px-2">
+                  <div className="flex items-center gap-2 mb-2 px-2 flex-wrap">
                     <GitBranch size={16} className="text-cinnabar" />
                     <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>Character Decomposition</span>
-                    <span className="ml-auto font-serif-cn text-sm" style={{ color: 'rgba(139,105,20,0.6)' }}>拆解图</span>
+                    <span className="font-serif-cn text-sm" style={{ color: 'rgba(139,105,20,0.6)' }}>汉字拆解</span>
+
+                    {/* 简/繁拆法切换 */}
+                    {tradTarget && tradTarget !== char && tradDecomposition && decomposition && (
+                      <div className="ml-auto flex items-center gap-1 rounded-xl p-1" style={{ background: 'rgba(245,240,232,0.8)', border: '1px solid rgba(26,26,24,0.08)' }}>
+                        <button
+                          onClick={() => setDecompMode('simp')}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                          style={decompMode === 'simp' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
+                        >
+                          简体 <span className="font-serif-cn text-sm">{char}</span>
+                        </button>
+                        <button
+                          onClick={() => setDecompMode('trad')}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                          style={decompMode === 'trad' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
+                        >
+                          繁体 <span className="font-serif-cn text-sm">{tradTarget}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <span className="text-[10px] px-2" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>单击汉字查看详情 · 双击展开系联</span>
                   <div className="h-[380px]">
                     <DecompositionGraph
-                      decomposition={decomposition}
-                      onNodeClick={(c) => navigate(`/detail?char=${encodeURIComponent(c)}`)}
-                      onNodeDoubleClick={(c) => navigate(`/explore?char=${encodeURIComponent(c)}`)}
+                      key={decompMode}
+                      decomposition={activeDecomposition}
+                      onNodeClick={navigateToChar}
+                      onNodeDoubleClick={navigateToExploreChar}
                     />
                   </div>
                 </div>
@@ -848,8 +892,8 @@ export default function CharacterDetail() {
                     ))}
                   </div>
 
-                  {/* Ghost Component Annotations within the same card */}
-                  {ghostComponentAnnotations.length > 0 && (
+                  {/* Ghost Component Annotations within the same card (简体模式) */}
+                  {decompMode === 'simp' && ghostComponentAnnotations.length > 0 && (
                     <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(176,173,165,0.3)' }}>
                       <h3 className="text-xs font-semibold uppercase tracking-[0.06em] mb-3" style={{ color: '#A39E93', fontFamily: 'Inter' }}>
                         Simplified Ghost Components
@@ -872,8 +916,8 @@ export default function CharacterDetail() {
                 </div>
               )}
 
-              {/* Standalone ghost component annotations when no regular annotations exist */}
-              {componentAnnotations.length === 0 && ghostComponentAnnotations.length > 0 && (
+              {/* Standalone ghost component annotations when no regular annotations exist (简体模式) */}
+              {decompMode === 'simp' && componentAnnotations.length === 0 && ghostComponentAnnotations.length > 0 && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-sm font-semibold uppercase tracking-[0.06em] mb-4" style={{ color: '#A39E93', fontFamily: 'Inter' }}>
                     Simplified Ghost Components
