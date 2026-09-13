@@ -48,17 +48,17 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
 }
 
 const DEFAULT_LEGEND = [
-  { color: '#C23B2A', label: 'Target Character' },
-  { color: '#CA6702', label: 'Phonetic Family' },
-  { color: '#2D5F8A', label: 'Semantic Family' },
-  { color: '#6B7F5E', label: 'Component Of' },
-  { color: '#9B2226', label: 'Antonym' },
-  { color: '#8B6914', label: 'Homophone' },
+  { color: '#C23B2A', label: 'cmp.cognateGraph.targetChar' },
+  { color: '#CA6702', label: 'cmp.cognateGraph.phoneticFamily' },
+  { color: '#2D5F8A', label: 'cmp.cognateGraph.semanticFamily' },
+  { color: '#6B7F5E', label: 'cmp.cognateGraph.componentOf' },
+  { color: '#9B2226', label: 'cmp.cognateGraph.antonym' },
+  { color: '#8B6914', label: 'cmp.cognateGraph.homophone' },
 ];
 
 const COMPONENT_LEGEND = [
-  { color: '#C23B2A', label: 'Component' },
-  { color: '#8B6914', label: 'Character' },
+  { color: '#C23B2A', label: 'cmp.cognateGraph.component' },
+  { color: '#8B6914', label: 'cmp.cognateGraph.character' },
 ];
 
 const CognateGraph = memo(function CognateGraph({

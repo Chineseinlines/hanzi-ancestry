@@ -1,7 +1,9 @@
 import { memo } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LegendItem {
   color: string;
+  /** i18n 字典键（如 'cmp.cognateGraph.targetChar'），渲染时经 t() 翻译 */
   label: string;
   shape?: 'circle' | 'diamond';
 }
@@ -12,6 +14,7 @@ interface GraphLegendProps {
 }
 
 const GraphLegend = memo(function GraphLegend({ items, className = '' }: GraphLegendProps) {
+  const { t } = useLanguage();
   return (
     <div
       className={`pointer-events-none absolute right-3 top-3 z-10 rounded-md bg-white/80 px-3 py-2 backdrop-blur-sm ${className}`}
@@ -36,7 +39,7 @@ const GraphLegend = memo(function GraphLegend({ items, className = '' }: GraphLe
               />
             )}
             <span className="text-[0.6875rem] font-medium text-charcoal" style={{ fontFamily: 'Inter, sans-serif' }}>
-              {item.label}
+              {t(item.label)}
             </span>
           </div>
         ))}

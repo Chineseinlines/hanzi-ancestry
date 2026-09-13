@@ -817,7 +817,9 @@ export default function CharacterDetail() {
                     <div>
                       <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
                         {t('detail.componentAnalysis')}
-                        <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>Component Analysis</span>
+                        {lang === 'en' && (
+                          <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>Component Analysis</span>
+                        )}
                       </h3>
                       <div className="flex flex-col gap-2">
                         {modernTaxonomy.components.map((comp, i) => {

@@ -222,7 +222,7 @@ const GraphTooltip = memo(function GraphTooltip({
           )}
           {sharedComponents.length > 0 && (
             <div className="mb-1.5 text-[0.6875rem] text-graph-node-cognate" style={{ fontFamily: 'Inter, sans-serif' }}>
-              Shared: {sharedComponents.join(', ')}
+              {t('cmp.cognateGraph.shared')}: {sharedComponents.join(', ')}
             </div>
           )}
 
