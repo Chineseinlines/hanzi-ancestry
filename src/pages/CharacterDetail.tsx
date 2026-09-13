@@ -7,6 +7,7 @@ import {
 import { useFavorites } from '../hooks/useFavorites';
 import { useWordBook } from '../hooks/useWordBook';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { recordCharView } from '../lib/database';
 import {
   getCharacter,
@@ -24,6 +25,8 @@ import {
   getTraditional,
   getSimplifiedForm,
   hasCharacter,
+  getLocalizedDefinition,
+  getLocalizedEtymologyHint,
 } from '../data/hanziData';
 import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations, ScoredRelation } from '../data/types';
 import StrokeOrder from '../components/StrokeOrder';
@@ -32,12 +35,18 @@ import SimpTradTimeline from '../components/SimpTradTimeline';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
+import { getLocalizedAnnotationName, getLocalizedAnnotationDescription } from '../data/componentAnnotations.bilingual';
 import { getSimpTradOrigin } from '../data/simpTradOrigins';
 import { ratePhonetic, PHONETIC_COLORS, type PhoneticRatingResult } from '../data/phoneticRating';
+import { getLocalizedPhoneticLabel, getLocalizedPhoneticTooltip } from '../data/phoneticRating.bilingual';
 import { getGhostSuggestion } from '../data/ghostComponents';
+import { getLocalizedGhostSuggestion } from '../data/ghostComponents.bilingual';
 import { computePhoneticLevelMulti, getPhoneticLevelInfo, type PhoneticLevel } from '../data/phoneticLevels';
 import { getCuratedSemanticLevel, guessSemanticLevel, getSemanticLevelInfo, type SemanticLevel } from '../data/semanticLevels';
 import { getModernClassification, getFormationModeInfo, getComponentTypeInfo, getStructureModeInfo, COMPONENT_TYPES, type ModernClassification } from '../data/modernTaxonomy';
+import { PHONETIC_LEVEL_DESCRIPTIONS_EN } from '../data/phoneticLevels.en';
+import { SEMANTIC_LEVEL_DESCRIPTIONS_EN } from '../data/semanticLevels.en';
+import { FORMATION_DESCRIPTIONS_EN, COMPONENT_ROLE_DESCRIPTIONS_EN } from '../data/modernTaxonomy.en';
 
 const TAG_COLORS: Record<string, string> = {
   '源流分化': '#C23B2A',
@@ -52,11 +61,11 @@ const TAG_COLORS: Record<string, string> = {
 };
 
 const TABS = [
-  { id: 'card', label: '知识卡片', icon: BookOpen },
-  { id: 'glyph', label: '字形演变', icon: ScrollText },
-  { id: 'decomp', label: '部件拆解', icon: GitBranch },
-  { id: 'cognates', label: '关联汉字', icon: Globe },
-  { id: 'game', label: '趣味练习', icon: Puzzle },
+  { id: 'card', labelKey: 'detail.tabs.card', icon: BookOpen },
+  { id: 'glyph', labelKey: 'detail.tabs.glyph', icon: ScrollText },
+  { id: 'decomp', labelKey: 'detail.tabs.decomp', icon: GitBranch },
+  { id: 'cognates', labelKey: 'detail.tabs.cognates', icon: Globe },
+  { id: 'game', labelKey: 'detail.tabs.game', icon: Puzzle },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -71,41 +80,63 @@ interface IDSLine {
   prefix: string;
 }
 
-function collectIDSLines(node: DecompositionNode, depth = 0, prefix = '', isLast = true): IDSLine[] {
+function collectIDSLines(node: DecompositionNode, lang: 'zh' | 'en', depth = 0, prefix = '', isLast = true): IDSLine[] {
   const entry = getCharacter(node.character);
   const lines: IDSLine[] = [
     { character: node.character, decomposition: node.decomposition,
-      definition: entry?.definition ?? '', depth, isLast, prefix },
+      definition: getLocalizedDefinition(entry, lang), depth, isLast, prefix },
   ];
   if (node.children) {
     node.children.forEach((child, i) => {
       const childIsLast = i === node.children.length - 1;
       const childPrefix = prefix + (isLast ? '   ' : '│  ');
-      lines.push(...collectIDSLines(child, depth + 1, childPrefix, childIsLast));
+      lines.push(...collectIDSLines(child, lang, depth + 1, childPrefix, childIsLast));
     });
   }
   return lines;
 }
 
-function getEnglishSummary(shuowen: ShuowenEntry, entry: HanziEntry | null): string {
+/** 说文摘要：zh 显示中文白话标签，en 显示英文（保留原 getEnglishSummary 语义）。 */
+function getShuowenSummary(shuowen: ShuowenEntry, entry: HanziEntry | null, lang: 'zh' | 'en', t: (k: string, p?: Record<string, string | number>) => string): string {
   const parts: string[] = [];
   const sb = shuowen.sixBooks;
-  if (sb === '象形') parts.push('Pictograph (象形) — depicts the object\'s form');
-  else if (sb === '指事') parts.push('Ideogram (指事) — abstract symbol indicating a concept');
-  else if (sb === '会意') parts.push('Compound ideograph (会意) — combines multiple components for meaning');
-  else if (sb === '形声') parts.push('Phono-semantic compound (形声) — semantic component hints at meaning, phonetic at sound');
-  else if (sb === '转注') parts.push('Transferred cognate (转注) — characters sharing meaning/pronunciation');
-  else if (sb === '假借') parts.push('Phonetic loan (假借) — borrowed for its sound');
+
+  if (lang === 'zh') {
+    if (sb === '象形') parts.push(t('detail.shuowenSixBooks.pictographic'));
+    else if (sb === '指事') parts.push(t('detail.shuowenSixBooks.indicative'));
+    else if (sb === '会意') parts.push(t('detail.shuowenSixBooks.ideographic'));
+    else if (sb === '形声') parts.push(t('detail.shuowenSixBooks.pictophonetic'));
+    else if (sb === '转注') parts.push(t('detail.shuowenSixBooks.zhuanzhu'));
+    else if (sb === '假借') parts.push(t('detail.shuowenSixBooks.loan'));
+    else if (sb) parts.push(sb);
+
+    if (shuowen.structure && shuowen.structure !== sb) {
+      parts.push(`${t('detail.structure')}：${shuowen.structure}`);
+    }
+    if (entry?.etymology) {
+      const ety = entry.etymology;
+      if (ety.semantic) parts.push(`${t('detail.semanticComponent')}：${ety.semantic}`);
+      if (ety.phonetic) parts.push(`${t('detail.phoneticComponent')}：${ety.phonetic}`);
+    }
+    return parts.join('。') + (parts.length > 0 ? '。' : '');
+  }
+
+  if (sb === '象形') parts.push(t('detail.shuowenSixBooks.pictographic'));
+  else if (sb === '指事') parts.push(t('detail.shuowenSixBooks.indicative'));
+  else if (sb === '会意') parts.push(t('detail.shuowenSixBooks.ideographic'));
+  else if (sb === '形声') parts.push(t('detail.shuowenSixBooks.pictophonetic'));
+  else if (sb === '转注') parts.push(t('detail.shuowenSixBooks.zhuanzhu'));
+  else if (sb === '假借') parts.push(t('detail.shuowenSixBooks.loan'));
   else if (sb) parts.push(sb);
 
   if (shuowen.structure && shuowen.structure !== sb) {
-    parts.push(`Structure: ${shuowen.structure}`);
+    parts.push(`${t('detail.structure')}: ${shuowen.structure}`);
   }
 
   if (entry?.etymology) {
     const ety = entry.etymology;
-    if (ety.semantic) parts.push(`Semantic component: ${ety.semantic}`);
-    if (ety.phonetic) parts.push(`Phonetic component: ${ety.phonetic}`);
+    if (ety.semantic) parts.push(`${t('detail.semanticComponent')}: ${ety.semantic}`);
+    if (ety.phonetic) parts.push(`${t('detail.phoneticComponent')}: ${ety.phonetic}`);
   }
 
   return parts.join('. ') + (parts.length > 0 ? '.' : '');
@@ -114,6 +145,7 @@ function getEnglishSummary(shuowen: ShuowenEntry, entry: HanziEntry | null): str
 export default function CharacterDetail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { lang, t } = useLanguage();
   const char = searchParams.get('char') || '';
 
   const [entry, setEntry] = useState<HanziEntry | null>(null);
@@ -171,8 +203,8 @@ export default function CharacterDetail() {
 
   const idsLines = useMemo(() => {
     if (!activeDecomposition) return [];
-    return collectIDSLines(activeDecomposition);
-  }, [activeDecomposition]);
+    return collectIDSLines(activeDecomposition, lang);
+  }, [activeDecomposition, lang]);
 
   // Collect component annotations from decomposition tree
   const componentAnnotations = useMemo(() => {
@@ -366,7 +398,7 @@ export default function CharacterDetail() {
               <animate attributeName="stroke-dashoffset" from="480" to="0" dur="2s" repeatCount="indefinite" />
             </circle>
           </svg>
-          <span className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>Loading character data...</span>
+          <span className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('common.loadingCharData')}</span>
         </div>
       </div>
     );
@@ -377,12 +409,12 @@ export default function CharacterDetail() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4" style={{ background: '#F5F0E8' }}>
         <span className="text-6xl" style={{ fontFamily: '"Ma Shan Zheng", cursive', color: '#C23B2A' }}>{char || '?'}</span>
-        <h1 className="text-2xl font-display" style={{ color: '#1A1A18' }}>Character not found</h1>
+        <h1 className="text-2xl font-display" style={{ color: '#1A1A18' }}>{t('common.charNotFound')}</h1>
         <p className="text-sm text-center max-w-md" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-          This character is not yet in our database. Try searching for a different character.
+          {t('common.charNotFoundDesc')}
         </p>
         <button onClick={() => navigate('/explore')} className="px-6 py-2.5 rounded-full text-sm font-medium transition-all hover:scale-105" style={{ background: '#C23B2A', color: '#F5F0E8', fontFamily: 'Inter' }}>
-          Go to Explorer
+          {t('common.goToExplorer')}
         </button>
       </div>
     );
@@ -398,9 +430,9 @@ export default function CharacterDetail() {
         <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 50% 100%, #C23B2A 0%, transparent 60%)' }} />
         <div className="relative max-w-5xl mx-auto">
           <div className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'rgba(245,240,232,0.5)', fontFamily: 'Inter' }}>
-            <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/')}>Home</span>
+            <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/')}>{t('nav.home')}</span>
             <span>/</span>
-            <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/explore')}>Explore</span>
+            <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/explore')}>{t('nav.explore')}</span>
             <span>/</span>
             <span style={{ color: '#F5F0E8' }}>{char}</span>
           </div>
@@ -416,7 +448,7 @@ export default function CharacterDetail() {
                 <span key={i} className="text-lg tracking-wide" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{p}</span>
               ))}
               <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: 'rgba(107,127,94,0.2)', color: '#6B7F5E', fontFamily: 'Inter' }}>
-                Radical: {entry.radical}
+                {t('detail.radical')}: {entry.radical}
               </span>
               <button
                 onClick={() => toggleFavorite(char)}
@@ -426,10 +458,10 @@ export default function CharacterDetail() {
                   color: charIsFav ? '#C23B2A' : 'rgba(245,240,232,0.5)',
                   fontFamily: 'Inter',
                 }}
-                title={charIsFav ? '取消收藏' : '收藏'}
+                title={charIsFav ? t('common.unfavorite') : t('common.favorite')}
               >
                 <Heart size={12} fill={charIsFav ? '#C23B2A' : 'none'} />
-                {charIsFav ? '已收藏' : '收藏'}
+                {charIsFav ? t('common.favorited') : t('common.favorite')}
               </button>
               <button
                 onClick={() => toggleWordBook(char)}
@@ -439,17 +471,17 @@ export default function CharacterDetail() {
                   color: hasInWordBook(char) ? '#2D5F8A' : 'rgba(245,240,232,0.5)',
                   fontFamily: 'Inter',
                 }}
-                title={hasInWordBook(char) ? '移出生字本' : '加入生字本'}
+                title={hasInWordBook(char) ? t('common.removeFromWordBook') : t('common.addToWordBook')}
               >
-                {hasInWordBook(char) ? '📗' : '📖'} {hasInWordBook(char) ? '生字本' : '加生字本'}
+                {hasInWordBook(char) ? '📗' : '📖'} {hasInWordBook(char) ? t('common.wordBook') : t('common.addToWordBook')}
               </button>
             </div>
             <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: 'rgba(245,240,232,0.75)', fontFamily: 'Inter' }}>
-              {entry.definition}
+              {getLocalizedDefinition(entry, lang)}
             </p>
-            {entry.etymologyHint && (
+            {getLocalizedEtymologyHint(entry, lang) && (
               <p className="mt-3 text-sm italic max-w-md mx-auto" style={{ color: 'rgba(245,240,232,0.5)', fontFamily: 'Inter' }}>
-                {entry.etymologyHint}
+                {getLocalizedEtymologyHint(entry, lang)}
               </p>
             )}
 
@@ -464,9 +496,9 @@ export default function CharacterDetail() {
                     border: `1px solid ${PHONETIC_COLORS[phoneticRating.rating].border}`,
                     fontFamily: 'Inter, sans-serif',
                   }}
-                  title={phoneticRating.tooltip}
+                  title={getLocalizedPhoneticTooltip(phoneticRating, lang)}
                 >
-                  声旁可靠性: {phoneticRating.label}
+                  {t('detail.phoneticReliability')}: {getLocalizedPhoneticLabel(phoneticRating.rating, lang)}
                   <span className="font-mono text-[0.6875rem] opacity-70">
                     ({phoneticRating.charPinyin} ← {phoneticRating.phoneticPinyin})
                   </span>
@@ -485,15 +517,17 @@ export default function CharacterDetail() {
                     border: `1px solid ${getPhoneticLevelInfo(phoneticLevelDetail.level).color}40`,
                     fontFamily: 'Inter, sans-serif',
                   }}
-                  title={getPhoneticLevelInfo(phoneticLevelDetail.level).description}
+                  title={lang === 'zh' ? getPhoneticLevelInfo(phoneticLevelDetail.level).description : PHONETIC_LEVEL_DESCRIPTIONS_EN[phoneticLevelDetail.level]}
                 >
-                  声旁关系: {getPhoneticLevelInfo(phoneticLevelDetail.level).label}
+                  {t('detail.phoneticRelation')}: {lang === 'zh' ? getPhoneticLevelInfo(phoneticLevelDetail.level).label : getPhoneticLevelInfo(phoneticLevelDetail.level).enLabel}
                   <span className="font-mono text-[0.625rem] opacity-70">
-                    ({getPhoneticLevelInfo(phoneticLevelDetail.level).enLabel})
+                    ({lang === 'zh' ? getPhoneticLevelInfo(phoneticLevelDetail.level).enLabel : getPhoneticLevelInfo(phoneticLevelDetail.level).label})
                   </span>
-                  <span className="text-[0.625rem] opacity-50 ml-0.5">
-                    — {getPhoneticLevelInfo(phoneticLevelDetail.level).example.split('。')[0]}
-                  </span>
+                  {lang === 'zh' && (
+                    <span className="text-[0.625rem] opacity-50 ml-0.5">
+                      — {getPhoneticLevelInfo(phoneticLevelDetail.level).example.split('。')[0]}
+                    </span>
+                  )}
                 </span>
               </div>
             )}
@@ -509,11 +543,11 @@ export default function CharacterDetail() {
                     border: `1px solid ${getSemanticLevelInfo(semanticLevelDetail.level).color}40`,
                     fontFamily: 'Inter, sans-serif',
                   }}
-                  title={semanticLevelDetail.note}
+                  title={lang === 'zh' ? semanticLevelDetail.note : SEMANTIC_LEVEL_DESCRIPTIONS_EN[semanticLevelDetail.level]}
                 >
-                  意符关系: {getSemanticLevelInfo(semanticLevelDetail.level).label}
+                  {t('detail.semanticRelation')}: {lang === 'zh' ? getSemanticLevelInfo(semanticLevelDetail.level).label : getSemanticLevelInfo(semanticLevelDetail.level).enLabel}
                   <span className="font-mono text-[0.625rem] opacity-70">
-                    ({getSemanticLevelInfo(semanticLevelDetail.level).enLabel})
+                    ({lang === 'zh' ? getSemanticLevelInfo(semanticLevelDetail.level).enLabel : getSemanticLevelInfo(semanticLevelDetail.level).label})
                   </span>
                 </span>
               </div>
@@ -531,7 +565,7 @@ export default function CharacterDetail() {
                     fontFamily: 'Inter, sans-serif',
                   }}
                 >
-                  {ghostInfo}
+                  {getLocalizedGhostSuggestion(char, lang) ?? ghostInfo}
                 </span>
               </div>
             )}
@@ -548,7 +582,7 @@ export default function CharacterDetail() {
                     fontFamily: 'Inter, sans-serif',
                   }}
                 >
-                  字形 & 字源数据来自繁体: {entry.traditional}
+                  {t('detail.traditionalDataSource')}: {entry.traditional}
                 </span>
               </div>
             )}
@@ -575,7 +609,7 @@ export default function CharacterDetail() {
                   }}
                 >
                   <Icon size={18} />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="hidden sm:inline">{t(tab.labelKey)}</span>
                 </button>
               );
             })}
@@ -591,7 +625,7 @@ export default function CharacterDetail() {
               fontFamily: 'Inter, sans-serif',
             }}
           >
-            {hasInWordBook(char) ? '📗 已在生字本' : '📖 加入生字本'}
+            {hasInWordBook(char) ? `📗 ${t('common.inWordBook')}` : `📖 ${t('common.addToWordBook')}`}
           </button>
         </div>
       </div>
@@ -605,7 +639,7 @@ export default function CharacterDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Stroke Order */}
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Stroke Order</h2>
+                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.strokeOrder')}</h2>
                   <div className="flex justify-center">
                     <StrokeOrder character={char} size={260} />
                   </div>
@@ -613,11 +647,11 @@ export default function CharacterDetail() {
 
                 {/* Words & Allusions */}
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Words & Allusions</h2>
+                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.wordsAndAllusions')}</h2>
 
                   {cultural?.words && cultural.words.length > 0 && (
                     <div className="mb-5">
-                      <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>Common Words</h3>
+                      <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.commonWords')}</h3>
                       <div className="flex flex-wrap gap-2">
                         {cultural.words.map((w, i) => (
                           <span key={i} className="rounded-lg px-3 py-1.5 text-sm font-serif-cn" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: '"Noto Serif SC", serif' }}>{w}</span>
@@ -628,7 +662,7 @@ export default function CharacterDetail() {
 
                   {cultural?.allusions && cultural.allusions.length > 0 && (
                     <div>
-                      <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>Historical Allusions</h3>
+                      <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.historicalAllusions')}</h3>
                       <div className="flex flex-col gap-2">
                         {cultural.allusions.map((a, i) => (
                           <button key={i} onClick={() => setExpandedAllusion(expandedAllusion === i ? null : i)} className="text-left rounded-xl p-3 transition-all" style={{ background: expandedAllusion === i ? 'rgba(194,59,42,0.08)' : 'rgba(26,26,24,0.03)' }}>
@@ -647,8 +681,10 @@ export default function CharacterDetail() {
               {/* Etymology text */}
               {cultural?.evolution && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <h2 className="text-xl font-display mb-3" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Etymology</h2>
-                  <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{cultural.evolution}</p>
+                  <h2 className="text-xl font-display mb-3" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.etymology')}</h2>
+                  <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                    {lang === 'en' ? (cultural.enEvolution ?? cultural.evolution) : cultural.evolution}
+                  </p>
                 </div>
               )}
 
@@ -656,7 +692,7 @@ export default function CharacterDetail() {
               {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.shuowen) && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>说文解字</h2>
+                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.shuowenTitle')}</h2>
                     <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}>Shuowen</span>
                     <a
                       href={`https://ctext.org/dictionary.pl?if=en&char=${encodeURIComponent(char)}`}
@@ -665,31 +701,50 @@ export default function CharacterDetail() {
                       className="ml-auto text-[0.625rem] px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors hover:underline"
                       style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter' }}
                     >
-                      查看 ctext.org →
+                      {t('detail.viewCtext')}
                     </a>
                   </div>
                   <div className="flex flex-wrap gap-3 mb-3">
                     {shuowen.structure && (
                       <span className="text-sm px-3 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}>
-                        字形结构: {shuowen.structure}
+                        {t('detail.structure')}: {shuowen.structure}
                       </span>
                     )}
                     {shuowen.sixBooks && (
                       <span className="text-sm px-3 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}>
-                        六书分类: {shuowen.sixBooks}
+                        {t('detail.sixBooks')}: {shuowen.sixBooks}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                    {getEnglishSummary(shuowen, entry)}
-                  </p>
-                  {shuowen.shuowen && (
-                    <details className="mt-3">
-                      <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>查看原文</summary>
-                      <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
-                        {shuowen.shuowen}
+                  {/* 英文版：英译为主文案，文言原文折叠；中文版：中文摘要 + 原文折叠 */}
+                  {lang === 'en' && shuowen.enShuowen ? (
+                    <>
+                      <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                        {shuowen.enShuowen}
                       </p>
-                    </details>
+                      {shuowen.shuowen && (
+                        <details className="mt-3">
+                          <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>{t('detail.viewOriginalWenyan')}</summary>
+                          <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
+                            {shuowen.shuowen}
+                          </p>
+                        </details>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+                        {getShuowenSummary(shuowen, entry, lang, t)}
+                      </p>
+                      {shuowen.shuowen && (
+                        <details className="mt-3">
+                          <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>{t('detail.viewOriginal')}</summary>
+                          <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
+                            {shuowen.shuowen}
+                          </p>
+                        </details>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -698,10 +753,10 @@ export default function CharacterDetail() {
               {modernTaxonomy && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)', border: '1px solid rgba(106,27,154,0.12)' }}>
                   <div className="flex items-center gap-2 mb-4">
-                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>现代构形学分析</h2>
-                    <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(106,27,154,0.1)', color: '#6A1B9A', fontFamily: 'Inter' }}>王宁《汉字构形学》</span>
+                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.modernTaxonomy')}</h2>
+                    <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(106,27,154,0.1)', color: '#6A1B9A', fontFamily: 'Inter' }}>{t('detail.wangNing')}</span>
                     {modernTaxonomy.curated && (
-                      <span className="text-[0.5625rem] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(45,95,138,0.1)', color: '#2D5F8A', fontFamily: 'Inter' }}>人工标注</span>
+                      <span className="text-[0.5625rem] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(45,95,138,0.1)', color: '#2D5F8A', fontFamily: 'Inter' }}>{t('detail.curated')}</span>
                     )}
                   </div>
 
@@ -716,9 +771,9 @@ export default function CharacterDetail() {
                         fontFamily: 'Inter',
                       }}
                     >
-                      构形模式: {getFormationModeInfo(modernTaxonomy.formationMode).label}
+                      {t('detail.formationMode')}: {lang === 'zh' ? getFormationModeInfo(modernTaxonomy.formationMode).label : getFormationModeInfo(modernTaxonomy.formationMode).enLabel}
                       <span className="ml-1.5 text-[0.625rem] opacity-60">
-                        ({getFormationModeInfo(modernTaxonomy.formationMode).enLabel})
+                        ({lang === 'zh' ? getFormationModeInfo(modernTaxonomy.formationMode).enLabel : getFormationModeInfo(modernTaxonomy.formationMode).label})
                       </span>
                     </span>
                     <span
@@ -730,9 +785,9 @@ export default function CharacterDetail() {
                         fontFamily: 'Inter',
                       }}
                     >
-                      结构模式: {getStructureModeInfo(modernTaxonomy.structure).label}
+                      {t('detail.structureMode')}: {lang === 'zh' ? getStructureModeInfo(modernTaxonomy.structure).label : getStructureModeInfo(modernTaxonomy.structure).enLabel}
                       <span className="ml-1.5 text-[0.625rem] opacity-60">
-                        ({getStructureModeInfo(modernTaxonomy.structure).enLabel})
+                        ({lang === 'zh' ? getStructureModeInfo(modernTaxonomy.structure).enLabel : getStructureModeInfo(modernTaxonomy.structure).label})
                       </span>
                     </span>
                     {getFormationModeInfo(modernTaxonomy.formationMode).sixBookEquivalent && (
@@ -745,21 +800,23 @@ export default function CharacterDetail() {
                           fontFamily: 'Inter',
                         }}
                       >
-                        对应六书: {getFormationModeInfo(modernTaxonomy.formationMode).sixBookEquivalent}
+                        {t('detail.sixBookEquivalent')}: {getFormationModeInfo(modernTaxonomy.formationMode).sixBookEquivalent}
                       </span>
                     )}
                   </div>
 
                   {/* Description */}
                   <p className="text-sm leading-relaxed mb-4" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                    {getFormationModeInfo(modernTaxonomy.formationMode).description}
+                    {lang === 'zh'
+                      ? getFormationModeInfo(modernTaxonomy.formationMode).description
+                      : FORMATION_DESCRIPTIONS_EN[modernTaxonomy.formationMode] ?? getFormationModeInfo(modernTaxonomy.formationMode).description}
                   </p>
 
                   {/* Component breakdown */}
                   {modernTaxonomy.components.length > 0 && (
                     <div>
                       <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                        构件分析
+                        {t('detail.componentAnalysis')}
                         <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>Component Analysis</span>
                       </h3>
                       <div className="flex flex-col gap-2">
@@ -773,14 +830,14 @@ export default function CharacterDetail() {
                               <div className="flex flex-col gap-0.5 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-sm font-semibold" style={{ color: '#1A1A18', fontFamily: 'Inter' }}>
-                                    {typeInfo.label}
+                                    {lang === 'zh' ? typeInfo.label : typeInfo.enLabel}
                                   </span>
                                   <span className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: typeInfo.color + '14', color: typeInfo.color }}>
                                     {comp.character}
                                   </span>
                                 </div>
                                 <p className="text-xs leading-relaxed" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                                  {comp.role}
+                                  {lang === 'zh' ? comp.role : COMPONENT_ROLE_DESCRIPTIONS_EN[comp.role] ?? comp.role}
                                 </p>
                               </div>
                             </div>
@@ -793,13 +850,13 @@ export default function CharacterDetail() {
                   {/* Legend for component type colors */}
                   <details className="mt-4 pt-3 border-t" style={{ borderColor: 'rgba(26,26,24,0.06)' }}>
                     <summary className="text-[0.625rem] font-medium cursor-pointer" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                      构件类型图例
+                      {t('detail.componentTypeLegend')}
                     </summary>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {COMPONENT_TYPES.map(ct => (
                         <span key={ct.key} className="text-[0.625rem] px-2 py-1 rounded-full inline-flex items-center gap-1"
                           style={{ background: ct.color + '12', color: ct.color, border: `1px solid ${ct.color}30`, fontFamily: 'Inter' }}>
-                          <span className="font-bold">{ct.icon}</span> {ct.label}
+                          <span className="font-bold">{ct.icon}</span> {lang === 'zh' ? ct.label : ct.enLabel}
                         </span>
                       ))}
                     </div>
@@ -813,7 +870,7 @@ export default function CharacterDetail() {
           {activeTab === 'glyph' && (
             <motion.div key="glyph" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Glyph Evolution</h2>
+                <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.tabs.glyph')}</h2>
                 <GlyphEvolution character={char} traditional={entry?.traditional} shuowen={shuowen} />
               </div>
             </motion.div>
@@ -827,8 +884,8 @@ export default function CharacterDetail() {
                 <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <div className="flex items-center gap-2 mb-2 px-2 flex-wrap">
                     <GitBranch size={16} className="text-cinnabar" />
-                    <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>Character Decomposition</span>
-                    <span className="font-serif-cn text-sm" style={{ color: 'rgba(139,105,20,0.6)' }}>汉字拆解</span>
+                    <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('detail.charDecomposition')}</span>
+                    <span className="font-serif-cn text-sm" style={{ color: 'rgba(139,105,20,0.6)' }}>{t('detail.charDecomposition')}</span>
 
                     {/* 简/繁拆法切换 */}
                     {tradTarget && tradTarget !== char && tradDecomposition && decomposition && (
@@ -838,19 +895,19 @@ export default function CharacterDetail() {
                           className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
                           style={decompMode === 'simp' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
                         >
-                          简体 <span className="font-serif-cn text-sm">{char}</span>
+                          {t('common.simplified')} <span className="font-serif-cn text-sm">{char}</span>
                         </button>
                         <button
                           onClick={() => setDecompMode('trad')}
                           className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
                           style={decompMode === 'trad' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
                         >
-                          繁体 <span className="font-serif-cn text-sm">{tradTarget}</span>
+                          {t('common.traditional')} <span className="font-serif-cn text-sm">{tradTarget}</span>
                         </button>
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] px-2" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>单击汉字查看详情 · 双击展开系联</span>
+                  <span className="text-[10px] px-2" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
                   <div className="h-[380px]">
                     <DecompositionGraph
                       key={decompMode}
@@ -866,8 +923,8 @@ export default function CharacterDetail() {
               {componentAnnotations.length > 0 && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-sm font-semibold uppercase tracking-[0.06em] mb-4" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                    Component Notes
-                    <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>部件注释</span>
+                    {t('detail.componentNotes')}
+                    <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>{t('detail.componentNotes')}</span>
                   </h2>
                   <div className="flex flex-col gap-3">
                     {componentAnnotations.map(({ component, annotation }) => (
@@ -878,14 +935,14 @@ export default function CharacterDetail() {
                         <div className="flex flex-col gap-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-semibold" style={{ color: '#1A1A18', fontFamily: 'Inter' }}>
-                              {annotation.name}
+                              {getLocalizedAnnotationName(annotation, lang)}
                             </span>
                             <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
                               {component} → {annotation.original}
                             </span>
                           </div>
                           <p className="text-xs leading-relaxed" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                            {annotation.description}
+                            {getLocalizedAnnotationDescription(annotation, lang)}
                           </p>
                         </div>
                       </div>
@@ -896,8 +953,8 @@ export default function CharacterDetail() {
                   {decompMode === 'simp' && ghostComponentAnnotations.length > 0 && (
                     <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(176,173,165,0.3)' }}>
                       <h3 className="text-xs font-semibold uppercase tracking-[0.06em] mb-3" style={{ color: '#A39E93', fontFamily: 'Inter' }}>
-                        Simplified Ghost Components
-                        <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(176,173,165,0.8)' }}>简体幽灵部件</span>
+                        {t('detail.ghostComponents')}
+                        <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(176,173,165,0.8)' }}>{t('detail.ghostComponents')}</span>
                       </h3>
                       <div className="flex flex-col gap-2">
                         {ghostComponentAnnotations.map(({ component, suggestion }) => (
@@ -920,8 +977,8 @@ export default function CharacterDetail() {
               {decompMode === 'simp' && componentAnnotations.length === 0 && ghostComponentAnnotations.length > 0 && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-sm font-semibold uppercase tracking-[0.06em] mb-4" style={{ color: '#A39E93', fontFamily: 'Inter' }}>
-                    Simplified Ghost Components
-                    <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(176,173,165,0.8)' }}>简体幽灵部件</span>
+                    {t('detail.ghostComponents')}
+                    <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(176,173,165,0.8)' }}>{t('detail.ghostComponents')}</span>
                   </h2>
                   <div className="flex flex-col gap-2">
                     {ghostComponentAnnotations.map(({ component, suggestion }) => (
@@ -952,9 +1009,9 @@ export default function CharacterDetail() {
                     <div className="flex items-center gap-2">
                       <GitBranch size={14} className="text-cinnabar" />
                       <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                        Full Decomposition Tree
+                        {t('detail.fullDecompTree')}
                       </span>
-                      <span className="font-serif-cn text-xs" style={{ color: 'rgba(139,105,20,0.5)' }}>完整拆解树</span>
+                      <span className="font-serif-cn text-xs" style={{ color: 'rgba(139,105,20,0.5)' }}>{t('detail.fullDecompTree')}</span>
                     </div>
                     <ChevronDown size={18} className={`transition-transform duration-300 ${idsExpanded ? 'rotate-180' : ''}`} style={{ color: '#C23B2A' }} />
                   </button>
@@ -978,7 +1035,7 @@ export default function CharacterDetail() {
                                 </span>
                                 {variantBadge && (
                                   <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
-                                    {variantBadge.name}
+                                    {getLocalizedAnnotationName(variantBadge, lang)}
                                   </span>
                                 )}
                               </div>
@@ -998,7 +1055,7 @@ export default function CharacterDetail() {
             <motion.div key="cognates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-4">
               {/* Preview: Top 5 scored relations */}
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>Character Relations</h2>
+                <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.characterRelations')}</h2>
                 {topRelations.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-4">
                     {topRelations.map(rel => {
@@ -1022,7 +1079,7 @@ export default function CharacterDetail() {
                               {rel.tags.slice(0, 2).map(tag => (
                                 <span key={tag} className="text-[7px] font-semibold px-1 py-px rounded-full"
                                   style={{ background: TAG_COLORS[tag] + '18', color: TAG_COLORS[tag], fontFamily: 'Inter' }}
-                                >{tag}</span>
+                                >{t(`data.tags.${tag}`)}</span>
                               ))}
                             </div>
                           )}
@@ -1031,7 +1088,7 @@ export default function CharacterDetail() {
                     })}
                   </div>
                 ) : (
-                  <p className="text-sm mb-4" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No related characters found.</p>
+                  <p className="text-sm mb-4" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.noRelations')}</p>
                 )}
 
                 {/* View All button */}
@@ -1045,11 +1102,11 @@ export default function CharacterDetail() {
                     boxShadow: '0 2px 12px rgba(194,59,42,0.2)',
                   }}
                 >
-                  View All Relations ({relations ? (
+                  {t('detail.viewAllRelations', { n: relations ? (
                     relations.differentiations.length + relations.phoneticFamily.length + relations.semanticFamily.length +
                     relations.sharedComponents.length + relations.containedIn.length + relations.homophones.length +
                     relations.nearHomophones.length + relations.antonyms.length + relations.radicalFamily.length
-                  ) : 0} total) →
+                  ) : 0 })}
                 </button>
               </div>
 
@@ -1057,7 +1114,7 @@ export default function CharacterDetail() {
               {relatedCharMap && relatedCharMap.size > 0 && (
                 <details className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <summary className="text-sm font-medium cursor-pointer" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                    All relations by category ({relatedCharMap.size} unique characters)
+                    {t('detail.allRelationsByCategory', { n: relatedCharMap.size })}
                   </summary>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 mt-4">
                     {[...relatedCharMap.entries()].map(([c, types]) => {
@@ -1079,7 +1136,7 @@ export default function CharacterDetail() {
                             {types.map(t => (
                               <span key={t.label} className="text-[8px] font-semibold px-1 py-px rounded-full"
                                 style={{ background: t.color + '18', color: t.color, fontFamily: 'Inter' }}
-                              >{t.label}</span>
+                              >{lang === 'zh' ? t.label : t.en}</span>
                             ))}
                           </div>
                         </motion.button>

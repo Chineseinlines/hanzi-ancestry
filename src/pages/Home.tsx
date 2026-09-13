@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronDown, GitBranch, Layers, BookOpen, Gamepad2, GraduationCap, Compass } from 'lucide-react';
-import { hasCharacter, loadData, searchByPinyin, searchByEnglish, hasCJK } from '../data/hanziData';
+import { hasCharacter, loadData, searchByPinyin, searchByEnglish, searchByChineseMeaning, hasCJK } from '../data/hanziData';
 import type { EnglishSearchResult } from '../data/hanziData';
+import { useLanguage } from '../contexts/LanguageContext';
 
 /* ─────────────────────────── animation variants ─────────────────────────── */
 
@@ -52,17 +53,18 @@ const staggerContainer = {
 
 type SearchMode = 'auto' | 'hanzi' | 'pinyin' | 'english';
 
-const SEARCH_MODES: { key: SearchMode; label: string }[] = [
-  { key: 'auto', label: '自动' },
-  { key: 'hanzi', label: '汉字' },
-  { key: 'pinyin', label: '拼音' },
-  { key: 'english', label: 'EN' },
+const SEARCH_MODES: { key: SearchMode; labelKey: string }[] = [
+  { key: 'auto', labelKey: 'explore.modeAuto' },
+  { key: 'hanzi', labelKey: 'explore.modeHanzi' },
+  { key: 'pinyin', labelKey: 'explore.modePinyin' },
+  { key: 'english', labelKey: 'explore.modeEn' },
 ];
 
 const PRESET_CHARS = ['家', '国'];
 
 function HeroSection() {
   const navigate = useNavigate();
+  const { lang, t } = useLanguage();
   const [searchChar, setSearchChar] = useState('');
   const [searchError, setSearchError] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('auto');
@@ -98,45 +100,58 @@ function HeroSection() {
 
     let char: string | null = null;
 
+    // zh 模式：拼音 + 中文释义搜索；en 模式：拼音 + 英文索引搜索
+    const tryMeaningSearch = async (): Promise<boolean> => {
+      if (lang === 'zh') {
+        const results = searchByChineseMeaning(raw);
+        if (results.length > 0) {
+          setSearchError('');
+          setEnResults({ words: [], chars: results });
+          return true;
+        }
+        return false;
+      }
+      const enRes = await searchByEnglish(raw);
+      if (enRes.words.length > 0 || enRes.chars.length > 0) {
+        setSearchError('');
+        setEnResults(enRes);
+        return true;
+      }
+      return false;
+    };
+
     switch (searchMode) {
       case 'hanzi':
         char = tryHanzi();
-        if (!char) { setSearchError('No Chinese character found. Enter a Chinese character.'); return; }
+        if (!char) { setSearchError(t('home.errorNoHanzi')); return; }
         break;
       case 'pinyin':
         char = tryPinyin();
-        if (!char) { setSearchError('No matching characters found for this pinyin.'); return; }
+        if (!char) { setSearchError(t('home.errorNoPinyin')); return; }
         break;
       case 'english': {
-        const enRes = await searchByEnglish(raw);
-        if (enRes.words.length === 0 && enRes.chars.length === 0) {
-          setSearchError('No matching results found for this English word.');
+        const found = await tryMeaningSearch();
+        if (!found) {
+          setSearchError(lang === 'zh' ? t('home.errorNoResults') : t('home.errorNoEnglish'));
           setEnResults(null);
           return;
         }
-        setSearchError('');
-        setEnResults(enRes);
         return; // Show results panel, don't navigate
       }
       case 'auto':
       default:
         if (hasCJK(raw)) {
           char = tryHanzi();
-          if (!char) { setSearchError(`Not in database. Try another character.`); return; }
+          if (!char) { setSearchError(t('home.errorNotInDb')); return; }
         } else {
-          // Try pinyin first, then English
+          // Try pinyin first, then meaning search
           const pinyinChar = tryPinyin();
           if (pinyinChar) {
             char = pinyinChar;
           } else {
-            // English search — show results panel
-            const enRes = await searchByEnglish(raw);
-            if (enRes.words.length > 0 || enRes.chars.length > 0) {
-              setSearchError('');
-              setEnResults(enRes);
-              return;
-            }
-            setSearchError('No matching results found.');
+            const found = await tryMeaningSearch();
+            if (found) return; // Show results panel
+            setSearchError(t('home.errorNoResults'));
             return;
           }
         }
@@ -185,10 +200,7 @@ function HeroSection() {
           animate="visible"
           custom={0.4}
         >
-          探索汉字的结构
-          <span className="block text-[0.6rem] normal-case tracking-[0.08em] mt-1" style={{ color: 'rgba(245, 240, 232, 0.3)' }}>
-            Explore the structure of
-          </span>
+          {t('home.heroSubtitle')}
         </motion.p>
 
         {/* Chinese title */}
@@ -224,10 +236,7 @@ function HeroSection() {
           animate="visible"
           custom={1.2}
         >
-          通过交互式拆解与系联网络，发现汉字背后的隐藏结构
-          <span className="block text-sm mt-1" style={{ color: 'rgba(245, 240, 232, 0.45)' }}>
-            Discover how Chinese characters decompose into components and find their etymological relatives
-          </span>
+          {t('home.tagline')}
         </motion.p>
 
         {/* Search bar */}
@@ -249,7 +258,7 @@ function HeroSection() {
                 setEnResults(null);
               }}
               onKeyDown={handleKeyDown}
-              placeholder="输入汉字 / 拼音 / 英文..."
+              placeholder={t('home.placeholder')}
               className="h-14 w-full rounded-full border px-6 text-center text-2xl outline-none transition-all duration-300 focus:border-cinnabar"
               style={{
                 backgroundColor: 'rgba(245, 240, 232, 0.08)',
@@ -278,14 +287,14 @@ function HeroSection() {
                 }`}
                 style={searchMode !== mode.key ? { background: 'rgba(245,240,232,0.06)' } : {}}
               >
-                {mode.label}
+                {t(mode.labelKey)}
               </button>
             ))}
           </div>
 
           {/* Preset character chips */}
           <div className="mt-4 flex items-center justify-center gap-2">
-            <span className="text-[0.625rem] text-rice-paper/25 mr-1">Try:</span>
+            <span className="text-[0.625rem] text-rice-paper/25 mr-1">{t('home.tryLabel', { chars: '' })}</span>
             {PRESET_CHARS.map((c) => (
               <button
                 key={c}
@@ -322,7 +331,7 @@ function HeroSection() {
                 {enResults.words.length > 0 && (
                   <>
                     <p className="mb-3 text-[0.6875rem] font-medium uppercase tracking-wider text-rice-paper/40">
-                      中文词语 — {searchChar}
+                      {t('home.wordsHeading', { q: searchChar })}
                     </p>
                     <div className="space-y-2 mb-4">
                       {enResults.words.slice(0, 12).map((w) => (
@@ -347,7 +356,7 @@ function HeroSection() {
                     </div>
                     {enResults.words.length > 12 && (
                       <p className="text-[0.625rem] text-rice-paper/25 mb-3">
-                        +{enResults.words.length - 12} more words
+                        {t('explore.moreWords', { n: enResults.words.length - 12 })}
                       </p>
                     )}
                   </>
@@ -357,7 +366,7 @@ function HeroSection() {
                 {enResults.chars.length > 0 && (
                   <div className="pt-3 border-t border-rice-paper/10">
                     <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-rice-paper/40">
-                      所有字符
+                      {t('explore.allChars')}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {enResults.chars.slice(0, 24).map((r) => (
@@ -388,7 +397,7 @@ function HeroSection() {
               >
                 <p className="text-sm text-vermilion-light">{searchError}</p>
                 <p className="mt-2 text-xs text-rice-paper/40">
-                  Try: 家 · 国
+                  {t('home.tryLabel', { chars: '家 · 国' })}
                 </p>
               </motion.div>
             )}
@@ -419,37 +428,34 @@ function HeroSection() {
 
 function EntryCards() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const cards = [
     {
       icon: <Compass size={28} />,
-      title: '查字',
-      subtitle: 'Search',
-      desc: '输入汉字查看完整拆解、字形演变与关联字网络',
+      titleKey: 'home.cardLookupTitle',
+      descKey: 'home.cardLookupDesc',
       action: () => navigate('/explore'),
       gradient: 'from-cinnabar to-vermilion-light',
     },
     {
       icon: <BookOpen size={28} />,
-      title: '学习',
-      subtitle: 'Learn',
-      desc: '结构化知识卡片、笔顺演示、部件注释与字源讲解',
+      titleKey: 'home.cardLearnTitle',
+      descKey: 'home.cardLearnDesc',
       action: () => navigate('/learn'),
       gradient: 'from-graph-node-component to-[#4A7DB5]',
     },
     {
       icon: <Gamepad2 size={28} />,
-      title: '游戏',
-      subtitle: 'Games',
-      desc: '笔画闯关、部件拼图、古字猜谜、形近字找茬',
+      titleKey: 'home.cardGamesTitle',
+      descKey: 'home.cardGamesDesc',
       action: () => navigate('/games'),
       gradient: 'from-[#C47B2A] to-[#E8A840]',
     },
     {
       icon: <GraduationCap size={28} />,
-      title: '题库',
-      subtitle: 'Quiz',
-      desc: '单字随堂测、专项试卷、能力评分与学习报告',
+      titleKey: 'home.cardQuizTitle',
+      descKey: 'home.cardQuizDesc',
       action: () => navigate('/quiz'),
       gradient: 'from-green-sage to-[#8DA37E]',
     },
@@ -467,20 +473,17 @@ function EntryCards() {
           custom={0}
         >
           <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
-            探索汉字世界
+            {t('home.sectionTitle')}
           </h2>
           <p className="mt-3 text-base text-charcoal">
-            四种方式，揭示汉字书写系统的隐藏架构
-            <span className="block text-xs text-charcoal/40 mt-0.5">
-              Explore Chinese Characters — Four ways to discover the hidden architecture of the writing system
-            </span>
+            {t('home.sectionSubtitle')}
           </p>
         </motion.div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {cards.map((card, i) => (
             <motion.button
-              key={card.title}
+              key={card.titleKey}
               variants={fadeUp}
               initial="hidden"
               whileInView="visible"
@@ -500,14 +503,13 @@ function EntryCards() {
                 {card.icon}
               </div>
               <div className="mt-4 flex items-baseline gap-2">
-                <span className="font-serif-cn text-xl font-bold text-ink-black">{card.title}</span>
-                <span className="text-xs font-medium uppercase tracking-wider text-charcoal/40">{card.subtitle}</span>
+                <span className="font-serif-cn text-xl font-bold text-ink-black">{t(card.titleKey)}</span>
               </div>
               <p className="mt-2 text-sm leading-relaxed text-charcoal/70">
-                {card.desc}
+                {t(card.descKey)}
               </p>
               <span className="mt-3 text-xs font-medium text-cinnabar opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                Enter &rarr;
+                {t('home.enter')}
               </span>
             </motion.button>
           ))}
@@ -520,20 +522,20 @@ function EntryCards() {
 /* ─────────────────────── How It Works ──────────────────────────────────── */
 
 function HowItWorks() {
+  const { t } = useLanguage();
   const steps = [
-    { num: '01', icon: <Search size={20} />, title: '输入汉字', en: 'Enter', desc: '在搜索框输入任意汉字，或从推荐字中快速选择。支持粘贴含拼音/标点的混合文本。' },
-    { num: '02', icon: <GitBranch size={20} />, title: '拆解部件', en: 'Decompose', desc: '通过字形描述序列(IDS)解析汉字结构，以交互式树图可视化展示部件层级关系。' },
-    { num: '03', icon: <Layers size={20} />, title: '探索系联', en: 'Explore', desc: '发现共享部件的同源汉字，每个连接揭示文字系统背后隐藏的词源脉络。' },
+    { num: '01', icon: <Search size={20} />, titleKey: 'home.step1Title', descKey: 'home.step1Desc' },
+    { num: '02', icon: <GitBranch size={20} />, titleKey: 'home.step2Title', descKey: 'home.step2Desc' },
+    { num: '03', icon: <Layers size={20} />, titleKey: 'home.step3Title', descKey: 'home.step3Desc' },
   ];
 
   return (
     <section className="bg-bg-warm py-20 md:py-28">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         <motion.div className="mb-14 text-center" variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.15 }} custom={0}>
-          <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>如何使用</h2>
+          <h2 className="font-display font-bold text-ink-black" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>{t('home.howTitle')}</h2>
           <p className="mt-3 text-base text-charcoal">
-            三步揭示汉字的隐藏结构
-            <span className="block text-xs text-charcoal/40 mt-0.5">How It Works</span>
+            {t('home.howSubtitle')}
           </p>
         </motion.div>
 
@@ -544,9 +546,8 @@ function HowItWorks() {
               <motion.div variants={scaleIn} className="mt-3 flex h-16 w-16 items-center justify-center rounded-full border border-border-light bg-rice-paper text-cinnabar">
                 {step.icon}
               </motion.div>
-              <h3 className="mt-4 font-serif-cn text-lg font-semibold text-ink-black">{step.title}</h3>
-              <span className="text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">{step.en}</span>
-              <p className="mt-2 text-sm leading-relaxed text-charcoal/70">{step.desc}</p>
+              <h3 className="mt-4 font-serif-cn text-lg font-semibold text-ink-black">{t(step.titleKey)}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-charcoal/70">{t(step.descKey)}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -559,6 +560,7 @@ function HowItWorks() {
 
 function CTABanner() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <section
@@ -578,10 +580,7 @@ function CTABanner() {
           viewport={{ once: true, amount: 0.15 }}
           custom={0}
         >
-          Ready to Explore?
-          <span className="block text-lg font-normal mt-1" style={{ color: 'rgba(245, 240, 232, 0.3)' }}>
-            准备好探索了吗？
-          </span>
+          {t('home.ctaTitle')}
         </motion.h2>
 
         <motion.p
@@ -593,10 +592,7 @@ function CTABanner() {
           viewport={{ once: true, amount: 0.15 }}
           custom={0.15}
         >
-          从任意汉字开始，发现它背后隐藏的系联网络
-          <span className="block text-xs mt-1" style={{ color: 'rgba(245, 240, 232, 0.35)' }}>
-            Start with any character and discover the hidden network beneath
-          </span>
+          {t('home.ctaSubtitle')}
         </motion.p>
 
         <motion.div
@@ -610,7 +606,7 @@ function CTABanner() {
             onClick={() => navigate('/explore')}
             className="mt-8 inline-flex items-center rounded-full bg-cinnabar px-8 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:bg-vermilion-light hover:shadow-cinnabar"
           >
-            开始探索
+            {t('home.ctaButton')}
           </button>
         </motion.div>
       </div>

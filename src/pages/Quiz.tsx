@@ -8,6 +8,7 @@ import { COMMON_CHAR_SET } from '../data/commonChars';
 const COMMON_3500 = new Set([...COMMON_CHAR_SET].slice(0, 3500));
 import type { HanziEntry, DecompositionNode } from '../data/types';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { saveQuizAttempt } from '../lib/database';
 
 type QuestionType = 'pinyin2char' | 'char2pinyin' | 'ids2char';
@@ -22,10 +23,11 @@ interface Question {
 
 const TOTAL_ROUNDS = 10;
 
-const typeLabels: Record<QuestionType, string> = {
-  pinyin2char: '看拼音选字',
-  char2pinyin: '看字选拼音',
-  ids2char: '看拆解选字',
+/** 题型标签字典键（显示时按语言取）。 */
+const typeLabelKeys: Record<QuestionType, string> = {
+  pinyin2char: 'quiz.typePinyin2char',
+  char2pinyin: 'quiz.typeChar2pinyin',
+  ids2char: 'quiz.typeIds2char',
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -126,6 +128,7 @@ function genIds2Char(entries: HanziEntry[]): Question | null {
 
 export default function Quiz() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [entries, setEntries] = useState<HanziEntry[] | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -155,7 +158,7 @@ export default function Quiz() {
         setLoading(false);
       })
       .catch(() => {
-        setLoadError('Failed to load character data.');
+        setLoadError(t('quiz.loadError'));
         setLoading(false);
       });
   }, []);
@@ -221,7 +224,7 @@ export default function Quiz() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-charcoal animate-pulse">Loading question bank...</p>
+        <p className="text-charcoal animate-pulse">{t('quiz.loading')}</p>
       </div>
     );
   }
@@ -239,16 +242,16 @@ export default function Quiz() {
       <section className="bg-bg-warm py-16 md:py-24 min-h-[70vh]">
         <div className="mx-auto max-w-lg px-4 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <h1 className="font-display text-4xl font-bold text-ink-black mb-4">汉字题库</h1>
-            <p className="text-charcoal mb-2">测试你的汉字知识：拼音、字形、结构拆解</p>
+            <h1 className="font-display text-4xl font-bold text-ink-black mb-4">{t('quiz.title')}</h1>
+            <p className="text-charcoal mb-2">{t('quiz.subtitle')}</p>
             <div className="flex flex-wrap justify-center gap-2 mb-8">
-              {(['pinyin2char', 'char2pinyin', 'ids2char'] as QuestionType[]).map(t => (
-                <span key={t} className="rounded-full bg-white px-3 py-1 text-xs font-medium text-charcoal shadow-sm">{typeLabels[t]}</span>
+              {(['pinyin2char', 'char2pinyin', 'ids2char'] as QuestionType[]).map(qt => (
+                <span key={qt} className="rounded-full bg-white px-3 py-1 text-xs font-medium text-charcoal shadow-sm">{t(typeLabelKeys[qt])}</span>
               ))}
             </div>
-            <p className="text-sm text-charcoal/60 mb-6">{TOTAL_ROUNDS} 题 · 即时反馈 · 可反复练习</p>
+            <p className="text-sm text-charcoal/60 mb-6">{t('quiz.roundsDesc', { n: TOTAL_ROUNDS })}</p>
             <button onClick={startQuiz} className="rounded-full bg-cinnabar px-8 py-3 text-white font-medium hover:bg-vermilion-light transition-colors">
-              开始答题
+              {t('quiz.start')}
             </button>
           </motion.div>
         </div>
@@ -266,10 +269,10 @@ export default function Quiz() {
             <p className="text-5xl mb-4">{emoji}</p>
             <h2 className="font-display text-3xl font-bold text-ink-black mb-2">{score} / {questions.length}</h2>
             <p className="text-charcoal mb-8">
-              {pct >= 90 ? '太厉害了！你对汉字了如指掌。' : pct >= 70 ? '很不错！继续保持。' : pct >= 50 ? '还不错，再练练会更好。' : '继续加油！多查多练，进步很快。'}
+              {pct >= 90 ? t('quiz.excellent') : pct >= 70 ? t('quiz.great') : pct >= 50 ? t('quiz.decent') : t('quiz.keepGoing')}
             </p>
             <button onClick={startQuiz} className="inline-flex items-center gap-2 rounded-full bg-cinnabar px-6 py-3 text-white font-medium hover:bg-vermilion-light transition-colors">
-              <RotateCcw size={16} /> 再来一轮
+              <RotateCcw size={16} /> {t('quiz.playAgain')}
             </button>
           </motion.div>
         </div>
@@ -285,9 +288,9 @@ export default function Quiz() {
       <div className="mx-auto max-w-2xl px-4">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-charcoal/50">第 {currentQ + 1} / {questions.length} 题</span>
-            <span className="text-xs font-medium text-charcoal/50">{typeLabels[q.type]}</span>
-            <span className="text-xs font-medium text-ink-black">得分: {score}</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-charcoal/50">{t('quiz.question', { n: currentQ + 1, total: questions.length })}</span>
+            <span className="text-xs font-medium text-charcoal/50">{t(typeLabelKeys[q.type])}</span>
+            <span className="text-xs font-medium text-ink-black">{t('quiz.score', { n: score })}</span>
           </div>
           <div className="h-1.5 rounded-full bg-charcoal/10 overflow-hidden">
             <motion.div className="h-full rounded-full bg-cinnabar"
@@ -300,9 +303,9 @@ export default function Quiz() {
 
         <motion.div key={currentQ} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="mb-10 text-center">
           <p className="text-sm text-charcoal/50 mb-3">
-            {q.type === 'pinyin2char' && '以下拼音对应哪个汉字？'}
-            {q.type === 'char2pinyin' && '以下汉字的读音是？'}
-            {q.type === 'ids2char' && '以下拆解结构对应哪个汉字？'}
+            {q.type === 'pinyin2char' && t('quiz.promptPinyin2char')}
+            {q.type === 'char2pinyin' && t('quiz.promptChar2pinyin')}
+            {q.type === 'ids2char' && t('quiz.promptIds2char')}
           </p>
           <div className={q.type === 'char2pinyin' ? 'font-display-cn text-5xl text-ink-black' : 'font-mono text-2xl text-cinnabar'}>
             {q.prompt}
@@ -342,10 +345,10 @@ export default function Quiz() {
         {answered && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-center">
             <p className={`text-sm mb-3 ${selected === q.correctIndex ? 'text-green-600' : 'text-red-500'}`}>
-              {selected === q.correctIndex ? '正确！' : `正确答案是: ${q.options[q.correctIndex]}`}
+              {selected === q.correctIndex ? t('quiz.correct') : t('quiz.answerIs', { a: q.options[q.correctIndex] })}
             </p>
             <button onClick={handleNext} className="rounded-full bg-ink-black px-6 py-2.5 text-sm font-medium text-white hover:bg-charcoal transition-colors">
-              {currentQ + 1 >= questions.length ? '查看成绩' : '下一题'}
+              {currentQ + 1 >= questions.length ? t('quiz.viewResults') : t('quiz.next')}
             </button>
           </motion.div>
         )}

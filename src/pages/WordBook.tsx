@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useWordBook } from '../hooks/useWordBook';
 import { getCharacter } from '../data/hanziData';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function WordBook() {
   const { words, remove } = useWordBook();
+  const { t } = useLanguage();
 
   if (words.length === 0) {
     return (
@@ -11,17 +13,17 @@ export default function WordBook() {
         <div className="text-center p-8">
           <div className="text-5xl mb-4">📖</div>
           <h1 className="text-2xl font-display mb-2" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-            Your Word Book
+            {t('wordbook.yourWordBook')}
           </h1>
           <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
-            Browse characters and tap 📖 to add them to your study list.
+            {t('wordbook.emptyHint')}
           </p>
           <Link
             to="/explore"
             className="inline-block px-6 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90"
             style={{ background: '#2D5F8A' }}
           >
-            Explore Characters
+            {t('wordbook.exploreChars')}
           </Link>
         </div>
       </div>
@@ -33,9 +35,9 @@ export default function WordBook() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-display mb-1" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-            Word Book
+            {t('common.wordBook')}
           </h1>
-          <p className="text-sm" style={{ color: '#6B7280' }}>{words.length} character{words.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm" style={{ color: '#6B7280' }}>{t('wordbook.charCount', { n: words.length })}</p>
         </div>
       </div>
 
@@ -58,7 +60,7 @@ export default function WordBook() {
                 onClick={(e) => { e.preventDefault(); remove(char); }}
                 className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[0.6rem] text-white opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{ background: '#C23B2A' }}
-                title="Remove"
+                title={t('wordbook.remove')}
               >
                 ×
               </button>

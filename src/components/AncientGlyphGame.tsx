@@ -4,6 +4,7 @@ import { RotateCcw, Check, X } from 'lucide-react';
 import { getCharacter } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { saveQuizAttempt } from '../lib/database';
 
 const TOTAL_ROUNDS = 10;
@@ -12,12 +13,6 @@ const BASE_URL = import.meta.env.BASE_URL;
 type GlyphStyle = 'seal' | 'bronze' | 'oracle';
 
 interface GlyphChar { c: string; s: GlyphStyle[]; }
-
-const STYLE_LABEL: Record<GlyphStyle, string> = {
-  seal: '小篆',
-  bronze: '金文',
-  oracle: '甲骨文',
-};
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -35,7 +30,7 @@ function charToHex(c: string): string {
 
 interface Question {
   char: string;
-  scriptLabel: string;
+  style: GlyphStyle;
   imageUrl: string;
   options: string[];
   correctIndex: number;
@@ -43,6 +38,7 @@ interface Question {
 
 export default function AncientGlyphGame() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const resultsRef = useRef<Array<{ questionIndex: number; questionType: string; prompt: string; correctChar: string; userAnswer: string; isCorrect: boolean }>>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
@@ -101,7 +97,7 @@ export default function AncientGlyphGame() {
       const options = shuffle([ch, ...distOpts]);
       qs.push({
         char: ch,
-        scriptLabel: STYLE_LABEL[style],
+        style,
         imageUrl: `${BASE_URL}glyphs/${style}/${hex}.svg`,
         options,
         correctIndex: options.indexOf(ch),
@@ -135,7 +131,7 @@ export default function AncientGlyphGame() {
     if (isCorrect) setScore(s => s + 1);
     resultsRef.current.push({
       questionIndex: currentQ,
-      questionType: q.scriptLabel,
+      questionType: q.style,
       prompt: q.imageUrl.split('/').pop() || q.char,
       correctChar: q.char,
       userAnswer: q.options[idx],
@@ -156,7 +152,7 @@ export default function AncientGlyphGame() {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-charcoal animate-pulse">Loading ancient glyphs...</p>
+        <p className="text-charcoal animate-pulse">{t('cmp.glyph.loading')}</p>
       </div>
     );
   }
@@ -164,8 +160,8 @@ export default function AncientGlyphGame() {
   if (questions.length === 0) {
     return (
       <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
-        <p className="text-charcoal">Could not load glyph data.</p>
-        <button onClick={generateQuestions} className="rounded-full bg-cinnabar px-4 py-2 text-sm text-white">Retry</button>
+        <p className="text-charcoal">{t('cmp.glyph.loadError')}</p>
+        <button onClick={generateQuestions} className="rounded-full bg-cinnabar px-4 py-2 text-sm text-white">{t('cmp.glyph.retry')}</button>
       </div>
     );
   }
@@ -178,10 +174,10 @@ export default function AncientGlyphGame() {
           <p className="text-5xl mb-4">{pct >= 80 ? '🏆' : pct >= 60 ? '👏' : pct >= 40 ? '💪' : '📚'}</p>
           <h2 className="font-display text-3xl font-bold text-ink-black mb-2">{score} / {questions.length}</h2>
           <p className="text-charcoal mb-8">
-            {pct >= 80 ? '你是古文字专家！' : pct >= 60 ? '很不错！' : pct >= 40 ? '还行，多看看会有感觉。' : '古文字很难，多练习就会进步的！'}
+            {pct >= 80 ? t('cmp.glyph.expert') : pct >= 60 ? t('cmp.glyph.good') : pct >= 40 ? t('cmp.glyph.okay') : t('cmp.glyph.keepTrying')}
           </p>
           <button onClick={generateQuestions} className="inline-flex items-center gap-2 rounded-full bg-cinnabar px-6 py-3 text-white font-medium hover:bg-vermilion-light transition-colors">
-            <RotateCcw size={16} /> 再来一轮
+            <RotateCcw size={16} /> {t('cmp.glyph.playAgain')}
           </button>
         </motion.div>
       </div>
@@ -194,9 +190,9 @@ export default function AncientGlyphGame() {
     <div className="mx-auto max-w-2xl px-4">
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium uppercase tracking-wider text-charcoal/50">Round {currentQ + 1} / {questions.length}</span>
-          <span className="text-xs font-medium text-charcoal/50">{q.scriptLabel}</span>
-          <span className="text-xs font-medium text-ink-black">Score: {score}</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-charcoal/50">{t('cmp.glyph.round', { n: currentQ + 1, total: questions.length })}</span>
+          <span className="text-xs font-medium text-charcoal/50">{t(`cmp.glyph.${q.style}`)}</span>
+          <span className="text-xs font-medium text-ink-black">{t('cmp.glyph.score', { n: score })}</span>
         </div>
         <div className="h-1.5 rounded-full bg-charcoal/10 overflow-hidden">
           <motion.div className="h-full rounded-full bg-cinnabar"
@@ -208,7 +204,7 @@ export default function AncientGlyphGame() {
       </div>
 
       <motion.div key={currentQ} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="mb-10 text-center">
-        <p className="text-sm text-charcoal/50 mb-4">这是什么字？</p>
+        <p className="text-sm text-charcoal/50 mb-4">{t('cmp.glyph.whatChar')}</p>
         <div className="mx-auto flex items-center justify-center rounded-2xl overflow-hidden" style={{ maxWidth: 280, minHeight: 200, background: 'linear-gradient(135deg, #F5F0E8 0%, #EDE6D8 100%)', boxShadow: 'inset 0 0 30px rgba(139,105,20,0.08)' }}>
           <img
             src={q.imageUrl}
@@ -246,10 +242,10 @@ export default function AncientGlyphGame() {
       {answered && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-center">
           <p className={`text-sm mb-3 ${selected === q.correctIndex ? 'text-green-600' : 'text-red-500'}`}>
-            {selected === q.correctIndex ? 'Correct!' : `Answer: ${q.options[q.correctIndex]}`}
+            {selected === q.correctIndex ? t('cmp.glyph.correct') : t('cmp.glyph.answer', { a: q.options[q.correctIndex] })}
           </p>
           <button onClick={handleNext} className="rounded-full bg-ink-black px-6 py-2.5 text-sm font-medium text-white hover:bg-charcoal transition-colors">
-            {currentQ + 1 >= questions.length ? 'View Results' : 'Next'}
+            {currentQ + 1 >= questions.length ? t('cmp.glyph.viewResults') : t('cmp.glyph.next')}
           </button>
         </motion.div>
       )}

@@ -3,6 +3,8 @@ export interface EtymologyData {
   phonetic?: string;
   semantic?: string;
   hint?: string;
+  /** 中文版词源提示（zh-definitions.json 加载后合并） */
+  zhHint?: string;
 }
 
 export interface HanziEntry {
@@ -14,6 +16,8 @@ export interface HanziEntry {
   radical: string;
   etymology?: EtymologyData;
   etymologyHint?: string;
+  /** 中文版释义（zh-definitions.json 加载后合并） */
+  zhDefinition?: string;
   decomposition?: string;
   traditional?: string;
   traditionalComponents?: string[];
@@ -68,6 +72,9 @@ export interface CulturalData {
   evolution: string;
   allusions: string[];
   words: string[];
+  /** 英文版字段（cultural-en.json 加载后合并） */
+  enEvolution?: string;
+  enAllusions?: string[];
 }
 
 export interface ShuowenEntry {
@@ -76,6 +83,8 @@ export interface ShuowenEntry {
   summary: string;
   structure: string;
   sixBooks: string;
+  /** 英文译文（shuowen-en.json 加载后合并） */
+  enShuowen?: string;
 }
 
 export interface ScoredRelation {

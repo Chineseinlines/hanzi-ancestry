@@ -2,11 +2,12 @@ import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import * as d3 from 'd3';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import type { DecompositionNode, HanziEntry } from '../data/types';
-import { getCharacter } from '../data/hanziData';
+import { getCharacter, getLocalizedDefinition, getLocalizedEtymologyHint } from '../data/hanziData';
 import { ratePhonetic, PHONETIC_COLORS, type PhoneticRating } from '../data/phoneticRating';
 import { computePhoneticLevelMulti, type PhoneticLevel } from '../data/phoneticLevels';
 import { getCuratedSemanticLevel, guessSemanticLevel, type SemanticLevel } from '../data/semanticLevels';
 import { getGhostAnnotation } from '../data/ghostComponents';
+import { useLanguage } from '../contexts/LanguageContext';
 import GraphLegend from './GraphLegend';
 import GraphTooltip from './GraphTooltip';
 
@@ -179,15 +180,19 @@ function getTextColor(type: TreeNode['type']): string {
   return (type === 'leaf' || type === 'ghost') ? '#1A1A18' : '#FFFFFF';
 }
 
-function getNodeLabel(type: TreeNode['type'], phoneticRating?: PhoneticRating | null): string {
+function getNodeLabel(
+  type: TreeNode['type'],
+  phoneticRating: PhoneticRating | null | undefined,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
   switch (type) {
-    case 'semantic': return '形';
+    case 'semantic': return t('cmp.decompGraph.semanticNode');
     case 'phonetic':
       if (phoneticRating) {
-        return phoneticRating === 'green' ? '声✓' : phoneticRating === 'yellow' ? '声~' : '声✗';
+        return phoneticRating === 'green' ? t('cmp.decompGraph.phoneticGood') : phoneticRating === 'yellow' ? t('cmp.decompGraph.phoneticPartial') : t('cmp.decompGraph.phoneticBad');
       }
-      return '声';
-    case 'ideographic': return '意';
+      return t('cmp.decompGraph.phoneticNode');
+    case 'ideographic': return t('cmp.decompGraph.ideographicNode');
     default: return '';
   }
 }
@@ -201,6 +206,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
   highlightedComponent = null,
   className = '',
 }: DecompositionGraphProps) {
+  const { lang, t } = useLanguage();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -295,11 +301,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
     const rootEntry = root.entry;
     const ety = rootEntry?.etymology;
     if (ety) {
-      const typeLabel = ety.type === 'pictophonetic' ? '形声字 (Phono-semantic)'
-        : ety.type === 'ideographic' ? '会意字 (Compound Ideograph)'
-        : ety.type === 'pictographic' ? '象形字 (Pictograph)'
-        : ety.type === 'indicative' ? '指事字 (Indicative)'
-        : ety.type === 'loan' ? '假借字 (Phonetic Loan)' : '';
+      const typeLabel = t(`data.sixBooks.${ety.type}`);
 
       g.append('text')
         .attr('x', centerX)
@@ -310,7 +312,8 @@ const DecompositionGraph = memo(function DecompositionGraph({
         .attr('fill', '#8B6914')
         .text(typeLabel);
 
-      if (ety.hint) {
+      const hint = getLocalizedEtymologyHint(rootEntry, lang);
+      if (hint) {
         g.append('text')
           .attr('x', centerX)
           .attr('y', 48)
@@ -318,7 +321,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
           .attr('font-family', 'Inter, sans-serif')
           .attr('font-size', '10px')
           .attr('fill', '#A39E93')
-          .text(ety.hint.length > 40 ? ety.hint.slice(0, 40) + '...' : ety.hint);
+          .text(hint.length > 40 ? hint.slice(0, 40) + '...' : hint);
       }
     }
 
@@ -411,7 +414,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
         }
         return d.type === 'semantic' ? SEMANTIC_COLOR : PHONETIC_COLOR;
       })
-      .text((d) => getNodeLabel(d.type, d.phoneticRating));
+      .text((d) => getNodeLabel(d.type, d.phoneticRating, t));
 
     // Definition labels (or ghost warning for ghost nodes)
     nodeGroup.append('text')
@@ -423,8 +426,8 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .attr('fill', (d) => d.isGhost ? '#A39E93' : '#3D3D3B')
       .attr('pointer-events', 'none')
       .text((d) => {
-        if (d.isGhost) return '← 无造字意义';
-        const def = d.entry?.definition ?? '';
+        if (d.isGhost) return t('cmp.decompGraph.ghostNode');
+        const def = getLocalizedDefinition(d.entry, lang);
         return def.length > 20 ? def.slice(0, 20) + '...' : def;
       });
 
@@ -506,7 +509,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
       svg.selectAll('*').remove();
       svg.on('.zoom', null);
     };
-  }, [decomposition]);
+  }, [decomposition, lang, t]);
 
   return (
     <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded-lg bg-white ${className}`}>

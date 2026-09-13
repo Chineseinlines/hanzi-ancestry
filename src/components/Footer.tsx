@@ -1,7 +1,18 @@
 import { Link } from 'react-router-dom';
 import { Github } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Footer() {
+  const { t } = useLanguage();
+  const navLinks = [
+    { labelKey: 'nav.home', path: '/' },
+    { labelKey: 'nav.explore', path: '/explore' },
+    { labelKey: 'nav.learn', path: '/learn' },
+    { labelKey: 'nav.quiz', path: '/quiz' },
+    { labelKey: 'nav.games', path: '/games' },
+    { labelKey: 'nav.about', path: '/about' },
+  ];
+
   return (
     <footer className="bg-ink-black text-rice-paper/70">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -15,56 +26,25 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm leading-relaxed text-rice-paper/50">
-              通过交互式拆解与词源探索，揭示汉字的内部架构。
-            </p>
-            <p className="text-xs leading-relaxed text-rice-paper/30 mt-1.5">
-              Unveiling the architecture of Chinese characters through interactive
-              decomposition and etymological exploration.
+              {t('footer.tagline')}
             </p>
           </div>
 
           {/* Column 2: Navigation */}
           <div>
             <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-rice-paper/40">
-              导航
+              {t('footer.navHeading')}
             </h4>
             <div className="flex flex-col gap-2">
-              <Link
-                to="/"
-                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
-              >
-                首页
-              </Link>
-              <Link
-                to="/explore"
-                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
-              >
-                探索
-              </Link>
-              <Link
-                to="/learn"
-                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
-              >
-                学习
-              </Link>
-              <Link
-                to="/quiz"
-                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
-              >
-                题库
-              </Link>
-              <Link
-                to="/games"
-                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
-              >
-                游戏
-              </Link>
-              <Link
-                to="/about"
-                className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
-              >
-                关于
-              </Link>
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className="text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
+                >
+                  {t(link.labelKey)}
+                </Link>
+              ))}
               <a
                 href="https://github.com/skishore/makemeahanzi"
                 target="_blank"
@@ -80,10 +60,10 @@ export default function Footer() {
           {/* Column 3: Data attribution */}
           <div>
             <h4 className="mb-4 text-xs font-semibold uppercase tracking-[0.1em] text-rice-paper/40">
-              数据来源
+              {t('footer.dataHeading')}
             </h4>
             <p className="text-sm leading-relaxed text-rice-paper/50">
-              数据来自{' '}
+              {t('footer.dataFrom')}{' '}
               <a
                 href="https://github.com/skishore/makemeahanzi"
                 target="_blank"
@@ -93,7 +73,7 @@ export default function Footer() {
                 Make Me A Hanzi
               </a>
               {' · '}
-              收录 1,111 个汉字的完整拆解数据。
+              {t('footer.dataDesc')}
             </p>
           </div>
         </div>
@@ -101,7 +81,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 border-t border-rice-paper/10 pt-6 text-center">
           <p className="text-xs text-rice-paper/40">
-            &copy; {new Date().getFullYear()} 字里行间 LINES. 用心构建，为汉字之美。
+            {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
         </div>
       </div>

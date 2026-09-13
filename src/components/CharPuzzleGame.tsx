@@ -5,6 +5,7 @@ import type { GameMode, GameState, PuzzleRound } from '../data/types';
 import { getCharacter, getCognates, getCharactersWithComponent, getAllCharacters } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { saveQuizAttempt } from '../lib/database';
 
 const COMMON_6500 = new Set(COMMON_CHAR_SET);
@@ -177,6 +178,7 @@ function generatePuzzle(targetChar: string, mode: GameMode): PuzzleRound | null 
 
 export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, modes, title }: CharPuzzleGameProps) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const maxStreakRef = useRef(0);
   const resultsRef = useRef<Array<{ questionIndex: number; questionType: string; prompt: string; correctChar: string; userAnswer: string; isCorrect: boolean }>>([]);
   const [gameState, setGameState] = useState<GameState>({
@@ -408,13 +410,13 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
       <div className="rounded-2xl p-6 text-center" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
         <Trophy size={40} className="mx-auto mb-3" style={{ color: '#C4A265' }} />
         <h2 className="text-xl font-display mb-2" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-          Game Complete!
+          {t('cmp.puzzle.gameComplete')}
         </h2>
         <p className="text-3xl font-bold mb-1" style={{ color: '#C23B2A' }}>
           {gameState.score} pts
         </p>
         <p className="text-sm mb-4" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-          Max streak: {gameState.streak} · {TOTAL_ROUNDS} rounds
+          {t('cmp.puzzle.maxStreak', { n: gameState.streak, total: TOTAL_ROUNDS })}
         </p>
         <div className="flex gap-3 justify-center">
           <button
@@ -422,7 +424,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
             className="rounded-full px-5 py-2 text-sm font-medium transition-all hover:scale-105"
             style={{ background: '#C23B2A', color: '#F5F0E8', fontFamily: 'Inter' }}
           >
-            Play Again
+            {t('cmp.puzzle.playAgain')}
           </button>
         </div>
       </div>
@@ -434,7 +436,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
       <div className="rounded-2xl p-6 flex items-center justify-center" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)', minHeight: 300 }}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#C23B2A', borderTopColor: 'transparent' }} />
-          <span className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>Generating puzzle...</span>
+          <span className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('cmp.puzzle.generating')}</span>
         </div>
       </div>
     );
@@ -450,13 +452,13 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
           </div>
           <div>
             <h2 className="text-lg font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-              {title || '汉字拼拆工坊'}
+              {title || t('cmp.puzzle.defaultTitle')}
             </h2>
             <p className="text-xs" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-              Round {gameState.round}/{TOTAL_ROUNDS}
+              {t('cmp.puzzle.round', { n: gameState.round, total: TOTAL_ROUNDS })}
               {gameState.streak >= 3 && (
                 <span className="ml-2" style={{ color: '#C23B2A' }}>
-                  🔥 {gameState.streak}x streak!
+                  🔥 {t('cmp.puzzle.streak', { n: gameState.streak })}
                 </span>
               )}
             </p>
@@ -464,7 +466,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
         </div>
         <div className="text-right">
           <div className="text-lg font-bold" style={{ color: '#C23B2A' }}>{gameState.score}</div>
-          <div className="text-[10px] uppercase tracking-wider" style={{ color: '#8B6914', fontFamily: 'Inter' }}>Points</div>
+          <div className="text-[10px] uppercase tracking-wider" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('cmp.puzzle.points')}</div>
         </div>
       </div>
 
@@ -475,7 +477,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
             className="rounded-full px-2.5 py-0.5 text-xs font-medium"
             style={{ background: 'rgba(107,127,94,0.15)', color: '#6B7F5E', fontFamily: 'Inter' }}
           >
-            {puzzle.mode === 'decompose' ? '拆字挑战' : puzzle.mode === 'assemble' ? '拼字挑战' : '连连看'}
+            {puzzle.mode === 'decompose' ? t('cmp.puzzle.modeDecompose') : puzzle.mode === 'assemble' ? t('cmp.puzzle.modeAssemble') : t('cmp.puzzle.modeMatch')}
           </span>
         </div>
 
@@ -489,7 +491,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
               exit={{ opacity: 0, y: -12 }}
             >
               <p className="text-xs mb-3" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                Select the correct components of this character:
+                {t('cmp.puzzle.selectComponents')}
               </p>
               <div className="text-center mb-4">
                 <span
@@ -546,7 +548,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
                     className="rounded-full px-5 py-2 text-sm font-medium transition-all hover:scale-105 disabled:opacity-40"
                     style={{ background: '#C23B2A', color: '#F5F0E8', fontFamily: 'Inter' }}
                   >
-                    Check Answer
+                    {t('cmp.puzzle.checkAnswer')}
                   </button>
                 </div>
               )}
@@ -562,7 +564,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
               exit={{ opacity: 0, y: -12 }}
             >
               <p className="text-xs mb-3" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                Which character is made from these components?
+                {t('cmp.puzzle.whichChar')}
               </p>
               <div className="flex gap-3 justify-center mb-4">
                 {puzzle.components.map((comp) => (
@@ -625,7 +627,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
               exit={{ opacity: 0, y: -12 }}
             >
               <p className="text-xs mb-3" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                Match each component to a character that contains it:
+                {t('cmp.puzzle.matchComponents')}
               </p>
 
               <div className="flex gap-6 justify-center mb-4">
@@ -711,7 +713,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
                   className="rounded-full px-4 py-1.5 text-xs font-medium transition-all"
                   style={{ background: 'rgba(26,26,24,0.05)', color: '#3D3D3B', fontFamily: 'Inter' }}
                 >
-                  Clear
+                  {t('cmp.puzzle.clear')}
                 </button>
                 {!gameState.feedback && (
                   <button
@@ -720,7 +722,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
                     className="rounded-full px-5 py-2 text-sm font-medium transition-all hover:scale-105 disabled:opacity-40"
                     style={{ background: '#C23B2A', color: '#F5F0E8', fontFamily: 'Inter' }}
                   >
-                    Check Answer
+                    {t('cmp.puzzle.checkAnswer')}
                   </button>
                 )}
               </div>
@@ -754,8 +756,8 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
                   }}
                 >
                   {gameState.feedback === 'correct'
-                    ? `Correct! +${puzzle.points + (gameState.streak >= 3 ? (gameState.streak - 1) * 2 : 0)}`
-                    : `Nope! Answer: ${gameState.correctAnswer}`}
+                    ? t('cmp.puzzle.correct', { n: puzzle.points + (gameState.streak >= 3 ? (gameState.streak - 1) * 2 : 0) })
+                    : t('cmp.puzzle.wrong', { a: gameState.correctAnswer ?? '' })}
                 </span>
               </div>
               <button
@@ -763,7 +765,7 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
                 className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-all hover:scale-105"
                 style={{ background: '#1A1A18', color: '#F5F0E8', fontFamily: 'Inter' }}
               >
-                {gameState.round >= TOTAL_ROUNDS ? 'View Results' : 'Next'}
+                {gameState.round >= TOTAL_ROUNDS ? t('cmp.puzzle.viewResults') : t('cmp.puzzle.next')}
                 <ArrowRight size={14} />
               </button>
             </motion.div>

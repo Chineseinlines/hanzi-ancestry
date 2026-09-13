@@ -9,8 +9,10 @@ import {
   loadRelations,
   loadSimpTradMap,
   scoreRelations,
+  getLocalizedDefinition,
 } from '../data/hanziData';
 import type { HanziEntry, ScoredRelation } from '../data/types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type SortKey = 'total' | 'form' | 'sound' | 'meaning';
 
@@ -35,6 +37,7 @@ const TAG_COLORS: Record<string, string> = {
 export default function CharacterRelations() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { lang, t } = useLanguage();
   const char = searchParams.get('char') || '';
 
   const [entry, setEntry] = useState<HanziEntry | null>(null);
@@ -82,7 +85,7 @@ export default function CharacterRelations() {
               <animate attributeName="stroke-dashoffset" from="480" to="0" dur="2s" repeatCount="indefinite" />
             </circle>
           </svg>
-          <span className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>Loading relations...</span>
+          <span className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('relations.loading')}</span>
         </div>
       </div>
     );
@@ -93,12 +96,12 @@ export default function CharacterRelations() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4" style={{ background: '#F5F0E8' }}>
         <span className="text-6xl" style={{ fontFamily: '"Ma Shan Zheng", cursive', color: '#C23B2A' }}>{char || '?'}</span>
-        <h1 className="text-2xl font-display" style={{ color: '#1A1A18' }}>Character not found</h1>
+        <h1 className="text-2xl font-display" style={{ color: '#1A1A18' }}>{t('common.charNotFound')}</h1>
         <p className="text-sm text-center max-w-md" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-          This character is not yet in our database.
+          {t('common.charNotFoundDesc')}
         </p>
         <button onClick={() => navigate('/explore')} className="px-6 py-2.5 rounded-full text-sm font-medium transition-all hover:scale-105" style={{ background: '#C23B2A', color: '#F5F0E8', fontFamily: 'Inter' }}>
-          Go to Explorer
+          {t('common.goToExplorer')}
         </button>
       </div>
     );
@@ -112,11 +115,11 @@ export default function CharacterRelations() {
         <div className="relative max-w-5xl mx-auto">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'rgba(245,240,232,0.5)', fontFamily: 'Inter' }}>
-            <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/')}>Home</span>
+            <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/')}>{t('nav.home')}</span>
             <span>/</span>
             <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate(`/detail?char=${encodeURIComponent(char)}`)}>{char}</span>
             <span>/</span>
-            <span style={{ color: '#F5F0E8' }}>Relations</span>
+            <span style={{ color: '#F5F0E8' }}>{t('relations.breadcrumbRelations')}</span>
           </div>
 
           {/* Back button */}
@@ -126,7 +129,7 @@ export default function CharacterRelations() {
             style={{ color: 'rgba(245,240,232,0.6)', fontFamily: 'Inter' }}
           >
             <ArrowLeft size={14} />
-            Back to {char}
+            {t('relations.backTo', { c: char })}
           </button>
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center">
@@ -138,11 +141,11 @@ export default function CharacterRelations() {
                 <span key={i} className="text-lg tracking-wide" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{p}</span>
               ))}
               <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: 'rgba(107,127,94,0.2)', color: '#6B7F5E', fontFamily: 'Inter' }}>
-                Radical: {entry.radical}
+                {t('detail.radical')}: {entry.radical}
               </span>
             </div>
             <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: 'rgba(245,240,232,0.75)', fontFamily: 'Inter' }}>
-              {entry.definition}
+              {getLocalizedDefinition(entry, lang)}
             </p>
           </motion.div>
         </div>
@@ -153,20 +156,20 @@ export default function CharacterRelations() {
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-              {relations.length} related characters
+              {t('relations.relatedCount', { n: relations.length })}
             </span>
             <button
               onClick={() => setShowLegend(!showLegend)}
               className="flex items-center gap-1 text-xs transition-colors"
               style={{ color: showLegend ? '#C23B2A' : 'rgba(139,105,20,0.5)', fontFamily: 'Inter' }}
-              title="Scoring legend"
+              title={t('relations.scoringLegend')}
             >
               <Info size={12} />
-              Legend
+              {t('relations.legend')}
             </button>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-xs mr-1" style={{ color: '#8B6914', fontFamily: 'Inter' }}>Sort by:</span>
+            <span className="text-xs mr-1" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('relations.sortBy')}</span>
             {SORT_OPTIONS.map(opt => (
               <button
                 key={opt.key}
@@ -179,7 +182,7 @@ export default function CharacterRelations() {
                   border: sortBy === opt.key ? '1px solid #C23B2A' : '1px solid transparent',
                 }}
               >
-                {opt.label}
+                {lang === 'zh' ? opt.label : opt.en}
               </button>
             ))}
           </div>
@@ -193,22 +196,22 @@ export default function CharacterRelations() {
             <div className="flex items-start gap-2">
               <div className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0" style={{ background: '#2D5F8A' }} />
               <div>
-                <span className="font-semibold" style={{ color: '#1A1A18' }}>Form 字形 (40%)</span>
-                <p className="mt-0.5" style={{ color: '#8B6914' }}>Shared components, radical, phonetic/semantic element match</p>
+                <span className="font-semibold" style={{ color: '#1A1A18' }}>{t('relations.formLegend')}</span>
+                <p className="mt-0.5" style={{ color: '#8B6914' }}>{t('relations.formLegendDesc')}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0" style={{ background: '#CA6702' }} />
               <div>
-                <span className="font-semibold" style={{ color: '#1A1A18' }}>Sound 字音 (35%)</span>
-                <p className="mt-0.5" style={{ color: '#8B6914' }}>Exact homophone or near-homophone (same syllable, different tone)</p>
+                <span className="font-semibold" style={{ color: '#1A1A18' }}>{t('relations.soundLegend')}</span>
+                <p className="mt-0.5" style={{ color: '#8B6914' }}>{t('relations.soundLegendDesc')}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0" style={{ background: '#6B7F5E' }} />
               <div>
-                <span className="font-semibold" style={{ color: '#1A1A18' }}>Meaning 字义 (25%)</span>
-                <p className="mt-0.5" style={{ color: '#8B6914' }}>Semantic family, antonym pairs, etymological derivation, shared radical</p>
+                <span className="font-semibold" style={{ color: '#1A1A18' }}>{t('relations.meaningLegend')}</span>
+                <p className="mt-0.5" style={{ color: '#8B6914' }}>{t('relations.meaningLegendDesc')}</p>
               </div>
             </div>
           </div>
@@ -245,7 +248,7 @@ export default function CharacterRelations() {
                   {/* Pinyin + Definition */}
                   <span className="text-[10px] mt-1" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{rel.pinyin}</span>
                   <span className="text-[10px] mt-0.5 line-clamp-1 mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                    {(info?.definition || rel.definition).slice(0, 12)}
+                    {(getLocalizedDefinition(info, lang) || rel.definition).slice(0, 12)}
                   </span>
 
                   {/* Total Score */}
@@ -256,9 +259,9 @@ export default function CharacterRelations() {
 
                   {/* Dimension Bars */}
                   <div className="w-full space-y-0.5 mb-2">
-                    <ScoreBar label="形" value={rel.formScore} color="#2D5F8A" />
-                    <ScoreBar label="音" value={rel.soundScore} color="#CA6702" />
-                    <ScoreBar label="义" value={rel.meaningScore} color="#6B7F5E" />
+                    <ScoreBar label={t('relations.scoreForm')} value={rel.formScore} color="#2D5F8A" />
+                    <ScoreBar label={t('relations.scoreSound')} value={rel.soundScore} color="#CA6702" />
+                    <ScoreBar label={t('relations.scoreMeaning')} value={rel.meaningScore} color="#6B7F5E" />
                   </div>
 
                   {/* Tags */}
@@ -273,7 +276,7 @@ export default function CharacterRelations() {
                             color: TAG_COLORS[tag] || '#8B6914',
                             fontFamily: 'Inter',
                           }}
-                        >{tag}</span>
+                        >{t(`data.tags.${tag}`)}</span>
                       ))}
                     </div>
                   )}
@@ -283,7 +286,7 @@ export default function CharacterRelations() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <p className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>No related characters found for {char}.</p>
+            <p className="text-sm" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('relations.noRelations', { c: char })}</p>
           </div>
         )}
       </div>

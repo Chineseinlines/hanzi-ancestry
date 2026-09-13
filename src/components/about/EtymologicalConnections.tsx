@@ -1,18 +1,20 @@
 import { motion } from 'framer-motion';
 import { fadeUp, staggerContainer, viewportOnce } from './variants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const spearChars = [
-  { char: '我', pinyin: 'wǒ', meaning: 'I, me' },
-  { char: '战', pinyin: 'zhàn', meaning: 'war, battle' },
-  { char: '武', pinyin: 'wǔ', meaning: 'military' },
-  { char: '戏', pinyin: 'xì', meaning: 'play, drama' },
-  { char: '戎', pinyin: 'róng', meaning: 'weapons' },
-  { char: '戍', pinyin: 'shù', meaning: 'garrison' },
-  { char: '戒', pinyin: 'jiè', meaning: 'guard against' },
-  { char: '戮', pinyin: 'lù', meaning: 'kill' },
+  { char: '我', pinyin: 'wǒ' },
+  { char: '战', pinyin: 'zhàn' },
+  { char: '武', pinyin: 'wǔ' },
+  { char: '戏', pinyin: 'xì' },
+  { char: '戎', pinyin: 'róng' },
+  { char: '戍', pinyin: 'shù' },
+  { char: '戒', pinyin: 'jiè' },
+  { char: '戮', pinyin: 'lù' },
 ];
 
 export default function EtymologicalConnections() {
+  const { t } = useLanguage();
   return (
     <section className="bg-rice-paper py-16 md:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -29,11 +31,10 @@ export default function EtymologicalConnections() {
             className="font-display font-bold leading-[1.25] tracking-[-0.01em] text-ink-black"
             style={{ fontSize: 'clamp(1.5rem, 3vw, 2.5rem)' }}
           >
-            Hidden Connections
+            {t('about.hiddenConnections')}
           </h2>
           <p className="mt-3 text-base text-charcoal">
-            Characters that share components often share meaning — discover the
-            etymological family tree
+            {t('about.hcSubtitle')}
           </p>
         </motion.div>
 
@@ -46,28 +47,9 @@ export default function EtymologicalConnections() {
           viewport={viewportOnce}
           custom={0.15}
         >
-          <p>
-            When two characters share a component, they are often etymologically
-            related. This app discovers these hidden connections by analyzing the leaf
-            components of any character and finding all other characters that contain
-            those same building blocks.
-          </p>
-          <p>
-            For example, the character{' '}
-            <span className="font-serif-cn text-lg font-semibold text-ink-black">国</span>{' '}
-            (country) contains the component{' '}
-            <span className="font-serif-cn text-lg font-semibold text-cinnabar">戈</span>{' '}
-            (halberd / spear). When we search for other characters containing{' '}
-            <span className="font-serif-cn text-cinnabar">戈</span>, we find a family of
-            related characters — all connected through the concept of warfare and defense
-            that the <span className="font-serif-cn text-cinnabar">戈</span> component
-            represents.
-          </p>
-          <p>
-            These connections reveal the deep semantic networks embedded in the Chinese
-            writing system — a living fossil of how ancient Chinese thinkers organized
-            their understanding of the world.
-          </p>
+          <p>{t('about.hcP1')}</p>
+          <p>{t('about.hcP2')}</p>
+          <p>{t('about.hcP3')}</p>
         </motion.div>
 
         {/* Character cards */}
@@ -86,10 +68,10 @@ export default function EtymologicalConnections() {
           >
             <div className="flex items-center gap-3 rounded-full bg-ink-black px-5 py-2">
               <span className="font-serif-cn text-[1.25rem] font-bold text-cinnabar">戈</span>
-              <span className="text-[0.8125rem] text-rice-paper/70">Spear / Halberd component</span>
+              <span className="text-[0.8125rem] text-rice-paper/70">{t('about.spearBadge')}</span>
             </div>
             <p className="mt-2 text-sm text-charcoal">
-              Characters containing this component
+              {t('about.containingComp')}
             </p>
           </motion.div>
 
@@ -110,7 +92,7 @@ export default function EtymologicalConnections() {
                   {item.pinyin}
                 </span>
                 <span className="mt-0.5 text-center text-[0.6875rem] leading-tight text-charcoal/70">
-                  {item.meaning}
+                  {t(`about.spearMeanings.${item.char}`)}
                 </span>
               </motion.div>
             ))}
@@ -121,10 +103,7 @@ export default function EtymologicalConnections() {
             variants={fadeUp}
             className="mt-6 text-center text-sm text-charcoal"
           >
-            These characters all relate to{' '}
-            <span className="font-medium text-ink-black">weapons, warfare, or military</span>{' '}
-            concepts because they share the{' '}
-            <span className="font-serif-cn font-semibold text-cinnabar">戈</span> component.
+            {t('about.spearConclusion')}
           </motion.p>
         </motion.div>
       </div>

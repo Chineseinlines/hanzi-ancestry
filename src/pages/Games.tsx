@@ -8,6 +8,7 @@ import CharPuzzleGame from '../components/CharPuzzleGame';
 import AncientGlyphGame from '../components/AncientGlyphGame';
 import { getAllCharacters, hasCharacter } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const COMMON_6500 = new Set(COMMON_CHAR_SET);
 
@@ -33,6 +34,7 @@ function getRandomChar(): string {
 
 export default function Games() {
   const navigate = useNavigate();
+  const { lang, t } = useLanguage();
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [gameChar, setGameChar] = useState('国');
   const [charInput, setCharInput] = useState('');
@@ -44,6 +46,7 @@ export default function Games() {
       icon: <Pencil size={18} />,
       games: [
         {
+          id: 'stroke-quiz',
           icon: <Pencil size={24} />,
           title: '笔画闯关',
           en: 'Stroke Quiz',
@@ -52,6 +55,7 @@ export default function Games() {
           available: false,
         },
         {
+          id: 'stroke-order',
           icon: <Pencil size={24} />,
           title: '笔顺模拟书写',
           en: 'Stroke Order',
@@ -60,6 +64,7 @@ export default function Games() {
           available: false,
         },
         {
+          id: 'tricky-strokes',
           icon: <Trophy size={24} />,
           title: '易错字专项训练',
           en: 'Tricky Strokes',
@@ -75,6 +80,7 @@ export default function Games() {
       icon: <Puzzle size={18} />,
       games: [
         {
+          id: 'radical-match',
           icon: <Puzzle size={24} />,
           title: '部首连连看',
           en: 'Radical Match',
@@ -83,6 +89,7 @@ export default function Games() {
           available: true,
         },
         {
+          id: 'component-builder',
           icon: <Puzzle size={24} />,
           title: '部件拼字闯关',
           en: 'Component Builder',
@@ -91,6 +98,7 @@ export default function Games() {
           available: true,
         },
         {
+          id: 'phono-semantic',
           icon: <Brain size={24} />,
           title: '形声字专项',
           en: 'Phono-Semantic',
@@ -99,6 +107,7 @@ export default function Games() {
           available: false,
         },
         {
+          id: 'variant-radicals',
           icon: <Eye size={24} />,
           title: '变形部件辨识',
           en: 'Variant Radicals',
@@ -114,6 +123,7 @@ export default function Games() {
       icon: <Eye size={18} />,
       games: [
         {
+          id: 'lookalike',
           icon: <Eye size={24} />,
           title: '形近字找茬',
           en: 'Lookalike Finder',
@@ -122,6 +132,7 @@ export default function Games() {
           available: false,
         },
         {
+          id: 'pronunciation',
           icon: <Brain size={24} />,
           title: '读音闯关',
           en: 'Pronunciation Quiz',
@@ -130,6 +141,7 @@ export default function Games() {
           available: false,
         },
         {
+          id: 'hsk-levels',
           icon: <Trophy size={24} />,
           title: 'HSK分级识字',
           en: 'HSK Levels',
@@ -145,6 +157,7 @@ export default function Games() {
       icon: <ScrollText size={18} />,
       games: [
         {
+          id: 'glyph-guess',
           icon: <ScrollText size={24} />,
           title: '古字形猜字',
           en: 'Ancient Glyph Guess',
@@ -153,6 +166,7 @@ export default function Games() {
           available: true,
         },
         {
+          id: 'char-stories',
           icon: <ScrollText size={24} />,
           title: '汉字故事答题',
           en: 'Character Stories',
@@ -161,6 +175,7 @@ export default function Games() {
           available: false,
         },
         {
+          id: 'fun-facts',
           icon: <Brain size={24} />,
           title: '汉字冷知识挑战',
           en: 'Fun Facts',
@@ -177,9 +192,10 @@ export default function Games() {
 
   // ── Game play mode ──────────────────────────────────────────────
   if (activeGame) {
-    const isGlyphGame = activeGame === '古字形猜字';
-    const isRadicalMatch = activeGame === '部首连连看';
-    const isComponentBuilder = activeGame === '部件拼字闯关';
+    const activeGameInfo = availableGames.find(g => g.id === activeGame);
+    const isGlyphGame = activeGame === 'glyph-guess';
+    const isRadicalMatch = activeGame === 'radical-match';
+    const isComponentBuilder = activeGame === 'component-builder';
 
     return (
       <div className="min-h-screen bg-bg-primary pb-20">
@@ -191,15 +207,17 @@ export default function Games() {
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-charcoal/60 hover:text-ink-black hover:bg-bg-warm transition-colors"
             >
               <ArrowLeft size={16} />
-              返回游戏列表
+              {t('games.backToList')}
             </button>
             <span className="h-4 w-px bg-border-light" />
-            <span className="text-sm font-medium text-ink-black">{activeGame}</span>
+            <span className="text-sm font-medium text-ink-black">
+              {lang === 'zh' ? activeGameInfo?.title : activeGameInfo?.en}
+            </span>
 
             {/* Character selector — only for puzzle games, not glyph game */}
             {!isGlyphGame && (
               <div className="ml-auto flex items-center gap-2">
-                <span className="text-xs text-charcoal/50">当前汉字:</span>
+                <span className="text-xs text-charcoal/50">{t('games.currentChar')}</span>
                 <span className="font-serif-cn text-lg font-bold text-ink-black">{gameChar}</span>
                 <div className="flex items-center gap-1">
                   <input
@@ -215,7 +233,7 @@ export default function Games() {
                         }
                       }
                     }}
-                    placeholder="换字"
+                    placeholder={t('games.changeChar')}
                     className="w-16 rounded border border-border-light px-2 py-1 text-center font-serif-cn text-sm outline-none focus:border-cinnabar"
                   />
                   <button
@@ -224,7 +242,7 @@ export default function Games() {
                       setCharInput('');
                     }}
                     className="flex items-center justify-center rounded-lg p-1.5 text-charcoal/40 hover:text-cinnabar hover:bg-cinnabar/5 transition-colors"
-                    title="随机换字"
+                    title={t('games.randomChar')}
                   >
                     <Shuffle size={16} />
                   </button>
@@ -239,9 +257,9 @@ export default function Games() {
           {isGlyphGame
             ? <AncientGlyphGame key={activeGame} />
             : isRadicalMatch
-            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['match']} title="部首连连看" />
+            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['match']} title={lang === 'zh' ? '部首连连看' : 'Radical Match'} />
             : isComponentBuilder
-            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['decompose', 'assemble']} title="部件拼字闯关" />
+            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['decompose', 'assemble']} title={lang === 'zh' ? '部件拼字闯关' : 'Component Builder'} />
             : <CharPuzzleGame key={gameChar} targetChar={gameChar} />
           }
         </div>
@@ -250,26 +268,26 @@ export default function Games() {
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-border-light">
           <div className="mx-auto max-w-2xl flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
             <span className="text-[0.625rem] font-medium text-charcoal/40 uppercase tracking-wider flex-shrink-0" style={{ fontFamily: 'Inter' }}>
-              切换游戏
+              {t('games.switchGame')}
             </span>
             {availableGames.map((game) => (
               <button
-                key={game.title}
+                key={game.id}
                 onClick={() => {
-                  if (game.title === '古字形猜字') {
-                    setActiveGame(game.title);
+                  if (game.id === 'glyph-guess') {
+                    setActiveGame(game.id);
                   } else {
                     setGameChar(getRandomChar());
-                    setActiveGame(game.title);
+                    setActiveGame(game.id);
                   }
                 }}
                 className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
-                  activeGame === game.title
+                  activeGame === game.id
                     ? 'bg-ink-black text-white'
                     : 'bg-bg-warm text-charcoal/70 hover:bg-cinnabar/10 hover:text-cinnabar'
                 }`}
               >
-                {game.title}
+                {lang === 'zh' ? game.title : game.en}
               </button>
             ))}
           </div>
@@ -294,7 +312,7 @@ export default function Games() {
             transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="font-display-cn text-[clamp(3rem,6vw,5rem)] leading-tight text-rice-paper"
           >
-            汉字游戏
+            {t('games.heroTitle')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -303,7 +321,7 @@ export default function Games() {
             className="mt-3 text-base text-rice-paper/60"
             style={{ fontFamily: 'Inter, sans-serif' }}
           >
-            游戏即练习，练习即巩固 — Game-based learning
+            {t('games.heroSubtitle')}
           </motion.p>
         </div>
       </section>
@@ -326,8 +344,7 @@ export default function Games() {
                 {cat.icon}
               </div>
               <div>
-                <h2 className="font-serif-cn text-lg font-bold text-ink-black">{cat.label}</h2>
-                <p className="text-xs text-charcoal/50" style={{ fontFamily: 'Inter, sans-serif' }}>{cat.en}</p>
+                <h2 className="font-serif-cn text-lg font-bold text-ink-black">{lang === 'zh' ? cat.label : cat.en}</h2>
               </div>
             </div>
 
@@ -335,7 +352,7 @@ export default function Games() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {cat.games.map((game, gi) => (
                 <motion.div
-                  key={game.title}
+                  key={game.id}
                   variants={fadeUp}
                   custom={gi * 0.08}
                   className={`group rounded-2xl transition-all duration-300 ${
@@ -355,7 +372,7 @@ export default function Games() {
                   onClick={() => {
                     if (game.available) {
                       setGameChar(getRandomChar());
-                      setActiveGame(game.title);
+                      setActiveGame(game.id);
                     }
                   }}
                 >
@@ -377,14 +394,12 @@ export default function Games() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className={`font-serif-cn font-semibold text-ink-black ${game.available ? 'text-lg' : 'text-base'}`}>{game.title}</h3>
-                        <span className="rounded-full px-1.5 py-px text-[0.625rem] font-medium text-charcoal/40" style={{ background: 'rgba(26,26,24,0.05)', fontFamily: 'Inter' }}>
-                          {game.category}
-                        </span>
+                        <h3 className={`font-serif-cn font-semibold text-ink-black ${game.available ? 'text-lg' : 'text-base'}`}>
+                          {lang === 'zh' ? game.title : game.en}
+                        </h3>
                       </div>
-                      <p className="mt-0.5 text-[0.6875rem] text-charcoal/40" style={{ fontFamily: 'Inter' }}>{game.en}</p>
                       <p className={`leading-relaxed text-charcoal/60 ${game.available ? 'mt-3 text-sm' : 'mt-2 text-xs'}`} style={{ fontFamily: 'Inter' }}>
-                        {game.desc}
+                        {lang === 'zh' ? game.desc : t(`games.desc.${game.id}`)}
                       </p>
                     </div>
                   </div>
@@ -400,7 +415,7 @@ export default function Games() {
                           fontFamily: 'Inter',
                         }}
                       >
-                        开始游戏 <span className="text-base leading-none">&rarr;</span>
+                        {t('games.startGame')} <span className="text-base leading-none">&rarr;</span>
                       </span>
                     ) : (
                       <span
@@ -411,7 +426,7 @@ export default function Games() {
                           fontFamily: 'Inter',
                         }}
                       >
-                        即将上线
+                        {t('games.comingSoon')}
                       </span>
                     )}
                   </div>
@@ -434,15 +449,15 @@ export default function Games() {
           }}
         >
           <Trophy size={36} className="mx-auto mb-3 text-cinnabar" />
-          <h2 className="font-serif-cn text-xl font-bold text-rice-paper">试试已有的拆字游戏</h2>
+          <h2 className="font-serif-cn text-xl font-bold text-rice-paper">{t('games.tryPuzzle')}</h2>
           <p className="mt-2 text-sm text-rice-paper/60" style={{ fontFamily: 'Inter' }}>
-            在汉字详情页的「趣味练习」标签中，已有部件拆解、部件组合和连连看三种模式等你挑战
+            {t('games.tryPuzzleDesc')}
           </p>
           <button
             onClick={() => navigate('/explore?char=国')}
             className="mt-5 inline-flex items-center rounded-full bg-cinnabar px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 hover:scale-105 hover:bg-vermilion-light"
           >
-            去试试 &rarr;
+            {t('games.goTry')} &rarr;
           </button>
         </motion.div>
 

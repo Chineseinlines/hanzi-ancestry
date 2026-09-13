@@ -1,17 +1,19 @@
 import { BookOpen, Database, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeUp, staggerContainer, viewportOnce } from './variants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface DataCardProps {
   icon: React.ReactNode;
   title: string;
-  description: string;
-  link?: { text: string; href: string };
-  stats?: { value: string; label: string }[];
+  descriptionKey: string;
+  link?: { textKey: string; href: string };
+  stats?: { value: string; labelKey: string }[];
   index: number;
 }
 
-function DataCard({ icon, title, description, link, stats, index }: DataCardProps) {
+function DataCard({ icon, title, descriptionKey, link, stats, index }: DataCardProps) {
+  const { t } = useLanguage();
   return (
     <motion.div
       variants={fadeUp}
@@ -33,7 +35,7 @@ function DataCard({ icon, title, description, link, stats, index }: DataCardProp
 
       {/* Description */}
       <p className="mt-3 text-center text-[0.9375rem] leading-[1.7] text-charcoal">
-        {description}
+        {t(descriptionKey)}
       </p>
 
       {/* Stats */}
@@ -45,7 +47,7 @@ function DataCard({ icon, title, description, link, stats, index }: DataCardProp
                 {stat.value}
               </span>
               <span className="mt-0.5 text-[0.6875rem] text-charcoal">
-                {stat.label}
+                {t(stat.labelKey)}
               </span>
             </div>
           ))}
@@ -60,7 +62,7 @@ function DataCard({ icon, title, description, link, stats, index }: DataCardProp
           rel="noopener noreferrer"
           className="mt-5 inline-flex items-center text-[0.875rem] font-medium text-cinnabar transition-colors duration-200 hover:text-vermilion-light hover:underline"
         >
-          {link.text}
+          {t(link.textKey)}
           <svg
             className="ml-1 h-4 w-4"
             fill="none"
@@ -84,51 +86,49 @@ const dataSources: Omit<DataCardProps, 'index'>[] = [
   {
     icon: <BookOpen size={24} />,
     title: 'Make Me A Hanzi',
-    description:
-      'Open-source Chinese character data project by Shaunak Kishore. Provides 4,597 characters with definitions, pinyin, IDS decomposition, etymology, and stroke data.',
+    descriptionKey: 'about.ds1Desc',
     link: {
-      text: 'View on GitHub',
+      textKey: 'about.viewOnGithub',
       href: 'https://github.com/skishore/makemeahanzi',
     },
     stats: [
-      { value: '4,597', label: 'Characters' },
-      { value: 'Full IDS', label: 'Coverage' },
-      { value: 'Open', label: 'Source' },
+      { value: '4,597', labelKey: 'about.charsStat' },
+      { value: 'Full IDS', labelKey: 'about.coverageStat' },
+      { value: 'Open', labelKey: 'about.sourceStat' },
     ],
   },
   {
     icon: <Database size={24} />,
     title: 'CHISE Project',
-    description:
-      'Character Information Service Environment — provides IDS decomposition data for 88,940+ CJK characters.',
+    descriptionKey: 'about.ds2Desc',
     link: {
-      text: 'Learn more',
+      textKey: 'about.learnMore',
       href: 'https://www.chise.org/',
     },
     stats: [
-      { value: '88,940+', label: 'Characters' },
-      { value: 'CJK', label: 'Unified' },
-      { value: 'IDS', label: 'Data' },
+      { value: '88,940+', labelKey: 'about.charsStat' },
+      { value: 'CJK', labelKey: 'about.unifiedStat' },
+      { value: 'IDS', labelKey: 'about.dataStat' },
     ],
   },
   {
     icon: <Globe size={24} />,
     title: 'CC-CEDICT',
-    description:
-      'Community-maintained Chinese-English dictionary used for character definitions and translations.',
+    descriptionKey: 'about.ds3Desc',
     link: {
-      text: 'Learn more',
+      textKey: 'about.learnMore',
       href: 'https://www.mdbg.net/chinese/dictionary?page=cc-cedict',
     },
     stats: [
-      { value: '120K+', label: 'Entries' },
-      { value: 'Open', label: 'License' },
-      { value: 'Community', label: 'Maintained' },
+      { value: '120K+', labelKey: 'about.entriesStat' },
+      { value: 'Open', labelKey: 'about.licenseStat' },
+      { value: 'Community', labelKey: 'about.maintainedStat' },
     ],
   },
 ];
 
 export default function DataAttribution() {
+  const { t } = useLanguage();
   return (
     <section className="bg-bg-warm py-16 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -145,10 +145,10 @@ export default function DataAttribution() {
             className="font-display font-bold leading-[1.25] tracking-[-0.01em] text-ink-black"
             style={{ fontSize: 'clamp(1.5rem, 3vw, 2.5rem)' }}
           >
-            Data Sources
+            {t('about.dataSources')}
           </h2>
           <p className="mt-3 text-base text-charcoal">
-            Standing on the shoulders of open data
+            {t('about.dataSourcesSubtitle')}
           </p>
         </motion.div>
 

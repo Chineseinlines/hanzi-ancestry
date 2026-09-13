@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ShuowenEntry } from '../data/types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface GlyphEvolutionProps {
   character: string;
@@ -56,16 +57,17 @@ function buildImageUrls(_char: string, hex: string, hexUpper: string, style: Scr
   return [glyphwikiUrl];
 }
 
-const SIX_BOOKS_LABELS: Record<string, string> = {
-  '象形': 'Pictographic — 象形字，以线条描摹事物轮廓',
-  '指事': 'Indicative — 指事字，以抽象符号指示意义',
-  '会意': 'Ideographic — 会意字，组合多个部件表达含义',
-  '形声': 'Pictophonetic — 形声字，形旁表意、声旁表音',
-  '转注': 'Transferred — 转注字，互训引申',
-  '假借': 'Borrowed — 假借字，同音借代',
+const SIX_BOOKS_LABEL_KEYS: Record<string, string> = {
+  '象形': 'cmp.glyphEvo.sbXiangxing',
+  '指事': 'cmp.glyphEvo.sbZhishi',
+  '会意': 'cmp.glyphEvo.sbHuiyi',
+  '形声': 'cmp.glyphEvo.sbXingsheng',
+  '转注': 'cmp.glyphEvo.sbZhuanzhu',
+  '假借': 'cmp.glyphEvo.sbJiajie',
 };
 
 export default function GlyphEvolution({ character, traditional, shuowen }: GlyphEvolutionProps) {
+  const { lang, t } = useLanguage();
   const [active, setActive] = useState(4);
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, string | null>>({});
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
@@ -141,7 +143,9 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
   }, []);
 
   const hasShuowen = shuowen && (shuowen.shuowen || shuowen.structure || shuowen.sixBooks);
-  const sixBooksLabel = shuowen?.sixBooks ? SIX_BOOKS_LABELS[shuowen.sixBooks] : undefined;
+  const sixBooksLabel = shuowen?.sixBooks && SIX_BOOKS_LABEL_KEYS[shuowen.sixBooks]
+    ? t(SIX_BOOKS_LABEL_KEYS[shuowen.sixBooks])
+    : undefined;
 
   return (
     <div className="w-full">
@@ -196,7 +200,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                 }}
               />
               <span className="text-xs" style={{ color: 'rgba(26,26,24,0.35)', fontFamily: 'Inter' }}>
-                加载中...
+                {t('cmp.glyphEvo.loading')}
               </span>
             </div>
           ) : hasImage && !imgErrored ? (
@@ -229,7 +233,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                   className="text-xs mt-1"
                   style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
                 >
-                  暂无字形图片
+                  {t('cmp.glyphEvo.noGlyphImage')}
                 </span>
               )}
               {isClerical && (
@@ -237,7 +241,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                   className="text-[11px] mt-1"
                   style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
                 >
-                  未找到真实隶书图片，为您显示的是现代仿隶书字体
+                  {t('cmp.glyphEvo.clericalFallback')}
                 </span>
               )}
             </div>
@@ -258,7 +262,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                 className="text-[0.625rem] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
                 style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}
               >
-                说文解字
+                {t('cmp.glyphEvo.shuowenTitle')}
               </span>
               <span className="text-[0.625rem] font-medium" style={{ color: 'rgba(139,105,20,0.5)', fontFamily: 'Inter' }}>
                 Shuowen Jiezi
@@ -272,7 +276,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                   className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium"
                   style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}
                 >
-                  结构: {shuowen.structure}
+                  {t('cmp.glyphEvo.structureLabel')}: {shuowen.structure}
                 </span>
               )}
               {shuowen.sixBooks && (
@@ -280,7 +284,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                   className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium"
                   style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}
                 >
-                  六书: {shuowen.sixBooks}
+                  {t('cmp.glyphEvo.sixBooksLabel')}: {shuowen.sixBooks}
                 </span>
               )}
             </div>
@@ -292,11 +296,11 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
               </p>
             )}
 
-            {/* English explanation (default visible) */}
-            {buildEnglishSummary(shuowen) && (
+            {/* Summary explanation (language-aware) */}
+            {(lang === 'en' ? buildEnglishSummary(shuowen) : sixBooksLabel) && (
               <div className="rounded-xl p-3" style={{ background: 'rgba(245,240,232,0.6)' }}>
                 <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                  {buildEnglishSummary(shuowen)}
+                  {lang === 'en' ? buildEnglishSummary(shuowen) : sixBooksLabel}
                 </p>
               </div>
             )}
@@ -309,7 +313,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                   className="flex items-center gap-1 text-[0.6875rem] font-medium transition-colors hover:underline"
                   style={{ color: '#C23B2A', fontFamily: 'Inter' }}
                 >
-                  查看原文
+                  {t('cmp.glyphEvo.viewOriginal')}
                   <svg
                     width="10" height="10" viewBox="0 0 10 10" fill="none"
                     className={`transition-transform duration-200 ${showShuowenDetail ? 'rotate-180' : ''}`}
@@ -341,7 +345,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
             {/* No data at all */}
             {!shuowen.shuowen && !shuowen.summary && !shuowen.sixBooks && (
               <p className="text-[0.6875rem] italic" style={{ color: 'rgba(139,105,20,0.4)', fontFamily: 'Inter' }}>
-                暂无说文解字数据
+                {t('cmp.glyphEvo.noShuowen')}
               </p>
             )}
           </motion.div>
@@ -375,20 +379,20 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                     fontFamily: '"Noto Serif SC", serif',
                   }}
                 >
-                  {style.label}
+                  {lang === 'zh' ? style.label : style.en}
                 </div>
                 {hasImg && (
                   <span
                     className="w-1.5 h-1.5 rounded-full"
                     style={{ background: active === i ? '#6B7F5E' : '#C23B2A' }}
-                    title="有字形图片"
+                    title={t('cmp.glyphEvo.hasImage')}
                   />
                 )}
                 {isPending && (
                   <span
                     className="w-1.5 h-1.5 rounded-full animate-pulse"
                     style={{ background: active === i ? 'rgba(255,255,255,0.3)' : 'rgba(26,26,24,0.15)' }}
-                    title="加载中"
+                    title={t('cmp.glyphEvo.loading')}
                   />
                 )}
               </div>
@@ -399,7 +403,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
                   fontFamily: 'Inter',
                 }}
               >
-                {style.en}
+                {lang === 'zh' ? style.en : style.label}
               </div>
             </motion.button>
           );
@@ -415,7 +419,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
           className="text-[0.6875rem] inline-flex items-center gap-1 rounded-full px-3 py-1 transition-colors hover:underline"
           style={{ background: 'rgba(45,95,138,0.06)', color: '#2D5F8A', fontFamily: 'Inter' }}
         >
-          查看汉字源字形 →
+          {t('cmp.glyphEvo.viewHanziyuan')}
         </a>
         <a
           href={`https://ctext.org/dictionary.pl?if=en&char=${encodeURIComponent(displayChar)}`}
@@ -424,14 +428,14 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
           className="text-[0.6875rem] inline-flex items-center gap-1 rounded-full px-3 py-1 transition-colors hover:underline"
           style={{ background: 'rgba(107,127,94,0.08)', color: '#6B7F5E', fontFamily: 'Inter' }}
         >
-          查看 ctext.org →
+          {t('cmp.glyphEvo.viewCtext')}
         </a>
       </div>
 
       {/* No shuowen data at all */}
       {!hasShuowen && (
         <p className="mt-3 text-[0.6875rem] text-center" style={{ color: 'rgba(139,105,20,0.35)', fontFamily: 'Inter' }}>
-          暂无说文解字数据
+          {t('cmp.glyphEvo.noShuowen')}
         </p>
       )}
     </div>

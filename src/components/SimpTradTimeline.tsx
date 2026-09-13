@@ -5,7 +5,14 @@ import {
   getInheritedNote,
   ORIGIN_TYPE_LABELS,
 } from '../data/simpTradOrigins';
+import {
+  ORIGIN_TYPE_LABELS_EN,
+  EN_NOTES,
+  EN_INHERITED_NOTES,
+  EN_DEFAULT_INHERITED_NOTE,
+} from '../data/simpTradOrigins.en';
 import { hasCharacter, getSimplifiedForm } from '../data/hanziData';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface SimpTradTimelineProps {
   /** 当前查看的字 */
@@ -19,9 +26,9 @@ const INTER = 'Inter, sans-serif';
 
 /** 时间线三段：只表先后关系，不标具体年代 */
 const STAGES = [
-  { key: 'ancient', label: '古代字形', en: 'Ancient' },
-  { key: 'traditional', label: '传统通行', en: 'Traditional' },
-  { key: 'modern', label: '现行规范', en: 'Modern' },
+  { key: 'ancient', labelKey: 'cmp.simpTrad.stageAncient' },
+  { key: 'traditional', labelKey: 'cmp.simpTrad.stageTraditional' },
+  { key: 'modern', labelKey: 'cmp.simpTrad.stageModern' },
 ] as const;
 
 function GlyphButton({
@@ -82,18 +89,15 @@ function Connector() {
 
 function StageBlock({
   label,
-  en,
   children,
 }: {
   label: string;
-  en: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center gap-2 min-w-0">
       <span className="text-[0.625rem] tracking-wider uppercase" style={{ color: 'rgba(245,240,232,0.4)', fontFamily: INTER }}>
         {label}
-        <span className="ml-1 opacity-60 normal-case">{en}</span>
       </span>
       {children}
     </div>
@@ -101,6 +105,7 @@ function StageBlock({
 }
 
 export default function SimpTradTimeline({ character, onNavigate }: SimpTradTimelineProps) {
+  const { lang, t } = useLanguage();
   const result = getSimpTradOrigin(character);
   if (!result) return null;
 
@@ -119,12 +124,21 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
     if (simp && hasCharacter(simp)) onNavigate(simp);
   };
 
-  const badge = kind === 'inherited' ? '传承字' : origin ? ORIGIN_TYPE_LABELS[origin.originType] : '简化';
+  const badge = kind === 'inherited'
+    ? t('cmp.simpTrad.inherited')
+    : origin
+      ? (lang === 'zh' ? ORIGIN_TYPE_LABELS[origin.originType] : ORIGIN_TYPE_LABELS_EN[origin.originType])
+      : t('cmp.simpTrad.simplified');
 
   const note = kind === 'inherited'
-    ? getInheritedNote(character)
-    : origin?.note
-      ?? `简体「${simplified}」对应繁体「${traditionals.join('、')}」，为现行规范字。`;
+    ? (lang === 'zh'
+        ? getInheritedNote(character)
+        : EN_INHERITED_NOTES[character] ?? EN_DEFAULT_INHERITED_NOTE)
+    : lang === 'zh'
+      ? origin?.note
+        ?? `简体「${simplified}」对应繁体「${traditionals.join('、')}」，为现行规范字。`
+      : EN_NOTES[character]
+        ?? t('cmp.simpTrad.defaultNote', { s: simplified, t: traditionals.join(', ') });
 
   const renderStage = (stageKey: (typeof STAGES)[number]['key']): ReactNode => {
     switch (stageKey) {
@@ -137,7 +151,7 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
           <div className="flex flex-col items-center gap-1">
             {isRevival && (
               <span className="text-[0.5625rem] tracking-wider" style={{ color: 'rgba(245,240,232,0.4)', fontFamily: INTER }}>
-                俗体并存
+                {t('cmp.simpTrad.coexisting')}
               </span>
             )}
             <div className="flex items-end gap-1.5">
@@ -148,7 +162,7 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
             </div>
             {isRevival && (
               <span className="text-[0.5625rem]" style={{ color: 'rgba(245,240,232,0.4)', fontFamily: INTER }}>
-                「{simplified}」古已有之
+                {t('cmp.simpTrad.ancientOrigin', { c: simplified })}
               </span>
             )}
           </div>
@@ -171,7 +185,7 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
           <div className="flex flex-col items-center gap-1">
             <GlyphButton char={simplified} size="2.5rem" color="#C4A265" ring onClick={navigateTo} />
             <span className="text-[0.5625rem]" style={{ color: '#C4A265', fontFamily: INTER }}>
-              {kind === 'traditional' ? '现行简体' : isRevival ? '回归古字' : isMerger ? '合并为' : '简化'}
+              {kind === 'traditional' ? t('cmp.simpTrad.currentSimplified') : isRevival ? t('cmp.simpTrad.revival') : isMerger ? t('cmp.simpTrad.merged') : t('cmp.simpTrad.simplified')}
             </span>
           </div>
         );
@@ -192,9 +206,9 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="font-serif-cn text-sm" style={{ color: '#F5F0E8' }}>简繁溯源</span>
+          <span className="font-serif-cn text-sm" style={{ color: '#F5F0E8' }}>{t('cmp.simpTrad.title')}</span>
           <span className="text-[0.625rem] uppercase tracking-wider" style={{ color: 'rgba(245,240,232,0.35)', fontFamily: INTER }}>
-            Simp–Trad Origin
+            {t('cmp.simpTrad.titleEn')}
           </span>
         </div>
         <span
@@ -207,7 +221,7 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
           }}
         >
           {badge}
-          {kind === 'traditional' && <span className="ml-1 opacity-60">（您正在查看繁体）</span>}
+          {kind === 'traditional' && <span className="ml-1 opacity-60">{t('cmp.simpTrad.viewingTraditional')}</span>}
         </span>
       </div>
 
@@ -216,7 +230,7 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
         {STAGES.map((stage, i) => (
           <div key={stage.key} className="flex items-start flex-1">
             <div className="flex-1 flex justify-center min-w-0">
-              <StageBlock label={stage.label} en={stage.en}>
+              <StageBlock label={t(stage.labelKey)}>
                 {renderStage(stage.key)}
               </StageBlock>
             </div>

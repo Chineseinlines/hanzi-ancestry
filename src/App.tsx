@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
+import { LanguageProvider } from './contexts/LanguageContext'
 import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import Home from './pages/Home'
@@ -24,26 +25,28 @@ const pageTransition = {
 export default function App() {
   const location = useLocation()
   return (
-    <AuthProvider>
-      <Layout>
-        <AnimatePresence mode="wait">
-          <motion.div key={location.pathname} {...pageTransition}>
-            <Routes location={location}>
-              <Route path="/" element={<Home />} />
-              <Route path="/explore" element={<Explore />} />
-              <Route path="/learn" element={<Learn />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/detail" element={<CharacterDetail />} />
-              <Route path="/relations" element={<CharacterRelations />} />
-              <Route path="/games" element={<Games />} />
-              <Route path="/quiz" element={<Quiz />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/wordbook" element={<WordBook />} />
-              <Route path="/admin" element={<Admin />} />
-            </Routes>
-          </motion.div>
-        </AnimatePresence>
-      </Layout>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Layout>
+          <AnimatePresence mode="wait">
+            <motion.div key={location.pathname} {...pageTransition}>
+              <Routes location={location}>
+                <Route path="/" element={<Home />} />
+                <Route path="/explore" element={<Explore />} />
+                <Route path="/learn" element={<Learn />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/detail" element={<CharacterDetail />} />
+                <Route path="/relations" element={<CharacterRelations />} />
+                <Route path="/games" element={<Games />} />
+                <Route path="/quiz" element={<Quiz />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/wordbook" element={<WordBook />} />
+                <Route path="/admin" element={<Admin />} />
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
+        </Layout>
+      </AuthProvider>
+    </LanguageProvider>
   )
 }

@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fadeUp, scaleIn, viewportOnce } from './variants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function CTABanner() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <section
@@ -23,7 +25,7 @@ export default function CTABanner() {
           viewport={viewportOnce}
           custom={0}
         >
-          Start Exploring Characters
+          {t('about.ctaTitle')}
         </motion.h2>
 
         <motion.p
@@ -35,7 +37,7 @@ export default function CTABanner() {
           viewport={viewportOnce}
           custom={0.15}
         >
-          Discover the hidden structure and connections in every character
+          {t('about.ctaSubtitle')}
         </motion.p>
 
         <motion.div
@@ -49,7 +51,7 @@ export default function CTABanner() {
             onClick={() => navigate('/explore')}
             className="mt-8 inline-flex items-center rounded-full bg-cinnabar px-8 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:bg-vermilion-light hover:shadow-cinnabar"
           >
-            Go to Explorer
+            {t('about.ctaButton')}
           </button>
         </motion.div>
       </div>

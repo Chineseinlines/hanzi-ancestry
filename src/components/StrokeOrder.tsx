@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { StrokeData } from '../data/types';
 import { getStrokeData } from '../data/hanziData';
+import { useLanguage } from '../contexts/LanguageContext';
 
 type Speed = 'slow' | 'normal' | 'fast';
 const SPEED_DELAYS: Record<Speed, number> = { slow: 1500, normal: 900, fast: 500 };
@@ -12,6 +13,7 @@ interface StrokeOrderProps {
 }
 
 export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps) {
+  const { t } = useLanguage();
   const [strokeData, setStrokeData] = useState<StrokeData | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -182,7 +184,7 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
       <div className="flex flex-col items-center gap-2">
         <div className="flex items-center gap-3">
           <span className="text-xs font-medium" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-            {strokeCount} strokes
+            {t('cmp.strokeOrder.strokes', { n: strokeCount })}
           </span>
           <button
             onClick={playAnimation}
@@ -194,7 +196,7 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
               fontFamily: 'Inter',
             }}
           >
-            {playing ? 'Playing...' : 'Replay'}
+            {playing ? t('cmp.strokeOrder.playing') : t('cmp.strokeOrder.replay')}
           </button>
         </div>
         {/* Speed selector */}
@@ -211,7 +213,7 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
                 fontFamily: 'Inter',
               }}
             >
-              {s === 'slow' ? '慢速' : s === 'normal' ? '标准' : '快速'}
+              {t(`cmp.strokeOrder.${s}`)}
             </button>
           ))}
         </div>

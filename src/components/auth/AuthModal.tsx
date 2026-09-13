@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 
@@ -15,6 +16,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const { user, configured } = useAuth();
+  const { t } = useLanguage();
 
   // Auto-close when user becomes authenticated
   useEffect(() => {
@@ -47,9 +49,9 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
         {!configured ? (
           <div className="text-center py-6">
             <div className="text-4xl mb-4">⚙️</div>
-            <h2 className="text-lg font-semibold mb-2" style={{ color: '#1A1A18' }}>Backend Not Configured</h2>
+            <h2 className="text-lg font-semibold mb-2" style={{ color: '#1A1A18' }}>{t('auth.backendNotConfigured')}</h2>
             <p className="text-sm" style={{ color: '#6B7280' }}>
-              Supabase connection is not set up yet. Please configure your environment variables.
+              {t('auth.backendNotConfiguredDesc')}
             </p>
           </div>
         ) : (
@@ -64,7 +66,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                   }`}
                   style={{ color: mode === 'login' ? '#C23B2A' : '#9CA3AF' }}
                 >
-                  Sign In
+                  {t('auth.signIn')}
                 </button>
                 <button
                   onClick={() => setMode('register')}
@@ -73,7 +75,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                   }`}
                   style={{ color: mode === 'register' ? '#C23B2A' : '#9CA3AF' }}
                 >
-                  Register
+                  {t('auth.register')}
                 </button>
               </div>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
@@ -101,7 +103,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
               />
             ) : (
               <RegisterForm
-                onSuccess={() => { setMessage({ type: 'success', text: 'Account created! You can now sign in.' }); setMode('login'); }}
+                onSuccess={() => { setMessage({ type: 'success', text: t('auth.accountCreated') }); setMode('login'); }}
                 onMessage={setMessage}
                 onSwitchToLogin={() => setMode('login')}
               />

@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { deleteAccount } from '../../lib/database';
 import { AuthModal } from './AuthModal';
 import { createPortal } from 'react-dom';
 
 export function UserMenu() {
   const { user, profile, loading, configured, signOut } = useAuth();
+  const { t } = useLanguage();
   const [showAuth, setShowAuth] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -36,7 +38,7 @@ export function UserMenu() {
           className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-80"
           style={{ background: '#C23B2A', color: '#fff' }}
         >
-          Sign In
+          {t('auth.signIn')}
         </button>
         <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
       </>
@@ -93,7 +95,7 @@ export function UserMenu() {
             style={{ color: '#3D3D3B' }}
             onClick={() => setShowDropdown(false)}
           >
-            📊 My Profile
+            {t('auth.myProfile')}
           </Link>
 
           <Link
@@ -102,7 +104,7 @@ export function UserMenu() {
             style={{ color: '#3D3D3B' }}
             onClick={() => setShowDropdown(false)}
           >
-            📖 Word Book
+            {t('auth.wordBook')}
           </Link>
 
           {(profile?.role === 'teacher' || profile?.role === 'admin') && (
@@ -112,7 +114,7 @@ export function UserMenu() {
               style={{ color: '#3D3D3B' }}
               onClick={() => setShowDropdown(false)}
             >
-              🏫 Admin Dashboard
+              {t('auth.adminDashboard')}
             </Link>
           )}
 
@@ -122,7 +124,7 @@ export function UserMenu() {
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors"
               style={{ color: '#C23B2A' }}
             >
-              Sign Out
+              {t('auth.signOut')}
             </button>
           </div>
 
@@ -132,7 +134,7 @@ export function UserMenu() {
               className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 transition-colors"
               style={{ color: '#9CA3AF' }}
             >
-              🗑 Delete Account
+              {t('auth.deleteAccount')}
             </button>
           </div>
         </div>
@@ -153,10 +155,10 @@ export function UserMenu() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold mb-2" style={{ color: '#1A1A18' }}>
-              Delete Account?
+              {t('auth.deleteAccountTitle')}
             </h3>
             <p className="text-sm mb-6" style={{ color: '#6B7280' }}>
-              This will permanently delete your account, all learning records, favorites, and data. Your email will become available for a new account. This action cannot be undone.
+              {t('auth.deleteAccountDesc')}
             </p>
             <div className="flex gap-3">
               <button
@@ -165,7 +167,7 @@ export function UserMenu() {
                 className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all border"
                 style={{ borderColor: '#E5E0D8', color: '#3D3D3B' }}
               >
-                Cancel
+                {t('auth.cancel')}
               </button>
               <button
                 onClick={handleDeleteAccount}
@@ -173,7 +175,7 @@ export function UserMenu() {
                 className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium transition-all hover:opacity-90 disabled:opacity-50"
                 style={{ background: '#C23B2A' }}
               >
-                {deleting ? 'Deleting...' : 'Delete Forever'}
+                {deleting ? t('auth.deleting') : t('auth.deleteForever')}
               </button>
             </div>
           </div>

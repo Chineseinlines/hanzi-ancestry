@@ -11,6 +11,7 @@ import {
 import type { DecompositionNode, HanziEntry, CognateResult } from '../data/types';
 import type { EnglishSearchResult } from '../data/hanziData';
 import { useWordBook } from '../hooks/useWordBook';
+import { useLanguage } from '../contexts/LanguageContext';
 import {
   getCharacter,
   decomposeCharacter,
@@ -25,11 +26,15 @@ import {
   getTraditionalComponents,
   searchByPinyin,
   searchByEnglish,
+  searchByChineseMeaning,
   hasCJK,
+  getLocalizedDefinition,
+  getLocalizedEtymologyHint,
 } from '../data/hanziData';
 import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
 import { getAnnotation, getMoonAnnotation } from '../data/componentAnnotations';
+import { getLocalizedAnnotationName } from '../data/componentAnnotations.bilingual';
 import { getSimpTradOrigin } from '../data/simpTradOrigins';
 
 const QUICK_CHARS = ['家', '国'];
@@ -63,6 +68,7 @@ interface IDSLine {
 
 function collectIDSLines(
   node: DecompositionNode,
+  lang: 'zh' | 'en',
   depth = 0,
   prefix = '',
   isLast = true
@@ -72,7 +78,7 @@ function collectIDSLines(
     {
       character: node.character,
       decomposition: node.decomposition,
-      definition: entry?.definition ?? '',
+      definition: getLocalizedDefinition(entry, lang),
       depth,
       isLast,
       prefix,
@@ -83,7 +89,7 @@ function collectIDSLines(
     node.children.forEach((child, i) => {
       const childIsLast = i === node.children.length - 1;
       const childPrefix = prefix + (isLast ? '   ' : '│  ');
-      lines.push(...collectIDSLines(child, depth + 1, childPrefix, childIsLast));
+      lines.push(...collectIDSLines(child, lang, depth + 1, childPrefix, childIsLast));
     });
   }
 
@@ -96,16 +102,17 @@ function collectIDSLines(
 
 type SearchMode = 'auto' | 'hanzi' | 'pinyin' | 'english';
 
-const SEARCH_MODES_EXPLORE: { key: SearchMode; label: string }[] = [
-  { key: 'auto', label: '自动' },
-  { key: 'hanzi', label: '汉字' },
-  { key: 'pinyin', label: '拼音' },
-  { key: 'english', label: 'EN' },
+const SEARCH_MODES_EXPLORE: { key: SearchMode; labelKey: string }[] = [
+  { key: 'auto', labelKey: 'explore.modeAuto' },
+  { key: 'hanzi', labelKey: 'explore.modeHanzi' },
+  { key: 'pinyin', labelKey: 'explore.modePinyin' },
+  { key: 'english', labelKey: 'explore.modeEn' },
 ];
 
 export default function Explore() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { lang, t } = useLanguage();
   const charParam = searchParams.get('char') ?? '';
   const componentParam = searchParams.get('component') ?? '';
 
@@ -201,6 +208,26 @@ export default function Explore() {
         return results.length > 0 ? results[0].char : null;
       };
 
+      // zh 模式：拼音 + 中文释义搜索；en 模式：拼音 + 英文索引搜索
+      const tryMeaningSearch = async (): Promise<boolean> => {
+        if (lang === 'zh') {
+          const results = searchByChineseMeaning(trimmed);
+          if (results.length > 0) {
+            setEnResults({ words: [], chars: results });
+            setSelectedComponent(null);
+            return true;
+          }
+          return false;
+        }
+        const enRes = await searchByEnglish(trimmed);
+        if (enRes.words.length > 0 || enRes.chars.length > 0) {
+          setEnResults(enRes);
+          setSelectedComponent(null);
+          return true;
+        }
+        return false;
+      };
+
       switch (searchMode) {
         case 'hanzi':
           first = tryHanzi();
@@ -209,10 +236,8 @@ export default function Explore() {
           first = tryPinyin();
           break;
         case 'english': {
-          const enRes = await searchByEnglish(trimmed);
-          setEnResults(enRes);
-          if (enRes.words.length === 0 && enRes.chars.length === 0) return;
-          setSelectedComponent(null);
+          const found = await tryMeaningSearch();
+          if (!found) return;
           return; // Show results panel
         }
         case 'auto':
@@ -224,12 +249,8 @@ export default function Explore() {
             if (pinyinChar) {
               first = pinyinChar;
             } else {
-              const enRes = await searchByEnglish(trimmed);
-              if (enRes.words.length > 0 || enRes.chars.length > 0) {
-                setEnResults(enRes);
-                setSelectedComponent(null);
-                return; // Show results panel
-              }
+              const found = await tryMeaningSearch();
+              if (found) return; // Show results panel
             }
           }
           break;
@@ -244,7 +265,7 @@ export default function Explore() {
       setLoading(true);
       setTimeout(() => setLoading(false), 400);
     },
-    [searchMode, setSearchParams]
+    [searchMode, setSearchParams, lang]
   );
 
   // Handle form submission
@@ -331,8 +352,8 @@ export default function Explore() {
   // IDS panel data
   const idsLines = useMemo(() => {
     if (!activeDecomposition) return [];
-    return collectIDSLines(activeDecomposition);
-  }, [activeDecomposition]);
+    return collectIDSLines(activeDecomposition, lang);
+  }, [activeDecomposition, lang]);
 
   /* ================================================================ */
   /*  RENDER                                                           */
@@ -354,7 +375,7 @@ export default function Explore() {
             transition={{ duration: 0.6, ease: EASE_INK }}
             className="font-display text-[clamp(2rem,4vw,3.5rem)] font-bold leading-tight text-ink-black"
           >
-            汉字探索
+            {t('explore.title')}
           </motion.h1>
 
           <motion.p
@@ -363,10 +384,7 @@ export default function Explore() {
             transition={{ duration: 0.5, delay: 0.15, ease: EASE_GENTLE }}
             className="mt-2 text-base text-charcoal"
           >
-            输入汉字，揭示部件结构，发现同源系联
-            <span className="block text-xs text-charcoal/40 mt-0.5">
-              Input a character to reveal its components and find its relatives
-            </span>
+            {t('explore.subtitle')}
           </motion.p>
 
           {/* Search Bar */}
@@ -384,7 +402,7 @@ export default function Explore() {
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setEnResults(null); }}
                 maxLength={20}
-                placeholder="输入汉字 / 拼音 / 英文..."
+                placeholder={t('explore.placeholder')}
                 className="h-14 w-full rounded-full border border-border-light bg-white px-6 text-center text-2xl text-ink-black shadow-sm transition-all duration-300 placeholder:text-charcoal/30 focus:border-cinnabar focus:shadow-cinnabar focus:outline-none"
               />
               <button
@@ -415,7 +433,7 @@ export default function Explore() {
                     : 'text-charcoal/40 hover:text-charcoal/70 bg-bg-warm'
                 }`}
               >
-                {mode.label}
+                {t(mode.labelKey)}
               </button>
             ))}
           </motion.div>
@@ -433,7 +451,7 @@ export default function Explore() {
                 {enResults.words.length > 0 && (
                   <>
                     <p className="mb-3 text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">
-                      中文词语
+                      {t('explore.wordsHeading')}
                     </p>
                     <div className="space-y-2 mb-4 max-h-72 overflow-y-auto">
                       {enResults.words.slice(0, 15).map((w) => (
@@ -452,7 +470,7 @@ export default function Explore() {
                               }
                             }}
                             className="font-serif-cn text-xl font-semibold text-ink-black min-w-[3rem] text-left hover:text-cinnabar transition-colors underline decoration-cinnabar/20 underline-offset-4 hover:decoration-cinnabar cursor-pointer"
-                            title={`View "${w.w}"`}
+                            title={t('explore.viewWord', { w: w.w })}
                           >
                             {w.w}
                           </button>
@@ -463,7 +481,7 @@ export default function Explore() {
                     </div>
                     {enResults.words.length > 15 && (
                       <p className="text-[0.625rem] text-charcoal/30 mb-3">
-                        +{enResults.words.length - 15} more words
+                        {t('explore.moreWords', { n: enResults.words.length - 15 })}
                       </p>
                     )}
                   </>
@@ -473,7 +491,7 @@ export default function Explore() {
                 {enResults.chars.length > 0 && (
                   <div className="pt-3 border-t border-border-light">
                     <p className="mb-2 text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">
-                      所有字符
+                      {t('explore.allChars')}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {enResults.chars.slice(0, 24).map((r) => (
@@ -554,14 +572,14 @@ export default function Explore() {
                 className="max-w-[400px] truncate text-sm text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                {charData.definition}
+                {getLocalizedDefinition(charData, lang)}
               </span>
               <span className="hidden text-border-light lg:inline">·</span>
               <span
                 className="rounded-full border border-border-light bg-bg-warm px-2.5 py-1 text-xs font-medium text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                部首: {charData.radical}
+                {t('explore.radical')}: {charData.radical}
               </span>
 
               {/* Etymology / 六书 classification badge */}
@@ -574,12 +592,7 @@ export default function Explore() {
                     color: '#5A8A6B',
                   }}
                 >
-                  六书: {charData.etymology.type === 'pictographic' ? '象形' :
-                         charData.etymology.type === 'indicative' ? '指事' :
-                         charData.etymology.type === 'ideographic' ? '会意' :
-                         charData.etymology.type === 'pictophonetic' ? '形声' :
-                         charData.etymology.type === 'loan' ? '假借' :
-                         charData.etymology.type}
+                  {t('explore.liushu')}: {t(`data.sixBooks.${charData.etymology.type}`)}
                 </span>
               )}
               {/* WordBook button */}
@@ -593,7 +606,7 @@ export default function Explore() {
                   color: hasInWB(charData.character) ? '#2D5F8A' : '#9CA3AF',
                 }}
               >
-                {hasInWB(charData.character) ? '📗 生字本' : '📖 加生字本'}
+                {hasInWB(charData.character) ? `📗 ${t('common.wordBook')}` : `📖 ${t('common.addToWordBook')}`}
               </button>
 
               {/* Traditional form badge */}
@@ -606,7 +619,7 @@ export default function Explore() {
                     color: '#C23B2A',
                   }}
                 >
-                  繁体: {charData.traditional}
+                  {t('explore.traditionalForm')}: {charData.traditional}
                 </span>
               )}
 
@@ -628,7 +641,7 @@ export default function Explore() {
                     className="text-xs text-charcoal/60"
                     style={{ fontFamily: 'Inter, sans-serif' }}
                   >
-                    原部件:
+                    {t('explore.originalComponents')}:
                   </span>
                   {traditionalComponents.map((comp) => (
                     <button
@@ -656,7 +669,7 @@ export default function Explore() {
                     color: '#6B7F5E',
                   }}
                 >
-                  字源
+                  {t('explore.etymologyBadge')}
                 </span>
               )}
               {charData.etymologyHint && (
@@ -664,7 +677,7 @@ export default function Explore() {
                   className="hidden text-sm italic text-charcoal/70 lg:inline"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
-                  {charData.etymologyHint}
+                  {getLocalizedEtymologyHint(charData, lang)}
                 </span>
               )}
             </div>
@@ -692,7 +705,7 @@ export default function Explore() {
                 className="mt-4 text-lg text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                在上方输入汉字，开始探索之旅
+                {t('common.inputToStart')}
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 {['家', '国'].map((c) => (
@@ -703,7 +716,7 @@ export default function Explore() {
                   >
                     <span className="font-display-cn text-2xl text-ink-black">{c}</span>
                     <span className="text-xs text-charcoal" style={{ fontFamily: 'Inter, sans-serif' }}>
-                      {getCharacter(c)?.definition?.split(',')[0] ?? ''}
+                      {getLocalizedDefinition(getCharacter(c), lang).split(',')[0]}
                     </span>
                   </button>
                 ))}
@@ -725,12 +738,12 @@ export default function Explore() {
             >
               <Info size={48} className="mb-4 text-cinnabar" />
               <h2 className="font-serif-cn text-xl font-semibold text-ink-black">
-                未找到该汉字
+                {t('common.charNotFound')}
               </h2>
               <p
                 className="mt-2 max-w-md text-center text-base text-charcoal"
               >
-                此汉字不在当前数据库中，请尝试下方推荐汉字。
+                {t('common.charNotFoundDesc')}
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {QUICK_CHARS.map((c) => (
@@ -766,7 +779,7 @@ export default function Explore() {
                 className="mt-4 text-sm text-charcoal"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                正在分析汉字结构...
+                {t('common.analyzingChar')}
               </p>
             </motion.div>
           )}
@@ -795,7 +808,7 @@ export default function Explore() {
                     }`}
                     style={{ fontFamily: 'Inter, sans-serif' }}
                   >
-                    部件拆解
+                    {t('explore.decompositionTab')}
                   </button>
                   <button
                     onClick={() => setActiveTab('cognate')}
@@ -805,7 +818,7 @@ export default function Explore() {
                         : 'text-charcoal'
                     }`}
                   >
-                    系联网络
+                    {t('explore.cognateTab')}
                   </button>
                 </div>
               </div>
@@ -823,7 +836,7 @@ export default function Explore() {
                       <span
                         className="text-[0.8125rem] font-semibold text-charcoal"
                       >
-                        汉字拆解
+                        {t('detail.charDecomposition')}
                       </span>
                       {tradTarget && tradTarget !== currentChar && tradDecomposition && decomposition ? (
                         /* 简/繁拆法切换：整个板块（图、部件、拆解树）一起切换 */
@@ -833,14 +846,14 @@ export default function Explore() {
                             className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
                             style={decompMode === 'simp' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
                           >
-                            简体 <span className="font-serif-cn text-sm">{currentChar}</span>
+                            {t('common.simplified')} <span className="font-serif-cn text-sm">{currentChar}</span>
                           </button>
                           <button
                             onClick={() => setDecompMode('trad')}
                             className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
                             style={decompMode === 'trad' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
                           >
-                            繁体 <span className="font-serif-cn text-sm">{tradTarget}</span>
+                            {t('common.traditional')} <span className="font-serif-cn text-sm">{tradTarget}</span>
                           </button>
                         </div>
                       ) : (
@@ -851,7 +864,7 @@ export default function Explore() {
                     </div>
                     <div className="px-4 pb-1">
                       <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>
-                        单击汉字查看详情 · 双击展开系联
+                        {t('common.clickForDetails')}
                       </span>
                     </div>
                     {/* Graph */}
@@ -872,7 +885,7 @@ export default function Explore() {
                         <span
                           className="text-xs text-charcoal/60"
                         >
-                          部件:
+                          {t('explore.componentsLabel')}:
                         </span>
                         {activeComponents.map((comp) => (
                           <button
@@ -909,16 +922,16 @@ export default function Explore() {
                           className="text-[0.8125rem] font-semibold text-charcoal"
                         >
                           {selectedComponent
-                            ? `含「${selectedComponent}」的汉字`
-                            : `与「${currentChar}」相关的字`}
+                            ? t('explore.charContaining', { c: selectedComponent })
+                            : t('explore.charRelated', { c: currentChar })}
                         </span>
                         <span className="ml-auto text-xs text-charcoal/40" style={{ fontFamily: 'Inter' }}>
-                          {selectedComponent ? 'Component Network' : 'Etymological Network'}
+                          {selectedComponent ? t('explore.componentNetwork') : t('explore.etymologicalNetwork')}
                         </span>
                       </div>
                       <div className="px-4 pb-1">
                         <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>
-                          单击汉字查看详情 · 双击展开系联
+                          {t('common.clickForDetails')}
                         </span>
                       </div>
                       {/* Component Selector */}
@@ -933,7 +946,7 @@ export default function Explore() {
                             }`}
                             style={{ fontFamily: 'Inter, sans-serif' }}
                           >
-                            全部
+                            {t('explore.all')}
                           </button>
                           {traditionalComponents.map((comp) => (
                             <button
@@ -990,7 +1003,7 @@ export default function Explore() {
                   className="text-sm font-medium text-ink-black"
                   style={{ fontFamily: 'Inter, sans-serif' }}
                 >
-                  查看完整拆解文本
+                  {t('common.viewFullDecomposition')}
                 </span>
                 <ChevronDown
                   size={18}
@@ -1055,7 +1068,7 @@ export default function Explore() {
                               </span>
                               {variantBadge && (
                                 <span className="text-[10px] px-1.5 py-px rounded-full font-medium whitespace-nowrap" style={{ background: 'rgba(194,59,42,0.12)', color: '#C23B2A', fontFamily: 'Inter' }}>
-                                  {variantBadge.name}
+                                  {getLocalizedAnnotationName(variantBadge, lang)}
                                 </span>
                               )}
                             </div>

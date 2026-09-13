@@ -3,8 +3,10 @@ import BuildingBlocks from '../components/about/BuildingBlocks';
 import IDSReferenceTable from '../components/about/IDSReferenceTable';
 import EtymologicalConnections from '../components/about/EtymologicalConnections';
 import CTABanner from '../components/about/CTABanner';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Learn() {
+  const { t } = useLanguage();
   return (
     <>
       {/* Learn hero */}
@@ -27,7 +29,7 @@ export default function Learn() {
             className="text-[0.75rem] font-medium uppercase tracking-[0.15em]"
             style={{ color: 'rgba(245, 240, 232, 0.4)' }}
           >
-            字里行间 · Learning Hub
+            {t('learn.hubLabel')}
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
@@ -36,7 +38,7 @@ export default function Learn() {
             className="font-display font-bold leading-[1.2] tracking-[-0.01em] text-rice-paper"
             style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', marginTop: '0.75rem' }}
           >
-            How Chinese Characters Work
+            {t('learn.heroTitle')}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -45,9 +47,7 @@ export default function Learn() {
             className="mx-auto mt-4 text-base leading-[1.8]"
             style={{ color: 'rgba(245, 240, 232, 0.6)', maxWidth: '600px' }}
           >
-            A structured guide to the building blocks, structural patterns, and
-            etymological connections that form the foundation of the Chinese
-            writing system.
+            {t('learn.heroSubtitle')}
           </motion.p>
         </div>
       </section>

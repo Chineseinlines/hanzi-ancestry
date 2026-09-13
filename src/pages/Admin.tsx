@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getAllStudents, getStudentStats } from '../lib/database';
 import type { UserProfile } from '../lib/auth';
 
@@ -15,6 +16,7 @@ interface StudentWithStats extends UserProfile {
 
 export default function Admin() {
   const { user, profile, loading: authLoading, configured } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [students, setStudents] = useState<StudentWithStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,28 +75,28 @@ export default function Admin() {
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-3xl font-display mb-1" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-          Admin Dashboard
+          {t('admin.dashboard')}
         </h1>
         <p className="text-sm" style={{ color: '#6B7280' }}>
-          {students.length} student{students.length !== 1 ? 's' : ''} registered
+          {t('admin.studentsRegistered', { n: students.length })}
         </p>
       </div>
 
       {/* Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-        <StatCard label="Total Students" value={students.length} icon="👥" />
+        <StatCard label={t('admin.totalStudents')} value={students.length} icon="👥" />
         <StatCard
-          label="Active Learners"
+          label={t('admin.activeLearners')}
           value={students.filter(s => (s.totalAttempts || 0) > 0).length}
           icon="🎯"
         />
         <StatCard
-          label="Avg Score"
+          label={t('admin.avgScore')}
           value={`${students.length > 0 ? Math.round(students.reduce((s, st) => s + (st.avgScore || 0), 0) / students.length) : 0}%`}
           icon="📊"
         />
         <StatCard
-          label="Collection Size"
+          label={t('admin.collectionSize')}
           value={students.reduce((s, st) => s + (st.totalFavorites || 0), 0)}
           icon="⭐"
         />
@@ -105,12 +107,12 @@ export default function Admin() {
         <table className="w-full text-sm">
           <thead style={{ background: '#FDFBF6' }}>
             <tr>
-              <th className="text-left px-3 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>Student</th>
-              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>📝 Quiz</th>
-              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>🧩 Puzzle</th>
-              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>🏺 Glyph</th>
-              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>⭐ Fav</th>
-              <th className="text-right px-3 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>Joined</th>
+              <th className="text-left px-3 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>{t('admin.student')}</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>{t('admin.quiz')}</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>{t('admin.puzzle')}</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>{t('admin.glyph')}</th>
+              <th className="text-center px-2 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>{t('admin.fav')}</th>
+              <th className="text-right px-3 py-3 font-medium text-xs" style={{ color: '#3D3D3B' }}>{t('admin.joined')}</th>
             </tr>
           </thead>
           <tbody>
@@ -139,7 +141,7 @@ export default function Admin() {
             {students.length === 0 && (
               <tr>
                 <td colSpan={5} className="text-center py-8" style={{ color: '#9CA3AF' }}>
-                  No students registered yet.
+                  {t('admin.noStudents')}
                 </td>
               </tr>
             )}

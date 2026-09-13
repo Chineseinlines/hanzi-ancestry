@@ -2,7 +2,8 @@ import { useRef, useEffect, useState, useCallback, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 import { ZoomIn, ZoomOut, RotateCcw, ArrowLeft } from 'lucide-react';
 import type { HanziEntry, CognateResult } from '../data/types';
-import { getCharacter, getComponentCognates, getRelations, getRelationsVersion } from '../data/hanziData';
+import { getCharacter, getComponentCognates, getRelations, getRelationsVersion, getLocalizedDefinition } from '../data/hanziData';
+import { useLanguage } from '../contexts/LanguageContext';
 import GraphLegend from './GraphLegend';
 import GraphTooltip from './GraphTooltip';
 
@@ -69,6 +70,7 @@ const CognateGraph = memo(function CognateGraph({
   onComponentSelect,
   className = '',
 }: CognateGraphProps) {
+  const { lang } = useLanguage();
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -356,7 +358,7 @@ const CognateGraph = memo(function CognateGraph({
       .attr('pointer-events', 'none')
       .attr('opacity', 0)
       .text((d) => {
-        const def = d.entry?.definition ?? '';
+        const def = getLocalizedDefinition(d.entry, lang);
         return def.length > 18 ? def.slice(0, 18) + '...' : def;
       });
 
@@ -490,7 +492,7 @@ const CognateGraph = memo(function CognateGraph({
       svg.selectAll('*').remove();
       svg.on('.zoom', null);
     };
-  }, [nodes, links, character, onNodeClick, onNodeDoubleClick, selectedComponent]);
+  }, [nodes, links, character, onNodeClick, onNodeDoubleClick, selectedComponent, lang]);
 
   if (nodes.length <= 1) {
     return (

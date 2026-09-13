@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Menu, X } from 'lucide-react';
 import { UserMenu } from './auth/UserMenu';
+import LanguageToggle from './LanguageToggle';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface NavbarProps {
   onSearchClick?: () => void;
@@ -9,6 +11,7 @@ interface NavbarProps {
 
 export default function Navbar({ onSearchClick }: NavbarProps) {
   const location = useLocation();
+  const { t } = useLanguage();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -21,12 +24,12 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
   }, []);
 
   const navLinks = [
-    { label: '首页', enLabel: 'Home', path: '/' },
-    { label: '探索', enLabel: 'Explore', path: '/explore' },
-    { label: '学习', enLabel: 'Learn', path: '/learn' },
-    { label: '题库', enLabel: 'Quiz', path: '/quiz' },
-    { label: '游戏', enLabel: 'Games', path: '/games' },
-    { label: '关于', enLabel: 'About', path: '/about' },
+    { labelKey: 'nav.home', path: '/' },
+    { labelKey: 'nav.explore', path: '/explore' },
+    { labelKey: 'nav.learn', path: '/learn' },
+    { labelKey: 'nav.quiz', path: '/quiz' },
+    { labelKey: 'nav.games', path: '/games' },
+    { labelKey: 'nav.about', path: '/about' },
   ];
 
   return (
@@ -60,10 +63,9 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
               <Link
                 key={link.path}
                 to={link.path}
-                title={link.enLabel}
                 className="group relative text-[0.875rem] font-medium uppercase tracking-[0.08em] text-charcoal transition-colors duration-200 hover:text-cinnabar"
               >
-                {link.label}
+                {t(link.labelKey)}
                 <span
                   className="absolute -bottom-1 left-0 h-0.5 bg-cinnabar transition-transform duration-300"
                   style={{
@@ -80,7 +82,7 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
           })}
         </div>
 
-        {/* Right side: search trigger + user menu */}
+        {/* Right side: search trigger + language toggle + user menu */}
         <div className="flex items-center gap-3">
           <button
             onClick={onSearchClick}
@@ -89,6 +91,7 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
           >
             <Search size={18} />
           </button>
+          <LanguageToggle />
           <UserMenu />
 
           {/* Mobile menu toggle */}
@@ -110,11 +113,10 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
               <Link
                 key={link.path}
                 to={link.path}
-                title={link.enLabel}
                 onClick={() => setMobileOpen(false)}
                 className="text-sm font-medium uppercase tracking-[0.08em] text-charcoal transition-colors duration-200 hover:text-cinnabar"
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             ))}
           </div>

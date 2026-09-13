@@ -1,4 +1,5 @@
 import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry, CharRelations, ScoredRelation } from './types';
+import type { Locale } from '../i18n';
 import { isCommonChar } from './commonChars';
 
 // ── In-memory data store ────────────────────────────────────────────
@@ -154,9 +155,11 @@ export async function loadData(): Promise<void> {
 
   dataLoadPromise = (async () => {
     try {
-      const [dictRes, indexRes] = await Promise.all([
+      const [dictRes, indexRes, zhDefRes] = await Promise.all([
         fetch(`${import.meta.env.BASE_URL}hanzi-dict.json`),
         fetch(`${import.meta.env.BASE_URL}hanzi-index.json`),
+        // 中文释义（可选，加载失败回退英文释义）
+        fetch(`${import.meta.env.BASE_URL}zh-definitions.json`).catch(() => null),
       ]);
 
       if (!dictRes.ok) throw new Error(`hanzi-dict.json: ${dictRes.status}`);
@@ -167,9 +170,13 @@ export async function loadData(): Promise<void> {
         etymology?: { type: string; phonetic?: string; semantic?: string; hint?: string };
       }>;
       const rawIndex = await indexRes.json() as Record<string, string[]>;
+      const rawZhDef = zhDefRes?.ok
+        ? (await zhDefRes.json() as Record<string, { d?: string; h?: string }>)
+        : {};
 
       charMap = new Map();
       for (const [char, raw] of Object.entries(rawDict)) {
+        const zh = rawZhDef[char];
         const entry: HanziEntry = {
           character: raw.c,
           definition: raw.d || '',
@@ -178,6 +185,7 @@ export async function loadData(): Promise<void> {
           radical: raw.r || char,
           decomposition: raw.decomposition || '',
           etymologyHint: raw.etymology?.hint,
+          zhDefinition: zh?.d,
         };
         if (raw.etymology?.type) {
           entry.etymology = {
@@ -185,6 +193,7 @@ export async function loadData(): Promise<void> {
             phonetic: raw.etymology.phonetic,
             semantic: raw.etymology.semantic,
             hint: raw.etymology.hint,
+            zhHint: zh?.h,
           };
         }
         charMap.set(char, entry);
@@ -456,6 +465,48 @@ export async function searchByEnglish(query: string): Promise<EnglishSearchResul
   }
   chars.sort((a, b) => getImportance(b.char) - getImportance(a.char));
   return { words: [], chars: chars.slice(0, 30) };
+}
+
+// ── Localized definition helpers ────────────────────────────────────
+
+/** 按语言取释义：中文版优先中文释义，缺失回退英文；英文版恒为英文。 */
+export function getLocalizedDefinition(entry: HanziEntry | undefined, lang: Locale): string {
+  if (!entry) return '';
+  if (lang === 'zh') return entry.zhDefinition ?? entry.definition ?? '';
+  return entry.definition ?? '';
+}
+
+/** 按语言取词源提示：中文版取 zhHint（缺失回退英文 hint），英文版恒为英文。 */
+export function getLocalizedEtymologyHint(entry: HanziEntry | undefined, lang: Locale): string | undefined {
+  if (!entry) return undefined;
+  if (lang === 'zh') return entry.etymology?.zhHint ?? entry.etymology?.hint ?? entry.etymologyHint;
+  return entry.etymology?.hint ?? entry.etymologyHint;
+}
+
+/**
+ * 中文释义搜索（中文模式）：在 zhDefinition 里做子串匹配。
+ * 缺失中文释义的条目跳过（结果与英文模式语义对称：查"义"不会返回生僻字）。
+ */
+export function searchByChineseMeaning(query: string): SearchResult[] {
+  if (!charMap) return [];
+  const q = query.trim();
+  if (!q || q.length < 1) return [];
+
+  const results: SearchResult[] = [];
+  for (const [c, entry] of charMap) {
+    const zhDef = entry.zhDefinition;
+    if (!zhDef) continue;
+    if (zhDef.includes(q)) {
+      results.push({
+        char: c,
+        pinyin: entry.pinyin?.map(p => numberToMark(p)).join(', ') ?? '',
+        definition: zhDef,
+        matchType: 'english',
+      });
+    }
+  }
+  results.sort((a, b) => getImportance(b.char) - getImportance(a.char));
+  return results.slice(0, 50);
 }
 
 /**
@@ -783,10 +834,24 @@ export async function loadCulturalData(): Promise<void> {
 
   culturalPromise = (async () => {
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}cultural.json`);
+      const [res, enRes] = await Promise.all([
+        fetch(`${import.meta.env.BASE_URL}cultural.json`),
+        fetch(`${import.meta.env.BASE_URL}cultural-en.json`).catch(() => null),
+      ]);
       if (!res.ok) throw new Error(`cultural.json: ${res.status}`);
       const data = await res.json() as Record<string, CulturalData>;
-      culturalMap = new Map(Object.entries(data));
+      const enData = enRes?.ok
+        ? (await enRes.json() as Record<string, { evolution?: string; allusions?: string[] }>)
+        : {};
+      culturalMap = new Map(
+        Object.entries(data).map(([char, entry]) => {
+          const en = enData[char];
+          if (en) {
+            return [char, { ...entry, enEvolution: en.evolution, enAllusions: en.allusions }];
+          }
+          return [char, entry];
+        }),
+      );
     } catch (err) {
       console.error('Failed to load cultural data:', err);
       culturalMap = new Map();
@@ -806,10 +871,21 @@ export async function loadShuowen(): Promise<void> {
 
   shuowenPromise = (async () => {
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}shuowen.json`);
+      const [res, enRes] = await Promise.all([
+        fetch(`${import.meta.env.BASE_URL}shuowen.json`),
+        fetch(`${import.meta.env.BASE_URL}shuowen-en.json`).catch(() => null),
+      ]);
       if (!res.ok) throw new Error(`shuowen.json: ${res.status}`);
       const data = await res.json() as Record<string, ShuowenEntry>;
-      shuowenMap = new Map(Object.entries(data));
+      const enData = enRes?.ok
+        ? (await enRes.json() as Record<string, string>)
+        : {};
+      shuowenMap = new Map(
+        Object.entries(data).map(([char, entry]) => {
+          const enShuowen = enData[char];
+          return enShuowen ? [char, { ...entry, enShuowen }] : [char, entry];
+        }),
+      );
     } catch (err) {
       console.error('Failed to load shuowen data:', err);
       shuowenMap = new Map();

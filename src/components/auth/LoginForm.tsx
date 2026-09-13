@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -9,6 +10,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess, onMessage, onSwitchToRegister }: LoginFormProps) {
   const { signIn } = useAuth();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +32,7 @@ export function LoginForm({ onSuccess, onMessage, onSwitchToRegister }: LoginFor
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: '#3D3D3B' }}>Email</label>
+        <label className="block text-sm font-medium mb-1.5" style={{ color: '#3D3D3B' }}>{t('auth.email')}</label>
         <input
           type="email"
           value={email}
@@ -42,7 +44,7 @@ export function LoginForm({ onSuccess, onMessage, onSwitchToRegister }: LoginFor
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: '#3D3D3B' }}>Password</label>
+        <label className="block text-sm font-medium mb-1.5" style={{ color: '#3D3D3B' }}>{t('auth.password')}</label>
         <input
           type="password"
           value={password}
@@ -60,12 +62,12 @@ export function LoginForm({ onSuccess, onMessage, onSwitchToRegister }: LoginFor
         className="w-full py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-50"
         style={{ background: '#C23B2A' }}
       >
-        {loading ? 'Signing in...' : 'Sign In'}
+        {loading ? t('auth.signingIn') : t('auth.signIn')}
       </button>
       <p className="text-center text-xs" style={{ color: '#9CA3AF' }}>
-        Don't have an account?{' '}
+        {t('auth.noAccount')}{' '}
         <button type="button" onClick={onSwitchToRegister} className="underline hover:text-current" style={{ color: '#C23B2A' }}>
-          Register
+          {t('auth.register')}
         </button>
       </p>
     </form>

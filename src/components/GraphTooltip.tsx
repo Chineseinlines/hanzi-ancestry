@@ -2,11 +2,15 @@ import { memo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { HanziEntry } from '../data/types';
 import { PHONETIC_COLORS, RED_WARNING_TEXT, type PhoneticRating } from '../data/phoneticRating';
+import { getLocalizedRedWarning } from '../data/phoneticRating.bilingual';
+import { getLocalizedGhostSuggestion } from '../data/ghostComponents.bilingual';
 import { getPhoneticLevelInfo, type PhoneticLevel } from '../data/phoneticLevels';
 import { getSemanticLevelInfo, type SemanticLevel } from '../data/semanticLevels';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation } from '../data/componentAnnotations';
-import { numberToMark } from '../data/hanziData';
+import { getLocalizedAnnotationName } from '../data/componentAnnotations.bilingual';
+import { numberToMark, getLocalizedDefinition } from '../data/hanziData';
 import { getGhostSuggestion } from '../data/ghostComponents';
+import { useLanguage } from '../contexts/LanguageContext';
 import MiniStrokePreview from './MiniStrokePreview';
 
 interface GraphTooltipProps {
@@ -45,6 +49,7 @@ const GraphTooltip = memo(function GraphTooltip({
   semanticNote,
   isGhost: _isGhost,
 }: GraphTooltipProps) {
+  const { lang, t } = useLanguage();
   const [pos, setPos] = useState({ left: 0, top: 0 });
 
   useEffect(() => {
@@ -112,7 +117,7 @@ const GraphTooltip = memo(function GraphTooltip({
             {entry.pinyin.map(p => numberToMark(p)).join(', ')}
           </div>
           <div className="mb-1.5 text-[0.75rem] leading-snug text-charcoal" style={{ fontFamily: 'Inter, sans-serif' }}>
-            {entry.definition}
+            {getLocalizedDefinition(entry, lang)}
           </div>
 
           {/* Phonetic rating badge (3-color simplified) */}
@@ -126,9 +131,13 @@ const GraphTooltip = memo(function GraphTooltip({
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              {phoneticRating === 'green' && '准确 — 声韵一致，可直接参考声旁读音'}
-              {phoneticRating === 'yellow' && '近似 — 声韵部分匹配，仅可部分参考'}
-              {phoneticRating === 'red' && `失效 — ${RED_WARNING_TEXT}`}
+              {lang === 'zh'
+                ? (phoneticRating === 'green' && '准确 — 声韵一致，可直接参考声旁读音')
+                  || (phoneticRating === 'yellow' && '近似 — 声韵部分匹配，仅可部分参考')
+                  || (phoneticRating === 'red' && `失效 — ${RED_WARNING_TEXT}`)
+                : (phoneticRating === 'green' && 'Reliable — same initial and final; the phonetic hint holds')
+                  || (phoneticRating === 'yellow' && 'Partial — initial or final matches; only partially reliable')
+                  || (phoneticRating === 'red' && `Unreliable — ${getLocalizedRedWarning(lang)}`)}
             </div>
           )}
 
@@ -143,9 +152,9 @@ const GraphTooltip = memo(function GraphTooltip({
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              <span className="font-semibold">示音关系 Lv.{phoneticLevel}</span>
+              <span className="font-semibold">Lv.{phoneticLevel}</span>
               <span className="mx-1">—</span>
-              {getPhoneticLevelInfo(phoneticLevel).label}
+              {lang === 'zh' ? getPhoneticLevelInfo(phoneticLevel).label : getPhoneticLevelInfo(phoneticLevel).enLabel}
               {phoneticBestMatch && (
                 <span className="ml-1 opacity-60">({phoneticBestMatch})</span>
               )}
@@ -163,11 +172,13 @@ const GraphTooltip = memo(function GraphTooltip({
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              <span className="font-semibold">意符关系 Lv.{semanticLevel}</span>
+              <span className="font-semibold">Lv.{semanticLevel}</span>
               <span className="mx-1">—</span>
-              {getSemanticLevelInfo(semanticLevel).label}
+              {lang === 'zh' ? getSemanticLevelInfo(semanticLevel).label : getSemanticLevelInfo(semanticLevel).enLabel}
               {semanticNote && (
-                <div className="mt-0.5 opacity-70 text-[0.625rem]">{semanticNote}</div>
+                <div className="mt-0.5 opacity-70 text-[0.625rem]">
+                  {semanticNote === '基于定义自动推断' ? t('cmp.decompGraph.inferredByDef') : semanticNote}
+                </div>
               )}
             </div>
           )}
@@ -183,7 +194,7 @@ const GraphTooltip = memo(function GraphTooltip({
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              <span className="font-semibold">{activeAnnotation.name}</span>
+              <span className="font-semibold">{getLocalizedAnnotationName(activeAnnotation, lang)}</span>
               <span className="mx-1 opacity-50">—</span>
               {entry.character} → {activeAnnotation.original}
             </div>
@@ -200,7 +211,7 @@ const GraphTooltip = memo(function GraphTooltip({
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              {ghostSuggestion}
+              {getLocalizedGhostSuggestion(entry.character, lang) ?? ghostSuggestion}
             </div>
           )}
 

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getUserStats, type UserStats, type GameTypeStats } from '../lib/database';
 
 export default function Profile() {
   const { user, profile, configured } = useAuth();
+  const { t } = useLanguage();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +23,7 @@ export default function Profile() {
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center p-8">
           <div className="text-5xl mb-4">⚙️</div>
-          <h1 className="text-2xl font-display mb-2" style={{ color: '#1A1A18' }}>Backend Not Configured</h1>
+          <h1 className="text-2xl font-display mb-2" style={{ color: '#1A1A18' }}>{t('auth.backendNotConfigured')}</h1>
         </div>
       </div>
     );
@@ -32,7 +34,7 @@ export default function Profile() {
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center p-8">
           <div className="text-5xl mb-4">🔐</div>
-          <h1 className="text-2xl font-display mb-2" style={{ color: '#1A1A18' }}>Sign in to view your profile</h1>
+          <h1 className="text-2xl font-display mb-2" style={{ color: '#1A1A18' }}>{t('profile.signInToView')}</h1>
         </div>
       </div>
     );
@@ -43,14 +45,14 @@ export default function Profile() {
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-3xl font-display mb-1" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-          Learning Dashboard
+          {t('profile.dashboard')}
         </h1>
         <p className="text-sm mb-4" style={{ color: '#6B7280' }}>
           {profile?.display_name || user.email}
         </p>
         <Link to="/wordbook" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:shadow-sm"
           style={{ borderColor: '#2D5F8A', color: '#2D5F8A' }}>
-          📖 Word Book
+          📖 {t('common.wordBook')}
         </Link>
       </div>
 
@@ -62,17 +64,17 @@ export default function Profile() {
         <>
           {/* Overview Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-            <StatCard label="Total Exercises" value={stats.totalAttempts} icon="🎯" />
-            <StatCard label="Favorites" value={stats.totalFavorites} icon="⭐" />
-            <StatCard label="Characters Viewed" value={stats.uniqueCharsViewed} icon="📖" />
-            <StatCard label="Overall Avg" value={stats.totalAttempts > 0
+            <StatCard label={t('profile.totalExercises')} value={stats.totalAttempts} icon="🎯" />
+            <StatCard label={t('profile.favorites')} value={stats.totalFavorites} icon="⭐" />
+            <StatCard label={t('profile.charsViewed')} value={stats.uniqueCharsViewed} icon="📖" />
+            <StatCard label={t('profile.overallAvg')} value={stats.totalAttempts > 0
               ? `${Math.round(Object.values(stats.byType).filter(t => t.attempts > 0).reduce((s, t) => s + t.averageScore, 0) / Math.max(1, Object.values(stats.byType).filter(t => t.attempts > 0).length))}%`
               : '—'} icon="📊" />
           </div>
 
           {/* Per Game Type */}
           <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-            By Exercise Type
+            {t('profile.byType')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
             {Object.entries(stats.byType).map(([key, t]) => (
@@ -85,8 +87,8 @@ export default function Profile() {
             <div className="flex items-center gap-3">
               <span className="text-2xl">🎬</span>
               <div>
-                <h3 className="text-sm font-semibold" style={{ color: '#9CA3AF' }}>Video Learning</h3>
-                <p className="text-xs" style={{ color: '#C4C4C4' }}>Coming soon — track your video learning progress</p>
+                <h3 className="text-sm font-semibold" style={{ color: '#9CA3AF' }}>{t('profile.videoLearning')}</h3>
+                <p className="text-xs" style={{ color: '#C4C4C4' }}>{t('profile.videoComingSoon')}</p>
               </div>
             </div>
           </div>
@@ -95,7 +97,7 @@ export default function Profile() {
           {stats.recentAttempts.length > 0 && (
             <div>
               <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>
-                Recent Activity
+                {t('profile.recentActivity')}
               </h2>
               <div className="space-y-2">
                 {stats.recentAttempts.slice(0, 8).map((a, i) => {
@@ -127,7 +129,7 @@ export default function Profile() {
       ) : (
         <div className="text-center py-12">
           <div className="text-4xl mb-3">🎮</div>
-          <p className="text-sm" style={{ color: '#6B7280' }}>Complete a quiz or game to see your stats here.</p>
+          <p className="text-sm" style={{ color: '#6B7280' }}>{t('profile.emptyStats')}</p>
         </div>
       )}
     </div>
@@ -145,14 +147,16 @@ function StatCard({ label, value, icon }: { label: string; value: string | numbe
 }
 
 function GameCard({ gameKey, data }: { gameKey: string; data: GameTypeStats }) {
+  const { t } = useLanguage();
+  const label = t(`profile.game${gameKey === 'quiz' ? 'Quiz' : gameKey === 'puzzle' ? 'Puzzle' : 'Glyph'}`);
   return (
     <div className="p-5 rounded-2xl" style={{ background: '#FDFBF6', border: '1px solid #E5E0D8' }}>
       <div className="flex items-center gap-2 mb-3">
         <span className="text-2xl">{data.icon}</span>
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: '#1A1A18' }}>{data.label}</h3>
+          <h3 className="text-sm font-semibold" style={{ color: '#1A1A18' }}>{label}</h3>
           <span className="text-xs" style={{ color: '#9CA3AF' }}>
-            {data.attempts > 0 ? `${data.attempts} attempt${data.attempts > 1 ? 's' : ''}` : 'Not started'}
+            {data.attempts > 0 ? t('profile.attempts', { n: data.attempts }) : t('profile.notStarted')}
           </span>
         </div>
       </div>
@@ -160,11 +164,11 @@ function GameCard({ gameKey, data }: { gameKey: string; data: GameTypeStats }) {
         <div className="grid grid-cols-2 gap-2">
           <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(45,95,138,0.06)' }}>
             <div className="text-lg font-bold" style={{ color: '#2D5F8A' }}>{data.averageScore}%</div>
-            <div className="text-[0.6rem]" style={{ color: '#9CA3AF' }}>Average</div>
+            <div className="text-[0.6rem]" style={{ color: '#9CA3AF' }}>{t('profile.average')}</div>
           </div>
           <div className="text-center p-2 rounded-lg" style={{ background: 'rgba(74,124,89,0.06)' }}>
             <div className="text-lg font-bold" style={{ color: '#4A7C59' }}>{data.bestScore}%</div>
-            <div className="text-[0.6rem]" style={{ color: '#9CA3AF' }}>Best</div>
+            <div className="text-[0.6rem]" style={{ color: '#9CA3AF' }}>{t('profile.best')}</div>
           </div>
         </div>
       ) : (
@@ -173,7 +177,7 @@ function GameCard({ gameKey, data }: { gameKey: string; data: GameTypeStats }) {
           className="block text-center py-2 rounded-lg text-xs font-medium transition-all hover:opacity-80"
           style={{ background: '#2D5F8A', color: '#fff' }}
         >
-          Start →
+          {t('profile.start')}
         </Link>
       )}
     </div>
