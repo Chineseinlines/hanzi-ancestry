@@ -6,6 +6,16 @@ import {
 } from 'lucide-react';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import AncientGlyphGame from '../components/AncientGlyphGame';
+import StrokeQuizGame from '../components/games/StrokeQuizGame';
+import StrokeOrderGame from '../components/games/StrokeOrderGame';
+import TrickyStrokesGame from '../components/games/TrickyStrokesGame';
+import PhonoSemanticGame from '../components/games/PhonoSemanticGame';
+import VariantRadicalGame from '../components/games/VariantRadicalGame';
+import LookalikeGame from '../components/games/LookalikeGame';
+import PronunciationGame from '../components/games/PronunciationGame';
+import HskGame from '../components/games/HskGame';
+import CharStoriesGame from '../components/games/CharStoriesGame';
+import FunFactsGame from '../components/games/FunFactsGame';
 import { getAllCharacters, hasCharacter } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -52,7 +62,7 @@ export default function Games() {
           en: 'Stroke Quiz',
           category: '书写',
           desc: '单笔画识别、易错笔画区分、笔画数量判断，测试你的笔画基本功。',
-          available: false,
+          available: true,
         },
         {
           id: 'stroke-order',
@@ -61,7 +71,7 @@ export default function Games() {
           en: 'Stroke Order',
           category: '书写',
           desc: '触屏或鼠标模拟书写汉字，系统实时纠错并打分，练就标准笔顺。',
-          available: false,
+          available: true,
         },
         {
           id: 'tricky-strokes',
@@ -70,7 +80,7 @@ export default function Games() {
           en: 'Tricky Strokes',
           category: '书写',
           desc: '针对"火""乃""必"等笔顺易错字专项出题，攻克书写难点。',
-          available: false,
+          available: true,
         },
       ],
     },
@@ -104,7 +114,7 @@ export default function Games() {
           en: 'Phono-Semantic',
           category: '部件',
           desc: '区分形旁表意与声旁表音，强化形声字认知。',
-          available: false,
+          available: true,
         },
         {
           id: 'variant-radicals',
@@ -113,7 +123,7 @@ export default function Games() {
           en: 'Variant Radicals',
           category: '部件',
           desc: '识别 忄=心、犭=犬 等变形关系，掌握偏旁本源。',
-          available: false,
+          available: true,
         },
       ],
     },
@@ -129,7 +139,7 @@ export default function Games() {
           en: 'Lookalike Finder',
           category: '认读',
           desc: '分辨 辩/辨/瓣、末/未、土/士 等高频易错形近字。',
-          available: false,
+          available: true,
         },
         {
           id: 'pronunciation',
@@ -138,7 +148,7 @@ export default function Games() {
           en: 'Pronunciation Quiz',
           category: '认读',
           desc: '针对声旁失效字、多音字专项纠错，避免凭偏旁猜读。',
-          available: false,
+          available: true,
         },
         {
           id: 'hsk-levels',
@@ -147,7 +157,7 @@ export default function Games() {
           en: 'HSK Levels',
           category: '认读',
           desc: '按HSK等级梯度识字闯关，适配留学生学习节奏。',
-          available: false,
+          available: true,
         },
       ],
     },
@@ -172,7 +182,7 @@ export default function Games() {
           en: 'Character Stories',
           category: '文化',
           desc: '根据字形典故回答问题，了解汉字背后的历史文化。',
-          available: false,
+          available: true,
         },
         {
           id: 'fun-facts',
@@ -181,7 +191,7 @@ export default function Games() {
           en: 'Fun Facts',
           category: '文化',
           desc: '解答古今字义颠倒、字形演变谜题，拓展汉字冷知识。',
-          available: false,
+          available: true,
         },
       ],
     },
@@ -190,12 +200,36 @@ export default function Games() {
   // ── Collect available games for bottom nav ─────────────────────
   const availableGames = categories.flatMap(cat => cat.games.filter(g => g.available));
 
+  const enterGame = (id: string) => {
+    if (id === 'radical-match' || id === 'component-builder') {
+      setGameChar(getRandomChar());
+    }
+    setActiveGame(id);
+  };
+
   // ── Game play mode ──────────────────────────────────────────────
   if (activeGame) {
     const activeGameInfo = availableGames.find(g => g.id === activeGame);
-    const isGlyphGame = activeGame === 'glyph-guess';
-    const isRadicalMatch = activeGame === 'radical-match';
-    const isComponentBuilder = activeGame === 'component-builder';
+    const showCharSelector = activeGame === 'radical-match' || activeGame === 'component-builder';
+
+    const renderGame = () => {
+      switch (activeGame) {
+        case 'glyph-guess': return <AncientGlyphGame key={activeGame} />;
+        case 'radical-match': return <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['match']} title={lang === 'zh' ? '部首连连看' : 'Radical Match'} />;
+        case 'component-builder': return <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['decompose', 'assemble']} title={lang === 'zh' ? '部件拼字闯关' : 'Component Builder'} />;
+        case 'stroke-quiz': return <StrokeQuizGame key={activeGame} />;
+        case 'stroke-order': return <StrokeOrderGame key={activeGame} />;
+        case 'tricky-strokes': return <TrickyStrokesGame key={activeGame} />;
+        case 'phono-semantic': return <PhonoSemanticGame key={activeGame} />;
+        case 'variant-radicals': return <VariantRadicalGame key={activeGame} />;
+        case 'lookalike': return <LookalikeGame key={activeGame} />;
+        case 'pronunciation': return <PronunciationGame key={activeGame} />;
+        case 'hsk-levels': return <HskGame key={activeGame} />;
+        case 'char-stories': return <CharStoriesGame key={activeGame} />;
+        case 'fun-facts': return <FunFactsGame key={activeGame} />;
+        default: return <CharPuzzleGame key={gameChar} targetChar={gameChar} />;
+      }
+    };
 
     return (
       <div className="min-h-screen bg-bg-primary pb-20">
@@ -214,8 +248,8 @@ export default function Games() {
               {lang === 'zh' ? activeGameInfo?.title : activeGameInfo?.en}
             </span>
 
-            {/* Character selector — only for puzzle games, not glyph game */}
-            {!isGlyphGame && (
+            {/* Character selector — only for the two char-based puzzle games */}
+            {showCharSelector && (
               <div className="ml-auto flex items-center gap-2">
                 <span className="text-xs text-charcoal/50">{t('games.currentChar')}</span>
                 <span className="font-serif-cn text-lg font-bold text-ink-black">{gameChar}</span>
@@ -254,14 +288,7 @@ export default function Games() {
 
         {/* Game area */}
         <div className="mx-auto max-w-2xl px-4 py-8">
-          {isGlyphGame
-            ? <AncientGlyphGame key={activeGame} />
-            : isRadicalMatch
-            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['match']} title={lang === 'zh' ? '部首连连看' : 'Radical Match'} />
-            : isComponentBuilder
-            ? <CharPuzzleGame key={gameChar} targetChar={gameChar} modes={['decompose', 'assemble']} title={lang === 'zh' ? '部件拼字闯关' : 'Component Builder'} />
-            : <CharPuzzleGame key={gameChar} targetChar={gameChar} />
-          }
+          {renderGame()}
         </div>
 
         {/* Bottom navigation — jump between available games */}
@@ -273,14 +300,7 @@ export default function Games() {
             {availableGames.map((game) => (
               <button
                 key={game.id}
-                onClick={() => {
-                  if (game.id === 'glyph-guess') {
-                    setActiveGame(game.id);
-                  } else {
-                    setGameChar(getRandomChar());
-                    setActiveGame(game.id);
-                  }
-                }}
+                onClick={() => enterGame(game.id)}
                 className={`flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all ${
                   activeGame === game.id
                     ? 'bg-ink-black text-white'
@@ -371,8 +391,7 @@ export default function Games() {
                   }}
                   onClick={() => {
                     if (game.available) {
-                      setGameChar(getRandomChar());
-                      setActiveGame(game.id);
+                      enterGame(game.id);
                     }
                   }}
                 >
