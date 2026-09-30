@@ -10,6 +10,7 @@ export default function Footer() {
     { labelKey: 'nav.learn', path: '/learn' },
     { labelKey: 'nav.quiz', path: '/quiz' },
     { labelKey: 'nav.games', path: '/games' },
+    { labelKey: 'nav.studio', path: '/studio' },
     { labelKey: 'nav.about', path: '/about' },
   ];
 

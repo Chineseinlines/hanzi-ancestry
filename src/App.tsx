@@ -14,6 +14,7 @@ import Learn from './pages/Learn'
 import Profile from './pages/Profile'
 import WordBook from './pages/WordBook'
 import Admin from './pages/Admin'
+import Studio from './pages/Studio'
 
 const pageTransition = {
   initial: { opacity: 0, y: 12 },
@@ -42,6 +43,7 @@ export default function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/wordbook" element={<WordBook />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/studio" element={<Studio />} />
               </Routes>
             </motion.div>
           </AnimatePresence>
