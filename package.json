@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build && cp dist/index.html dist/404.html",
     "lint": "eslint .",
     "preview": "vite preview",
-    "cache-glyphs": "npx tsx scripts/cache-glyphs.ts"
+    "cache-glyphs": "npx tsx scripts/cache-glyphs.ts",
+    "build-cultural-words": "node scripts/build-cultural-words.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

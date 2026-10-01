@@ -3,10 +3,11 @@ import QuizShell, { bigChar, type QuizQuestion } from './QuizShell';
 import { getAllCharacters, numberToMark } from '../../data/hanziData';
 import { COMMON_CHAR_SET } from '../../data/commonChars';
 import { sample, shuffle } from '../../data/gameContent';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const COMMON = new Set(COMMON_CHAR_SET);
 
-function buildQuestions(): QuizQuestion[] {
+function buildQuestions(t: (k: string, p?: Record<string, string | number>) => string): QuizQuestion[] {
   const entries = getAllCharacters().filter(e => COMMON.has(e.character) && e.pinyin.length > 0);
   if (entries.length === 0) return [];
 
@@ -21,18 +22,19 @@ function buildQuestions(): QuizQuestion[] {
     const options = shuffle([correct, ...distractors]);
     qs.push({
       prompt: bigChar(entry.character),
-      hint: '请选出这个汉字正确的读音（多音字会列出多个读音）',
+      hint: t('game.chooseReading'),
       options,
       correctIndex: options.indexOf(correct),
       answerKey: correct,
-      explain: `「${entry.character}」读作 ${correct}`,
+      explain: t('game.readsAs', { char: entry.character, reading: correct }),
     });
   }
   return qs;
 }
 
 export default function PronunciationGame() {
+  const { t } = useLanguage();
   const [seed, setSeed] = useState(0);
-  const questions = useMemo(() => buildQuestions(), [seed]);
+  const questions = useMemo(() => buildQuestions(t), [seed, t]);
   return <QuizShell key={seed} gameId="pronunciation" questions={questions} onReplay={() => setSeed(s => s + 1)} />;
 }

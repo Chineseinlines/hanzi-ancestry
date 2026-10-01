@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import QuizShell, { bigChar, type QuizQuestion } from './QuizShell';
 import { STROKE_COUNTS, sample, shuffle } from '../../data/gameContent';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-function buildQuestions(): QuizQuestion[] {
+function buildQuestions(t: (k: string, p?: Record<string, string | number>) => string): QuizQuestion[] {
   const countPool = Array.from(new Set(STROKE_COUNTS.map(s => s.count)));
   const qs: QuizQuestion[] = [];
 
@@ -13,18 +14,19 @@ function buildQuestions(): QuizQuestion[] {
     const options = shuffle([correct, ...distractors]);
     qs.push({
       prompt: bigChar(item.char),
-      hint: '这个汉字一共有几画？',
+      hint: t('game.strokeCount'),
       options,
       correctIndex: options.indexOf(correct),
       answerKey: correct,
-      explain: `「${item.char}」共 ${item.count} 画。`,
+      explain: t('game.charStrokeCount', { char: item.char, count: item.count }),
     });
   }
   return qs;
 }
 
 export default function StrokeQuizGame() {
+  const { t } = useLanguage();
   const [seed, setSeed] = useState(0);
-  const questions = useMemo(() => buildQuestions(), [seed]);
+  const questions = useMemo(() => buildQuestions(t), [seed, t]);
   return <QuizShell key={seed} gameId="stroke-quiz" questions={questions} onReplay={() => setSeed(s => s + 1)} />;
 }

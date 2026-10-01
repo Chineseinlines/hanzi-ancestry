@@ -67,7 +67,7 @@ export default function VisualGrammarRef() {
             <div className="flex items-center gap-2 mb-4">
               <Grid3X3 size={18} className="text-cinnabar" />
               <h3 className="font-serif-cn text-lg font-semibold text-ink-black">{t('cmp.visualGrammar.structureTemplates')}</h3>
-              {lang === 'en' && <span className="text-[0.625rem] text-charcoal/40 ml-auto" style={{ fontFamily: 'Inter' }}>Structure Templates</span>}
+              <span className="text-[0.625rem] text-charcoal/40 ml-auto" style={{ fontFamily: 'Inter' }}>Structure Templates</span>
             </div>
             <p className="text-sm text-charcoal/70 mb-4" style={{ fontFamily: 'Inter, sans-serif' }}>
               {t('cmp.visualGrammar.structureTemplatesDesc')}
@@ -96,7 +96,7 @@ export default function VisualGrammarRef() {
             <div className="flex items-center gap-2 mb-4">
               <Layout size={18} className="text-cinnabar" />
               <h3 className="font-serif-cn text-lg font-semibold text-ink-black">{t('cmp.visualGrammar.positionalVariants')}</h3>
-              {lang === 'en' && <span className="text-[0.625rem] text-charcoal/40 ml-auto" style={{ fontFamily: 'Inter' }}>Positional Variants</span>}
+              <span className="text-[0.625rem] text-charcoal/40 ml-auto" style={{ fontFamily: 'Inter' }}>Positional Variants</span>
             </div>
             <p className="text-sm text-charcoal/70 mb-4" style={{ fontFamily: 'Inter, sans-serif' }}>
               {t('cmp.visualGrammar.positionalVariantsDesc')}
@@ -124,7 +124,7 @@ export default function VisualGrammarRef() {
         >
           <div className="flex items-center gap-2 mb-4">
             <span className="font-serif-cn text-lg font-semibold text-ink-black">{t('cmp.visualGrammar.validation')}</span>
-            {lang === 'en' && <span className="text-[0.625rem] text-charcoal/40" style={{ fontFamily: 'Inter' }}>Validation Examples</span>}
+            <span className="text-[0.625rem] text-charcoal/40" style={{ fontFamily: 'Inter' }}>Validation Examples</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Valid example */}

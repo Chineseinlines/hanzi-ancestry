@@ -2,6 +2,8 @@
 // 汉字游戏静态题库
 // 集中存放变形部件、形近字、易错笔顺、汉字故事、冷知识、
 // HSK 分级示例字、以及笔画数等手写内容。
+// 每个条目同时提供中英双语（*En 字段），EN 模式下仅保留
+// 必要的汉字与拼音，题干、选项与讲解均切换为英文。
 // ────────────────────────────────────────────────────────────────
 
 export function shuffle<T>(arr: T[]): T[] {
@@ -22,27 +24,28 @@ export interface VariantRadical {
   variant: string;
   origin: string;
   gloss: string;
+  glossEn: string;
 }
 
 export const VARIANT_RADICALS: VariantRadical[] = [
-  { variant: '忄', origin: '心', gloss: '竖心旁，与内心、情感有关' },
-  { variant: '扌', origin: '手', gloss: '提手旁，与手的动作有关' },
-  { variant: '氵', origin: '水', gloss: '三点水，与水有关' },
-  { variant: '灬', origin: '火', gloss: '四点底，与火、热有关' },
-  { variant: '犭', origin: '犬', gloss: '反犬旁，与兽类有关' },
-  { variant: '亻', origin: '人', gloss: '单人旁，与人有关' },
-  { variant: '讠', origin: '言', gloss: '言字旁，与言语有关' },
-  { variant: '纟', origin: '糸', gloss: '绞丝旁，与丝线有关' },
-  { variant: '钅', origin: '金', gloss: '金字旁，与金属有关' },
-  { variant: '饣', origin: '食', gloss: '食字旁，与食物有关' },
-  { variant: '礻', origin: '示', gloss: '示字旁，与祭祀、神示有关' },
-  { variant: '衤', origin: '衣', gloss: '衣字旁，与衣物有关' },
-  { variant: '刂', origin: '刀', gloss: '立刀旁，与刀、切割有关' },
-  { variant: '冫', origin: '冰', gloss: '两点水，与寒冷有关' },
-  { variant: '艹', origin: '艸', gloss: '草字头（艸=草的总名），与草木有关' },
-  { variant: '罒', origin: '网', gloss: '四字头，像张开的网' },
-  { variant: '攵', origin: '攴', gloss: '反文旁（攴=手持杖击打）' },
-  { variant: '彳', origin: '行', gloss: '双人旁，与行走、道路有关' },
+  { variant: '忄', origin: '心', gloss: '竖心旁，与内心、情感有关', glossEn: 'Vertical heart radical; related to the heart, mind and emotions.' },
+  { variant: '扌', origin: '手', gloss: '提手旁，与手的动作有关', glossEn: 'Hand radical; related to the actions of the hand.' },
+  { variant: '氵', origin: '水', gloss: '三点水，与水有关', glossEn: 'Three-dot water radical; related to water.' },
+  { variant: '灬', origin: '火', gloss: '四点底，与火、热有关', glossEn: 'Four-dot bottom (fire); related to fire and heat.' },
+  { variant: '犭', origin: '犬', gloss: '反犬旁，与兽类有关', glossEn: 'Animal (dog) radical; related to beasts.' },
+  { variant: '亻', origin: '人', gloss: '单人旁，与人有关', glossEn: 'Standing-person radical; related to people.' },
+  { variant: '讠', origin: '言', gloss: '言字旁，与言语有关', glossEn: 'Speech radical; related to words and speech.' },
+  { variant: '纟', origin: '糸', gloss: '绞丝旁，与丝线有关', glossEn: 'Silk radical; related to silk and threads.' },
+  { variant: '钅', origin: '金', gloss: '金字旁，与金属有关', glossEn: 'Metal (gold) radical; related to metal.' },
+  { variant: '饣', origin: '食', gloss: '食字旁，与食物有关', glossEn: 'Food radical; related to food and eating.' },
+  { variant: '礻', origin: '示', gloss: '示字旁，与祭祀、神示有关', glossEn: 'Altar/ritual radical; related to rites and spirits.' },
+  { variant: '衤', origin: '衣', gloss: '衣字旁，与衣物有关', glossEn: 'Clothing radical; related to garments.' },
+  { variant: '刂', origin: '刀', gloss: '立刀旁，与刀、切割有关', glossEn: 'Standing-knife radical; related to knives and cutting.' },
+  { variant: '冫', origin: '冰', gloss: '两点水，与寒冷有关', glossEn: 'Two-dot ice radical; related to cold.' },
+  { variant: '艹', origin: '艸', gloss: '草字头（艸=草的总名），与草木有关', glossEn: 'Grass radical (艸 = grass); related to plants.' },
+  { variant: '罒', origin: '网', gloss: '四字头，像张开的网', glossEn: 'Net radical, resembling an open net.' },
+  { variant: '攵', origin: '攴', gloss: '反文旁（攴=手持杖击打）', glossEn: 'Strike radical (攴 = a hand holding a stick to strike).' },
+  { variant: '彳', origin: '行', gloss: '双人旁，与行走、道路有关', glossEn: 'Double-person radical; related to walking and roads.' },
 ];
 
 // ── 形近字：词语挖空 + 选项 ─────────────────────────────────
@@ -52,29 +55,30 @@ export interface LookalikeItem {
   options: string[];     // 候选形近字
   correct: string;       // 正确字
   explain: string;       // 形近字区分讲解
+  explainEn: string;
 }
 
 export const LOOKALIKES: LookalikeItem[] = [
-  { word: '__论', pinyin: 'biàn', options: ['辩', '辨', '辫', '瓣'], correct: '辩', explain: '辩＝用言语争论（辩论）；辨＝区分（分辨）；辫＝辫子（纟）；瓣＝花瓣（瓜）。' },
-  { word: '分__', pinyin: 'biàn', options: ['辨', '辩', '辫', '瓣'], correct: '辨', explain: '分辨＝区分开来，故用「辨」；辨中间从「刀」表剖分。' },
-  { word: '本__倒置', pinyin: 'mò', options: ['末', '未'], correct: '末', explain: '末＝树梢、末端（本末）；未＝还没有（未来）。' },
-  { word: '__来', pinyin: 'wèi', options: ['未', '末', '本'], correct: '未', explain: '未来＝还没有到来，故用「未」。' },
-  { word: '战__', pinyin: 'shì', options: ['士', '土'], correct: '士', explain: '士＝士兵、有知识的人；土＝泥土。' },
-  { word: '泥__', pinyin: 'tǔ', options: ['土', '士'], correct: '土', explain: '泥土、土地用「土」。' },
-  { word: '__经', pinyin: 'yǐ', options: ['已', '己', '巳'], correct: '已', explain: '已＝已经（半开口）；己＝自己（全开口）；巳＝地支之一（全闭口）。' },
-  { word: '自__', pinyin: 'jǐ', options: ['己', '已', '巳'], correct: '己', explain: '自己、舍己为人用「己」。' },
-  { word: '打__', pinyin: 'zhé', options: ['折', '拆'], correct: '折', explain: '折＝断、弯曲、折扣；拆＝拆开、拆除。' },
-  { word: '__除', pinyin: 'chāi', options: ['拆', '折'], correct: '拆', explain: '拆除、拆开用「拆」，比「折」多一点。' },
-  { word: '眼__', pinyin: 'jīng', options: ['睛', '晴', '情', '清'], correct: '睛', explain: '睛＝眼睛（目）；晴＝晴天（日）；情＝感情（忄）；清＝清水（氵）。' },
-  { word: '心__', pinyin: 'qíng', options: ['情', '晴', '睛', '清'], correct: '情', explain: '感情（忄）用「情」。' },
-  { word: '干__', pinyin: 'zào', options: ['燥', '躁', '澡'], correct: '燥', explain: '燥＝干燥（火）；躁＝急躁、浮躁（足）；澡＝洗澡（氵）。' },
-  { word: '急__', pinyin: 'zào', options: ['躁', '燥', '澡'], correct: '躁', explain: '急躁、躁动与「足」（跳脚）有关，用「躁」。' },
-  { word: '蜂__', pinyin: 'mì', options: ['蜜', '密'], correct: '蜜', explain: '蜜＝蜂蜜（虫）；密＝严密、秘密（山）。' },
-  { word: '秘__', pinyin: 'mì', options: ['密', '蜜'], correct: '密', explain: '秘密、紧密用「密」。' },
-  { word: '一__树', pinyin: 'kē', options: ['棵', '颗'], correct: '棵', explain: '棵＝量词，用于植物（树木）；颗＝量词，用于颗粒状物（一颗星）。' },
-  { word: '一__星', pinyin: 'kē', options: ['颗', '棵'], correct: '颗', explain: '颗粒状小物用「颗」（页，指头/圆粒）。' },
-  { word: '必__', pinyin: 'xū', options: ['须', '需'], correct: '须', explain: '必须＝一定要（须＝待、当）；需＝需要、需求（雨，万物需雨）。' },
-  { word: '__要', pinyin: 'xū', options: ['需', '须'], correct: '需', explain: '需要、需求用「需」（从雨）。' },
+  { word: '__论', pinyin: 'biàn', options: ['辩', '辨', '辫', '瓣'], correct: '辩', explain: '辩＝用言语争论（辩论）；辨＝区分（分辨）；辫＝辫子（纟）；瓣＝花瓣（瓜）。', explainEn: '辩 (debate) uses speech 讠; 辨 (distinguish) splits with 刀; 辫 (braid) has thread 纟; 瓣 (petal) has melon 瓜.' },
+  { word: '分__', pinyin: 'biàn', options: ['辨', '辩', '辫', '瓣'], correct: '辨', explain: '分辨＝区分开来，故用「辨」；辨中间从「刀」表剖分。', explainEn: '分辨 means to tell apart, hence 辨; its middle 刀 suggests splitting.' },
+  { word: '本__倒置', pinyin: 'mò', options: ['末', '未'], correct: '末', explain: '末＝树梢、末端（本末）；未＝还没有（未来）。', explainEn: '末 = tip/end of a branch (本末); 未 = not yet (未来).' },
+  { word: '__来', pinyin: 'wèi', options: ['未', '末', '本'], correct: '未', explain: '未来＝还没有到来，故用「未」。', explainEn: '未来 means "has not yet come", so it uses 未.' },
+  { word: '战__', pinyin: 'shì', options: ['士', '土'], correct: '士', explain: '士＝士兵、有知识的人；土＝泥土。', explainEn: '士 = soldier / educated person; 土 = earth, soil.' },
+  { word: '泥__', pinyin: 'tǔ', options: ['土', '士'], correct: '土', explain: '泥土、土地用「土」。', explainEn: '泥土 (mud) and 土地 (land) use 土.' },
+  { word: '__经', pinyin: 'yǐ', options: ['已', '己', '巳'], correct: '已', explain: '已＝已经（半开口）；己＝自己（全开口）；巳＝地支之一（全闭口）。', explainEn: '已 = already (half-open top); 己 = self (fully open); 巳 = an Earthly Branch (fully closed).' },
+  { word: '自__', pinyin: 'jǐ', options: ['己', '已', '巳'], correct: '己', explain: '自己、舍己为人用「己」。', explainEn: '自己 (oneself) and 舍己为人 use 己.' },
+  { word: '打__', pinyin: 'zhé', options: ['折', '拆'], correct: '折', explain: '折＝断、弯曲、折扣；拆＝拆开、拆除。', explainEn: '折 = break, bend, discount; 拆 = take apart, demolish.' },
+  { word: '__除', pinyin: 'chāi', options: ['拆', '折'], correct: '拆', explain: '拆除、拆开用「拆」，比「折」多一点。', explainEn: '拆除 (dismantle) uses 拆, which has one extra dot over 折.' },
+  { word: '眼__', pinyin: 'jīng', options: ['睛', '晴', '情', '清'], correct: '睛', explain: '睛＝眼睛（目）；晴＝晴天（日）；情＝感情（忄）；清＝清水（氵）。', explainEn: '睛 = eye (目); 晴 = sunny (日); 情 = feeling (忄); 清 = clear water (氵).' },
+  { word: '心__', pinyin: 'qíng', options: ['情', '晴', '睛', '清'], correct: '情', explain: '感情（忄）用「情」。', explainEn: '感情 (emotion) uses the heart radical 忄, hence 情.' },
+  { word: '干__', pinyin: 'zào', options: ['燥', '躁', '澡'], correct: '燥', explain: '燥＝干燥（火）；躁＝急躁、浮躁（足）；澡＝洗澡（氵）。', explainEn: '燥 = dry (火); 躁 = impatient, restless (足); 澡 = bathe (氵).' },
+  { word: '急__', pinyin: 'zào', options: ['躁', '燥', '澡'], correct: '躁', explain: '急躁、躁动与「足」（跳脚）有关，用「躁」。', explainEn: '急躁 (impatience) relates to feet (stamping), hence 躁.' },
+  { word: '蜂__', pinyin: 'mì', options: ['蜜', '密'], correct: '蜜', explain: '蜜＝蜂蜜（虫）；密＝严密、秘密（山）。', explainEn: '蜜 = honey (虫); 密 = dense, secret (山).' },
+  { word: '秘__', pinyin: 'mì', options: ['密', '蜜'], correct: '密', explain: '秘密、紧密用「密」。', explainEn: '秘密 (secret) and 紧密 (close) use 密.' },
+  { word: '一__树', pinyin: 'kē', options: ['棵', '颗'], correct: '棵', explain: '棵＝量词，用于植物（树木）；颗＝量词，用于颗粒状物（一颗星）。', explainEn: '棵 = measure word for plants (trees); 颗 = measure word for small round objects.' },
+  { word: '一__星', pinyin: 'kē', options: ['颗', '棵'], correct: '颗', explain: '颗粒状小物用「颗」（页，指头/圆粒）。', explainEn: '颗 is for small grain-like objects (页 refers to head/round bead).' },
+  { word: '必__', pinyin: 'xū', options: ['须', '需'], correct: '须', explain: '必须＝一定要（须＝待、当）；需＝需要、需求（雨，万物需雨）。', explainEn: '必须 = must (须 = to have to); 需 = need, require (rain 雨).' },
+  { word: '__要', pinyin: 'xū', options: ['需', '须'], correct: '需', explain: '需要、需求用「需」（从雨）。', explainEn: '需要 (need) and 需求 (demand) use 需 (from rain 雨).' },
 ];
 
 // ── 易错笔顺字 ─────────────────────────────────────────────
@@ -82,28 +86,30 @@ export interface TrickyStroke {
   char: string;
   count: number;
   order?: string;   // 完整笔顺说明（仅对确定笔顺的字填写）
+  orderEn?: string;
   tip: string;      // 易错点提示
+  tipEn: string;
 }
 
 export const TRICKY_STROKES: TrickyStroke[] = [
-  { char: '火', count: 4, order: '点、撇、撇、捺', tip: '先写左右两点，再写中间的人（撇、捺）。' },
-  { char: '山', count: 3, order: '竖、竖折、竖', tip: '先写中间的竖，再写两边。' },
-  { char: '水', count: 4, order: '竖钩、横撇、撇、捺', tip: '先写中间竖钩，再左右两边。' },
-  { char: '心', count: 4, order: '点、卧钩、点、点', tip: '先点、卧钩，再补两点。' },
-  { char: '必', count: 5, order: '点、卧钩、点、撇、点', tip: '与「心」类似先点，中间多一撇。' },
-  { char: '为', count: 4, order: '点、撇、横折钩、点', tip: '先点后撇，横折钩，再点。' },
-  { char: '及', count: 3, order: '撇、横折折撇、捺', tip: '第一笔是撇，共三画。' },
-  { char: '乃', count: 2, order: '横折折折钩、撇', tip: '只有两画，第一笔是折。' },
-  { char: '与', count: 3, order: '横、竖折折钩、横', tip: '横、竖折折钩、横，共三画。' },
-  { char: '方', count: 4, order: '点、横、横折钩、撇', tip: '先点，第三笔是横折钩。' },
-  { char: '万', count: 3, order: '横、横折钩、撇', tip: '横、横折钩、撇，共三画。' },
-  { char: '九', count: 2, order: '撇、横折弯钩', tip: '先撇，再横折弯钩。' },
-  { char: '匕', count: 2, order: '撇、竖弯钩', tip: '先撇，再竖弯钩。' },
-  { char: '长', count: 4, order: '撇、横、竖提、捺', tip: '共四画，注意第三笔是竖提。' },
-  { char: '世', count: 5, tip: '共五画，先横，注意竖折的收笔。' },
-  { char: '母', count: 5, tip: '共五画，先两个折，最后是点、横、点。' },
-  { char: '出', count: 5, tip: '共五画，先竖折，注意不要与「山」混淆。' },
-  { char: '凸', count: 5, tip: '共五画，起笔先写竖。' },
+  { char: '火', count: 4, order: '点、撇、撇、捺', orderEn: 'dot, left-falling, left-falling, right-falling', tip: '先写左右两点，再写中间的人（撇、捺）。', tipEn: 'Write the two side dots first, then the central 人 (left and right falling strokes).' },
+  { char: '山', count: 3, order: '竖、竖折、竖', orderEn: 'vertical, vertical-turning, vertical', tip: '先写中间的竖，再写两边。', tipEn: 'Write the middle vertical stroke first, then the two sides.' },
+  { char: '水', count: 4, order: '竖钩、横撇、撇、捺', orderEn: 'vertical hook, horizontal-then-left-falling, left-falling, right-falling', tip: '先写中间竖钩，再左右两边。', tipEn: 'Write the central vertical hook first, then the left and right sides.' },
+  { char: '心', count: 4, order: '点、卧钩、点、点', orderEn: 'dot, lying hook, dot, dot', tip: '先点、卧钩，再补两点。', tipEn: 'Dot first, then the lying hook, then add the two dots.' },
+  { char: '必', count: 5, order: '点、卧钩、点、撇、点', orderEn: 'dot, lying hook, dot, left-falling, dot', tip: '与「心」类似先点，中间多一撇。', tipEn: 'Like 心, start with a dot, with an extra left-falling stroke in the middle.' },
+  { char: '为', count: 4, order: '点、撇、横折钩、点', orderEn: 'dot, left-falling, horizontal-turning hook, dot', tip: '先点后撇，横折钩，再点。', tipEn: 'Dot, then left-falling, then horizontal-turning hook, then dot.' },
+  { char: '及', count: 3, order: '撇、横折折撇、捺', orderEn: 'left-falling, horizontal-turning-turning-left-falling, right-falling', tip: '第一笔是撇，共三画。', tipEn: 'The first stroke is a left-falling stroke; three strokes in total.' },
+  { char: '乃', count: 2, order: '横折折折钩、撇', orderEn: 'horizontal-turning-turning-turning hook, left-falling', tip: '只有两画，第一笔是折。', tipEn: 'Only two strokes; the first is a turning stroke.' },
+  { char: '与', count: 3, order: '横、竖折折钩、横', orderEn: 'horizontal, vertical-turning-turning hook, horizontal', tip: '横、竖折折钩、横，共三画。', tipEn: 'Horizontal, vertical-turning-turning hook, horizontal; three strokes in total.' },
+  { char: '方', count: 4, order: '点、横、横折钩、撇', orderEn: 'dot, horizontal, horizontal-turning hook, left-falling', tip: '先点，第三笔是横折钩。', tipEn: 'Start with a dot; the third stroke is the horizontal-turning hook.' },
+  { char: '万', count: 3, order: '横、横折钩、撇', orderEn: 'horizontal, horizontal-turning hook, left-falling', tip: '横、横折钩、撇，共三画。', tipEn: 'Horizontal, horizontal-turning hook, left-falling; three strokes in total.' },
+  { char: '九', count: 2, order: '撇、横折弯钩', orderEn: 'left-falling, horizontal-turning bent hook', tip: '先撇，再横折弯钩。', tipEn: 'Left-falling first, then the horizontal-turning bent hook.' },
+  { char: '匕', count: 2, order: '撇、竖弯钩', orderEn: 'left-falling, vertical bent hook', tip: '先撇，再竖弯钩。', tipEn: 'Left-falling first, then the vertical bent hook.' },
+  { char: '长', count: 4, order: '撇、横、竖提、捺', orderEn: 'left-falling, horizontal, vertical rising, right-falling', tip: '共四画，注意第三笔是竖提。', tipEn: 'Four strokes; note the third is a vertical rising stroke.' },
+  { char: '世', count: 5, tip: '共五画，先横，注意竖折的收笔。', tipEn: 'Five strokes; start with a horizontal, and mind the closing of the vertical-turning stroke.' },
+  { char: '母', count: 5, tip: '共五画，先两个折，最后是点、横、点。', tipEn: 'Five strokes; two turning strokes first, ending with dot, horizontal, dot.' },
+  { char: '出', count: 5, tip: '共五画，先竖折，注意不要与「山」混淆。', tipEn: "Five strokes; start with a vertical-turning stroke, and don't confuse it with 山." },
+  { char: '凸', count: 5, tip: '共五画，起笔先写竖。', tipEn: 'Five strokes; begin with a vertical stroke.' },
 ];
 
 // ── 笔画数（常见字 → 笔画数） ───────────────────────────────
@@ -139,24 +145,27 @@ export interface StoryItem {
   options: string[];
   correctIndex: number;
   explain: string;
+  questionEn: string;
+  optionsEn: string[];
+  explainEn: string;
 }
 
 export const CHAR_STORIES: StoryItem[] = [
-  { char: '日', question: '「日」字的本义是什么？', options: ['太阳', '月亮', '眼睛', '种子'], correctIndex: 0, explain: '「日」是象形字，像圆圆的太阳，中间一点表示太阳的光芒或黑子。' },
-  { char: '月', question: '「月」字的本义是什么？', options: ['月亮', '肉', '船', '弓'], correctIndex: 0, explain: '「月」像一弯新月。作偏旁的「月」旁其实很多来自「肉」，故又叫「肉月旁」。' },
-  { char: '山', question: '「山」字像什么？', options: ['相连的山峰', '一块石头', '高大的楼房', '波浪'], correctIndex: 0, explain: '「山」是象形字，像三座相连的山峰。' },
-  { char: '休', question: '「休」＝亻（人）＋木，表示什么？', options: ['人靠在树旁休息', '人砍树', '人种树', '人爬树'], correctIndex: 0, explain: '「休」由「人」和「木」组成，人靠在树上歇息，就是「休息」。' },
-  { char: '明', question: '「明」＝日＋月，表示什么？', options: ['明亮', '时间', '黑夜', '寒冷'], correctIndex: 0, explain: '日月同辉，光线充足，「明」的本义就是明亮。' },
-  { char: '森', question: '三个「木」组成「森」，表示什么？', options: ['树木众多', '树根', '一根木头', '柴火'], correctIndex: 0, explain: '三个木叠加表示树木很多，「森」即森林。' },
-  { char: '众', question: '三个「人」组成「众」，表示什么？', options: ['很多人', '一个人', '巨人', '坏人'], correctIndex: 0, explain: '三人为「众」，表示众多的人。' },
-  { char: '从', question: '「从」像一个人跟着另一个人，表示什么？', options: ['跟随', '反对', '离开', '超越'], correctIndex: 0, explain: '「从」画的是两人前后相随，本义是跟随。' },
-  { char: '安', question: '「安」＝宀（房子）＋女，表示什么？', options: ['屋内有女子则安定', '女子有危险', '房子倒塌', '女子外出劳作'], correctIndex: 0, explain: '古人在屋内安稳生活，家里有了女主人即「安」，引申为平安、安定。' },
-  { char: '家', question: '「家」＝宀＋豕（猪），反映怎样的观念？', options: ['屋里有猪代表家业安定', '猪圈就是家', '以打猎为生', '以游牧为生'], correctIndex: 0, explain: '「豕」是猪。古代养猪定居是家庭富裕安稳的标志，故「家」字从宀从豕。' },
-  { char: '信', question: '「信」＝亻（人）＋言，表示什么？', options: ['人说话要讲信用', '写一封信', '传口信', '邮递员'], correctIndex: 0, explain: '「信」由「人」和「言」组成，人说话讲诚信就是「信」。' },
-  { char: '好', question: '「好」＝女＋子，最初表示什么？', options: ['美好', '只有女儿', '女子参军', '子女分离'], correctIndex: 0, explain: '「好」由「女」「子」相合，本义是美好，常含亲睦、佳善之意。' },
-  { char: '本', question: '「本」在「木」的根部加一横，指树的哪里？', options: ['树根', '树梢', '树叶', '树干'], correctIndex: 0, explain: '「本」在「木」下加指事符号，指树根，引申为根本、本原。' },
-  { char: '末', question: '「末」在「木」的顶部加一横，指树的哪里？', options: ['树梢', '树根', '树皮', '种子'], correctIndex: 0, explain: '「末」在「木」上加指事符号，指树梢，引申为末端、末尾。' },
-  { char: '刃', question: '「刃」在「刀」上加一点，指什么？', options: ['刀刃', '刀背', '刀柄', '刀鞘'], correctIndex: 0, explain: '「刃」在刀口处加指事符号，指锋利的刀刃。' },
+  { char: '日', question: '「日」字的本义是什么？', options: ['太阳', '月亮', '眼睛', '种子'], correctIndex: 0, explain: '「日」是象形字，像圆圆的太阳，中间一点表示太阳的光芒或黑子。', questionEn: 'What is the original meaning of 日?', optionsEn: ['Sun', 'Moon', 'Eye', 'Seed'], explainEn: "日 is a pictograph of the round sun; the dot or line in the middle represents the sun's rays or sunspots." },
+  { char: '月', question: '「月」字的本义是什么？', options: ['月亮', '肉', '船', '弓'], correctIndex: 0, explain: '「月」像一弯新月。作偏旁的「月」旁其实很多来自「肉」，故又叫「肉月旁」。', questionEn: 'What is the original meaning of 月?', optionsEn: ['Moon', 'Meat', 'Boat', 'Bow'], explainEn: "月 resembles a crescent moon. As a component, many '月' radicals actually derive from 肉 (meat), hence the 'flesh-moon radical'." },
+  { char: '山', question: '「山」字像什么？', options: ['相连的山峰', '一块石头', '高大的楼房', '波浪'], correctIndex: 0, explain: '「山」是象形字，像三座相连的山峰。', questionEn: 'What does 山 resemble?', optionsEn: ['Connected peaks', 'A single rock', 'A tall building', 'Waves'], explainEn: '山 is a pictograph of three connected mountain peaks.' },
+  { char: '休', question: '「休」＝亻（人）＋木，表示什么？', options: ['人靠在树旁休息', '人砍树', '人种树', '人爬树'], correctIndex: 0, explain: '「休」由「人」和「木」组成，人靠在树上歇息，就是「休息」。', questionEn: '休 = 亻 (person) + 木 (tree). What does it mean?', optionsEn: ['A person resting against a tree', 'A person cutting a tree', 'A person planting a tree', 'A person climbing a tree'], explainEn: '休 combines person and tree: a person leaning against a tree to rest is 休 (rest).' },
+  { char: '明', question: '「明」＝日＋月，表示什么？', options: ['明亮', '时间', '黑夜', '寒冷'], correctIndex: 0, explain: '日月同辉，光线充足，「明」的本义就是明亮。', questionEn: '明 = 日 (sun) + 月 (moon). What does it mean?', optionsEn: ['Bright', 'Time', 'Night', 'Cold'], explainEn: "Sun and moon together give abundant light; the original meaning of 明 is 'bright'." },
+  { char: '森', question: '三个「木」组成「森」，表示什么？', options: ['树木众多', '树根', '一根木头', '柴火'], correctIndex: 0, explain: '三个木叠加表示树木很多，「森」即森林。', questionEn: 'Three 木 combine into 森. What does it mean?', optionsEn: ['Many trees', 'Tree root', 'A log', 'Firewood'], explainEn: 'Three trees stacked mean many trees — 森 is a forest.' },
+  { char: '众', question: '三个「人」组成「众」，表示什么？', options: ['很多人', '一个人', '巨人', '坏人'], correctIndex: 0, explain: '三人为「众」，表示众多的人。', questionEn: 'Three 人 combine into 众. What does it mean?', optionsEn: ['Many people', 'One person', 'A giant', 'A bad person'], explainEn: 'Three people make 众, meaning a crowd of many people.' },
+  { char: '从', question: '「从」像一个人跟着另一个人，表示什么？', options: ['跟随', '反对', '离开', '超越'], correctIndex: 0, explain: '「从」画的是两人前后相随，本义是跟随。', questionEn: '从 shows one person following another. What does it mean?', optionsEn: ['To follow', 'To oppose', 'To leave', 'To surpass'], explainEn: '从 depicts two people, one following the other; its original meaning is "follow".' },
+  { char: '安', question: '「安」＝宀（房子）＋女，表示什么？', options: ['屋内有女子则安定', '女子有危险', '房子倒塌', '女子外出劳作'], correctIndex: 0, explain: '古人在屋内安稳生活，家里有了女主人即「安」，引申为平安、安定。', questionEn: '安 = 宀 (house) + 女 (woman). What does it mean?', optionsEn: ['A woman in the house brings peace', 'The woman is in danger', 'The house collapses', 'The woman works outside'], explainEn: 'With a woman (mistress) settled in the house, the home is 安 — safe and settled.' },
+  { char: '家', question: '「家」＝宀＋豕（猪），反映怎样的观念？', options: ['屋里有猪代表家业安定', '猪圈就是家', '以打猎为生', '以游牧为生'], correctIndex: 0, explain: '「豕」是猪。古代养猪定居是家庭富裕安稳的标志，故「家」字从宀从豕。', questionEn: '家 = 宀 (house) + 豕 (pig). What idea does it reflect?', optionsEn: ['A pig in the house means a settled, prosperous home', 'A pigsty is the home', 'Living by hunting', 'Living by herding'], explainEn: '豕 is a pig. In ancient times, settled pig-raising marked a prosperous, stable home, so 家 combines 宀 and 豕.' },
+  { char: '信', question: '「信」＝亻（人）＋言，表示什么？', options: ['人说话要讲信用', '写一封信', '传口信', '邮递员'], correctIndex: 0, explain: '「信」由「人」和「言」组成，人说话讲诚信就是「信」。', questionEn: '信 = 亻 (person) + 言 (word). What does it mean?', optionsEn: ["A person's words should be trustworthy", 'To write a letter', 'To pass a message', 'A postman'], explainEn: '信 combines person and word: a person who keeps their word has 信 (trust).' },
+  { char: '好', question: '「好」＝女＋子，最初表示什么？', options: ['美好', '只有女儿', '女子参军', '子女分离'], correctIndex: 0, explain: '「好」由「女」「子」相合，本义是美好，常含亲睦、佳善之意。', questionEn: '好 = 女 (woman) + 子 (child). What was its original meaning?', optionsEn: ['Good, fine', 'Only a daughter', 'A woman joining the army', 'Parent and child separated'], explainEn: "好 unites woman and child; its root meaning is 'good, fine', carrying a sense of harmony." },
+  { char: '本', question: '「本」在「木」的根部加一横，指树的哪里？', options: ['树根', '树梢', '树叶', '树干'], correctIndex: 0, explain: '「本」在「木」下加指事符号，指树根，引申为根本、本原。', questionEn: '本 adds a line at the base of 木 (tree). Which part does it point to?', optionsEn: ['The root', 'The treetop', 'The leaves', 'The trunk'], explainEn: "本 adds a marker below 木 to point at the root — hence 'root, origin'." },
+  { char: '末', question: '「末」在「木」的顶部加一横，指树的哪里？', options: ['树梢', '树根', '树皮', '种子'], correctIndex: 0, explain: '「末」在「木」上加指事符号，指树梢，引申为末端、末尾。', questionEn: '末 adds a line at the top of 木 (tree). Which part does it point to?', optionsEn: ['The treetop', 'The root', 'The bark', 'The seed'], explainEn: "末 adds a marker above 木 to point at the treetop — hence 'tip, end'." },
+  { char: '刃', question: '「刃」在「刀」上加一点，指什么？', options: ['刀刃', '刀背', '刀柄', '刀鞘'], correctIndex: 0, explain: '「刃」在刀口处加指事符号，指锋利的刀刃。', questionEn: '刃 adds a dot on 刀 (knife). What does it point to?', optionsEn: ['The blade', 'The back of the knife', 'The handle', 'The sheath'], explainEn: '刃 places a marker on the cutting edge of 刀, pointing to the sharp blade.' },
 ];
 
 // ── 汉字冷知识：多选问答 ───────────────────────────────────
@@ -165,35 +174,39 @@ export interface FactItem {
   options: string[];
   correctIndex: number;
   explain: string;
+  questionEn: string;
+  optionsEn: string[];
+  explainEn: string;
 }
 
 export const FUN_FACTS: FactItem[] = [
-  { question: '「尖」＝小＋大，意思是什么？', options: ['上小下大、锐利', '又小又圆', '又高又大', '大小不一'], correctIndex: 0, explain: '「尖」由「小」「大」会意：上小下大，物体末端细小即「尖」。' },
-  { question: '「歪」＝不＋正，意思是什么？', options: ['不正、偏斜', '非常正直', '不认真', '不正确'], correctIndex: 0, explain: '「歪」由「不」「正」合体会意，不正即歪。' },
-  { question: '「尘」＝小＋土，意思是什么？', options: ['细小的土、灰尘', '小土堆', '土壤', '沙石'], correctIndex: 0, explain: '「尘」由「小」「土」会意，细小的土粒就是灰尘。' },
-  { question: '「甭」＝不＋用，意思是什么？', options: ['不用', '不会', '不是', '不明'], correctIndex: 0, explain: '「甭」是「不用」的合音合体字。' },
-  { question: '「孬」＝不＋好，意思是什么？', options: ['不好、懦弱', '很好', '不小', '不多'], correctIndex: 0, explain: '「孬」由「不」「好」会意，指不好、怯懦。' },
-  { question: '「泪」＝氵＋目，意思是什么？', options: ['眼中的水、眼泪', '雨水', '露珠', '汗水'], correctIndex: 0, explain: '「泪」由「水（氵）」「目」会意，眼中的水即是眼泪。' },
-  { question: '三个「水」组成「淼」（miǎo），意思是什么？', options: ['水势浩大', '水流很小', '水面平静', '水很清澈'], correctIndex: 0, explain: '三「水」为「淼」，水多势大的样子。' },
-  { question: '「森、众、鑫」这类三叠字共同体现了什么造字特点？', options: ['同体会意，表示数量众多', '纯属装饰', '表示声音', '表示否定'], correctIndex: 0, explain: '把同一个字叠加三次表示「多」：三木=森，三人=众，三金=鑫。' },
-  { question: '「册」这个字的字形像什么？', options: ['竹简编成的册子', '一座门', '一扇窗', '一把尺'], correctIndex: 0, explain: '「册」像用绳子把一片片竹简串起来的样子。' },
-  { question: '「肝、肺、脑」等字里的「月」旁，其实大多表示什么？', options: ['肉（身体部位）', '月亮', '夜晚', '船'], correctIndex: 0, explain: '这些「月」旁其实是「肉」的变形，叫「肉月旁」，多表身体部位。' },
-  { question: '「婚」＝女＋昏，为什么用「昏」？', options: ['古代婚礼常在黄昏举行', '女子昏睡', '黄昏出生', '天气昏沉'], correctIndex: 0, explain: '「婚」从「昏」，因为古人多在黄昏时分迎娶成婚。' },
-  { question: '「兵」这个字原本指的是什么？', options: ['武器', '士兵', '军营', '战争'], correctIndex: 0, explain: '「兵」甲骨文像双手持斧（斤），本义是兵器，后引申为持兵器的人（士兵）。' },
+  { question: '「尖」＝小＋大，意思是什么？', options: ['上小下大、锐利', '又小又圆', '又高又大', '大小不一'], correctIndex: 0, explain: '「尖」由「小」「大」会意：上小下大，物体末端细小即「尖」。', questionEn: '尖 = 小 (small) + 大 (big). What does it mean?', optionsEn: ['Small on top, big below — pointed', 'Small and round', 'Tall and big', 'Uneven sizes'], explainEn: '尖 combines 小 above and 大 below; an object tapering to a fine point is 尖 (sharp).' },
+  { question: '「歪」＝不＋正，意思是什么？', options: ['不正、偏斜', '非常正直', '不认真', '不正确'], correctIndex: 0, explain: '「歪」由「不」「正」合体会意，不正即歪。', questionEn: '歪 = 不 (not) + 正 (straight). What does it mean?', optionsEn: ['Not straight — askew', 'Very upright', 'Not serious', 'Not correct'], explainEn: '歪 fuses 不 and 正: not straight is 歪 (askew).' },
+  { question: '「尘」＝小＋土，意思是什么？', options: ['细小的土、灰尘', '小土堆', '土壤', '沙石'], correctIndex: 0, explain: '「尘」由「小」「土」会意，细小的土粒就是灰尘。', questionEn: '尘 = 小 (small) + 土 (earth). What does it mean?', optionsEn: ['Fine earth — dust', 'A small mound', 'Soil', 'Sand and stone'], explainEn: '尘 combines 小 and 土: fine particles of earth are dust.' },
+  { question: '「甭」＝不＋用，意思是什么？', options: ['不用', '不会', '不是', '不明'], correctIndex: 0, explain: '「甭」是「不用」的合音合体字。', questionEn: '甭 = 不 (not) + 用 (use). What does it mean?', optionsEn: ['Need not', 'Cannot', 'Is not', 'Unclear'], explainEn: '甭 is a fused form of 不用 (no need).' },
+  { question: '「孬」＝不＋好，意思是什么？', options: ['不好、懦弱', '很好', '不小', '不多'], correctIndex: 0, explain: '「孬」由「不」「好」会意，指不好、怯懦。', questionEn: '孬 = 不 (not) + 好 (good). What does it mean?', optionsEn: ['Not good — cowardly', 'Very good', 'Not small', 'Not many'], explainEn: '孬 fuses 不 and 好: not good, faint-hearted.' },
+  { question: '「泪」＝氵＋目，意思是什么？', options: ['眼中的水、眼泪', '雨水', '露珠', '汗水'], correctIndex: 0, explain: '「泪」由「水（氵）」「目」会意，眼中的水即是眼泪。', questionEn: '泪 = 氵 (water) + 目 (eye). What does it mean?', optionsEn: ['Water from the eye — tears', 'Rainwater', 'Dewdrops', 'Sweat'], explainEn: '泪 combines water 氵 and eye 目: water from the eye is tears.' },
+  { question: '三个「水」组成「淼」（miǎo），意思是什么？', options: ['水势浩大', '水流很小', '水面平静', '水很清澈'], correctIndex: 0, explain: '三「水」为「淼」，水多势大的样子。', questionEn: 'Three 水 form 淼 (miǎo). What does it mean?', optionsEn: ['Vast, surging water', 'A tiny trickle', 'A calm surface', 'Crystal-clear water'], explainEn: 'Three 水 make 淼 — the look of abundant, surging water.' },
+  { question: '「森、众、鑫」这类三叠字共同体现了什么造字特点？', options: ['同体会意，表示数量众多', '纯属装饰', '表示声音', '表示否定'], correctIndex: 0, explain: '把同一个字叠加三次表示「多」：三木=森，三人=众，三金=鑫。', questionEn: 'Tripled forms like 森, 众, 鑫 share what character-formation feature?', optionsEn: ['Repeating one part three times to mean "many"', 'Purely decorative', 'Showing sound', 'Showing negation'], explainEn: 'Repeating a character three times expresses "many": three 木 = 森, three 人 = 众, three 金 = 鑫.' },
+  { question: '「册」这个字的字形像什么？', options: ['竹简编成的册子', '一座门', '一扇窗', '一把尺'], correctIndex: 0, explain: '「册」像用绳子把一片片竹简串起来的样子。', questionEn: 'The character 册 is shaped like what?', optionsEn: ['Bamboo slips bound into a book', 'A gate', 'A window', 'A ruler'], explainEn: '册 resembles slips of bamboo strung together with cord into a book.' },
+  { question: '「肝、肺、脑」等字里的「月」旁，其实大多表示什么？', options: ['肉（身体部位）', '月亮', '夜晚', '船'], correctIndex: 0, explain: '这些「月」旁其实是「肉」的变形，叫「肉月旁」，多表身体部位。', questionEn: "In 肝, 肺, 脑, the '月' radical mostly indicates what?", optionsEn: ['Meat (body parts)', 'The moon', 'Night', 'A boat'], explainEn: "These '月' radicals are actually a variant of 肉, the 'flesh-moon radical', mostly marking body parts." },
+  { question: '「婚」＝女＋昏，为什么用「昏」？', options: ['古代婚礼常在黄昏举行', '女子昏睡', '黄昏出生', '天气昏沉'], correctIndex: 0, explain: '「婚」从「昏」，因为古人多在黄昏时分迎娶成婚。', questionEn: '婚 = 女 (woman) + 昏. Why the 昏?', optionsEn: ['Ancient weddings were held at dusk', 'The bride fainted', 'Born at dusk', 'Gloomy weather'], explainEn: '婚 takes 昏 because the ancients held weddings at dusk.' },
+  { question: '「兵」这个字原本指的是什么？', options: ['武器', '士兵', '军营', '战争'], correctIndex: 0, explain: '「兵」甲骨文像双手持斧（斤），本义是兵器，后引申为持兵器的人（士兵）。', questionEn: 'What did 兵 originally refer to?', optionsEn: ['Weapons', 'Soldiers', 'An army camp', 'War'], explainEn: "In oracle bone script 兵 shows two hands holding an axe (斤); it first meant 'weapon', later 'the person bearing weapons' (soldier)." },
 ];
 
 // ── HSK 分级示例字（单字） ─────────────────────────────────
 export interface HskLevel {
   level: number;
   name: string;
+  nameEn: string;
   chars: string[];
 }
 
 export const HSK_LEVELS: HskLevel[] = [
-  { level: 1, name: 'HSK 一级 · 入门', chars: ['我', '你', '他', '她', '是', '不', '人', '大', '小', '上', '下', '中', '天', '水', '火', '山', '口', '女', '子', '好'] },
-  { level: 2, name: 'HSK 二级 · 基础', chars: ['白', '百', '忙', '慢', '快', '晚', '早', '晴', '雨', '雪', '病', '药', '身', '体', '睡', '累', '玩', '会', '红', '绿'] },
-  { level: 3, name: 'HSK 三级 · 进阶', chars: ['包', '鞋', '帽', '眼', '睛', '耳', '朵', '鼻', '嘴', '牙', '脸', '借', '还', '丢', '忘', '记', '冬', '秋', '夏', '春'] },
-  { level: 4, name: 'HSK 四级 · 中阶', chars: ['厨', '房', '浴', '灯', '桌', '椅', '沙', '发', '杯', '碗', '盘', '筷', '刀', '叉', '勺', '锅'] },
-  { level: 5, name: 'HSK 五级 · 高阶', chars: ['宁', '静', '寂', '寞', '恋', '慰', '誉', '含', '蓄', '幽', '默', '谦', '虚', '谨', '慎'] },
-  { level: 6, name: 'HSK 六级 · 精通', chars: ['惩', '罚', '焕', '辉', '煌', '隆', '诚', '恳', '坦', '率', '渊', '博', '卓', '越', '缅'] },
+  { level: 1, name: 'HSK 一级 · 入门', nameEn: 'HSK 1 · Beginner', chars: ['我', '你', '他', '她', '是', '不', '人', '大', '小', '上', '下', '中', '天', '水', '火', '山', '口', '女', '子', '好'] },
+  { level: 2, name: 'HSK 二级 · 基础', nameEn: 'HSK 2 · Elementary', chars: ['白', '百', '忙', '慢', '快', '晚', '早', '晴', '雨', '雪', '病', '药', '身', '体', '睡', '累', '玩', '会', '红', '绿'] },
+  { level: 3, name: 'HSK 三级 · 进阶', nameEn: 'HSK 3 · Pre-Intermediate', chars: ['包', '鞋', '帽', '眼', '睛', '耳', '朵', '鼻', '嘴', '牙', '脸', '借', '还', '丢', '忘', '记', '冬', '秋', '夏', '春'] },
+  { level: 4, name: 'HSK 四级 · 中阶', nameEn: 'HSK 4 · Intermediate', chars: ['厨', '房', '浴', '灯', '桌', '椅', '沙', '发', '杯', '碗', '盘', '筷', '刀', '叉', '勺', '锅'] },
+  { level: 5, name: 'HSK 五级 · 高阶', nameEn: 'HSK 5 · Upper-Intermediate', chars: ['宁', '静', '寂', '寞', '恋', '慰', '誉', '含', '蓄', '幽', '默', '谦', '虚', '谨', '慎'] },
+  { level: 6, name: 'HSK 六级 · 精通', nameEn: 'HSK 6 · Advanced', chars: ['惩', '罚', '焕', '辉', '煌', '隆', '诚', '恳', '坦', '率', '渊', '博', '卓', '越', '缅'] },
 ];

@@ -22,6 +22,4 @@ zhishi_*.txt
 ppt_C__*.txt
 *.docx
 *.pptx
-
-# 翻译管线中间产物（可重新生成，不进 git）
-scripts/translations/chunks/
+scripts/.cache/

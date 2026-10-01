@@ -232,13 +232,13 @@ export default function Games() {
     };
 
     return (
-      <div className="min-h-screen bg-bg-primary pb-20">
+      <div className="min-h-screen bg-bg-primary pt-16 pb-20">
         {/* Top bar */}
-        <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-border-light">
+        <div className="sticky top-16 z-30 bg-white/90 backdrop-blur-sm border-b border-border-light">
           <div className="mx-auto max-w-2xl flex items-center gap-3 px-4 py-3">
             <button
               onClick={() => setActiveGame(null)}
-              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-charcoal/60 hover:text-ink-black hover:bg-bg-warm transition-colors"
+              className="flex items-center gap-1.5 rounded-lg border border-border-light bg-white px-3 py-1.5 text-sm font-medium text-charcoal/80 shadow-sm hover:text-ink-black hover:bg-bg-warm transition-colors"
             >
               <ArrowLeft size={16} />
               {t('games.backToList')}

@@ -159,7 +159,7 @@ function HeroSection() {
     }
 
     setSearchError('');
-    navigate(`/explore?char=${encodeURIComponent(char)}`);
+    navigate(`/detail?char=${encodeURIComponent(char)}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -300,7 +300,7 @@ function HeroSection() {
                 key={c}
                 onClick={() => {
                   setSearchChar(c);
-                  navigate(`/explore?char=${encodeURIComponent(c)}`);
+                  navigate(`/detail?char=${encodeURIComponent(c)}`);
                 }}
                 className="rounded-full border px-3 py-1.5 font-serif-cn text-lg transition-all duration-200 hover:scale-110 hover:bg-cinnabar hover:text-white hover:border-cinnabar"
                 style={{
@@ -342,7 +342,7 @@ function HeroSection() {
                                 const cp = ch.codePointAt(0);
                                 return cp && cp >= 0x4E00 && cp <= 0x9FFF && hasCharacter(ch);
                               });
-                              if (firstChar) navigate(`/explore?char=${encodeURIComponent(firstChar)}`);
+                              if (firstChar) navigate(`/detail?char=${encodeURIComponent(firstChar)}`);
                             }}
                             className="font-serif-cn text-xl font-semibold text-rice-paper min-w-[3rem] text-left hover:text-cinnabar transition-colors underline decoration-cinnabar/30 underline-offset-4 hover:decoration-cinnabar cursor-pointer"
                             title={`View "${w.w}"`}
@@ -372,7 +372,7 @@ function HeroSection() {
                       {enResults.chars.slice(0, 24).map((r) => (
                         <button
                           key={r.char}
-                          onClick={() => navigate(`/explore?char=${encodeURIComponent(r.char)}`)}
+                          onClick={() => navigate(`/detail?char=${encodeURIComponent(r.char)}`)}
                           className="rounded-lg px-3 py-1.5 text-lg font-serif-cn text-rice-paper hover:bg-cinnabar hover:text-white transition-all hover:scale-110"
                           style={{ background: 'rgba(245,240,232,0.08)' }}
                           title={`${r.pinyin}: ${r.definition}`}

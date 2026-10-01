@@ -207,11 +207,9 @@ export default function SimpTradTimeline({ character, onNavigate }: SimpTradTime
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="font-serif-cn text-sm" style={{ color: '#F5F0E8' }}>{t('cmp.simpTrad.title')}</span>
-          {lang === 'en' && (
-            <span className="text-[0.625rem] uppercase tracking-wider" style={{ color: 'rgba(245,240,232,0.35)', fontFamily: INTER }}>
-              {t('cmp.simpTrad.titleEn')}
-            </span>
-          )}
+          <span className="text-[0.625rem] uppercase tracking-wider" style={{ color: 'rgba(245,240,232,0.35)', fontFamily: INTER }}>
+            {t('cmp.simpTrad.titleEn')}
+          </span>
         </div>
         <span
           className="text-[0.625rem] px-2 py-0.5 rounded-full font-medium"

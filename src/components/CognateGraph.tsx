@@ -17,18 +17,44 @@ interface CognateGraphProps {
   className?: string;
 }
 
-type RelationType = 'differentiation' | 'antonym' | 'phonetic' | 'semantic' | 'containedBy' | 'homophone' | 'cognate' | 'component';
+// 系联方式（对齐 AI 创编页「字源网络」的学理分类）
+type RelationType =
+  | 'cognate'     // 历时同源 —— 古今字、分化字（同源孳乳）
+  | 'antonym'     // 反义对举
+  | 'phonetic'    // 形声孳乳 —— 同声符字族
+  | 'semantic'    // 意义引申 —— 同形旁 / 义类相承
+  | 'component'   // 构件孳乳 —— 以该字为构件派生
+  | 'loan'        // 通假假借 —— 同音借代
+  | 'radical';    // 同部首
 
-const RELATION_COLORS: Record<RelationType, string> = {
-  differentiation: '#C23B2A',
-  antonym: '#9B2226',
-  phonetic: '#CA6702',
-  semantic: '#2D5F8A',
-  containedBy: '#6B7F5E',
-  homophone: '#8B6914',
-  cognate: '#A39E93',
-  component: '#A39E93',
+interface RelationMeta {
+  /** 中文标签 */
+  zh: string;
+  /** 英文标签 */
+  en: string;
+  /** 节点与连线颜色 */
+  color: string;
+  /** 线型：null = 实线，其余为 stroke-dasharray */
+  dash: string | null;
+}
+
+const RELATION_META: Record<RelationType, RelationMeta> = {
+  cognate:   { zh: '历时同源', en: 'Chronological cognate', color: '#8B6914', dash: null },
+  antonym:   { zh: '反义对举', en: 'Antonym',               color: '#9B2226', dash: '5,3' },
+  phonetic:  { zh: '形声孳乳', en: 'Phonetic derivation',   color: '#6B7F5E', dash: null },
+  semantic:  { zh: '意义引申', en: 'Semantic extension',     color: '#5D8AA8', dash: '2,3' },
+  component: { zh: '构件孳乳', en: 'Component derivation',  color: '#2D5F8A', dash: null },
+  loan:      { zh: '通假假借', en: 'Phonetic loan',          color: '#CA6702', dash: '6,3' },
+  radical:   { zh: '同部首',   en: 'Same radical',           color: '#A39E93', dash: null },
 };
+
+/** 关系的学术优先级（用于连线强度与图例排序） */
+const RELATION_ORDER: RelationType[] = ['cognate', 'antonym', 'phonetic', 'semantic', 'component', 'loan', 'radical'];
+
+/** 中心/核心字颜色（对齐 LINES 朱砂 #C23B2A） */
+const CORE_COLOR = '#C23B2A';
+/** 构件模式中心构件颜色（孳乳蓝 #2D5F8A） */
+const COMPONENT_CORE_COLOR = '#2D5F8A';
 
 interface SimNode extends d3.SimulationNodeDatum {
   id: string;
@@ -46,20 +72,6 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
   sharedCount: number;
   relationType?: RelationType;
 }
-
-const DEFAULT_LEGEND = [
-  { color: '#C23B2A', label: 'cmp.cognateGraph.targetChar' },
-  { color: '#CA6702', label: 'cmp.cognateGraph.phoneticFamily' },
-  { color: '#2D5F8A', label: 'cmp.cognateGraph.semanticFamily' },
-  { color: '#6B7F5E', label: 'cmp.cognateGraph.componentOf' },
-  { color: '#9B2226', label: 'cmp.cognateGraph.antonym' },
-  { color: '#8B6914', label: 'cmp.cognateGraph.homophone' },
-];
-
-const COMPONENT_LEGEND = [
-  { color: '#C23B2A', label: 'cmp.cognateGraph.component' },
-  { color: '#8B6914', label: 'cmp.cognateGraph.character' },
-];
 
 const CognateGraph = memo(function CognateGraph({
   character,
@@ -133,9 +145,13 @@ const CognateGraph = memo(function CognateGraph({
         sharedCount: 1,
       }));
 
-      return { nodes: allNodes, links: allLinks, legendItems: COMPONENT_LEGEND };
+      const legendItems = [
+        { color: COMPONENT_CORE_COLOR, label: lang === 'zh' ? '构件' : 'Component' },
+        { color: '#8B6914', label: lang === 'zh' ? '含此构件的字' : 'Characters containing it' },
+      ];
+      return { nodes: allNodes, links: allLinks, legendItems };
     } else {
-      // Relations-based mode — use new multi-type relation data
+      // Relations-based mode — 学理系联（历时同源／构件孳乳／形声孳乳／意义引申／通假假借）
       const centerEntry = getCharacter(character);
       const centerNode: SimNode = {
         id: 'center',
@@ -149,13 +165,13 @@ const CognateGraph = memo(function CognateGraph({
       const relations = getRelations(character);
       const allNodes: SimNode[] = [centerNode];
       const allLinks: SimLink[] = [];
-      const seenChars = new Set<string>(); // dedup: same char in multiple relation types → single node
+      const seenChars = new Set<string>(); // dedup: same char across relation types → 只取最高优先级类型
       let nodeIdx = 0;
 
-      const addRelated = (chars: string[], relType: RelationType, radius: number) => {
+      const addRelated = (chars: string[], relType: RelationType, radius: number, weight: number) => {
         for (const c of chars) {
           if (allNodes.length > 40) break;
-          if (seenChars.has(c)) continue; // already in graph from higher-priority relation type
+          if (seenChars.has(c)) continue;
           const entry = getCharacter(c);
           if (!entry) continue;
           seenChars.add(c);
@@ -172,21 +188,22 @@ const CognateGraph = memo(function CognateGraph({
           allLinks.push({
             source: 'center',
             target: id,
-            sharedCount: relType === 'differentiation' ? 3 : 1,
+            sharedCount: weight,
             relationType: relType,
           });
         }
       };
 
       if (relations) {
-        addRelated(relations.differentiations, 'differentiation', 20);
-        addRelated(relations.antonyms, 'antonym', 19);
-        addRelated(relations.phoneticFamily, 'phonetic', 17);
-        addRelated(relations.semanticFamily, 'semantic', 16);
-        addRelated(relations.sharedComponents, 'cognate', 15);
-        addRelated(relations.containedIn, 'containedBy', 15);
-        addRelated(relations.homophones, 'homophone', 13);
-        addRelated(relations.nearHomophones, 'homophone', 11);
+        addRelated(relations.differentiations, 'cognate', 21, 3);   // 历时同源（古今字／分化字）
+        addRelated(relations.antonyms, 'antonym', 19, 2);           // 反义对举
+        addRelated(relations.phoneticFamily, 'phonetic', 17, 2);    // 形声孳乳（同声符字族）
+        addRelated(relations.semanticFamily, 'semantic', 17, 2);    // 意义引申（同形旁／义类）
+        addRelated(relations.containedIn, 'component', 17, 2);      // 构件孳乳（以该字为构件）
+        addRelated(relations.sharedComponents, 'component', 15, 1); // 构件孳乳（共享构件）
+        addRelated(relations.homophones, 'loan', 14, 1);            // 通假假借（同音）
+        addRelated(relations.nearHomophones, 'loan', 12, 1);        // 通假假借（近音）
+        addRelated(relations.radicalFamily, 'radical', 13, 1);      // 同部首
       }
 
       // Fallback to old cognate data if no relations found
@@ -202,20 +219,27 @@ const CognateGraph = memo(function CognateGraph({
             entry,
             sharedComponents: c.sharedComponents,
             radius: c.sharedComponents.length >= 2 ? 18 : 15,
-            relationType: 'cognate',
+            relationType: 'component',
           });
           allLinks.push({
             source: 'center',
             target: id,
             sharedCount: c.sharedComponents.length,
-            relationType: 'cognate',
+            relationType: 'component',
           });
         }
       }
 
-      return { nodes: allNodes, links: allLinks, legendItems: DEFAULT_LEGEND };
+      // 图例只列出本网络真实出现的系联方式，并首项标注中心字
+      const presentTypes = RELATION_ORDER.filter((rt) => allLinks.some((l) => l.relationType === rt));
+      const legendItems = [
+        { color: CORE_COLOR, label: lang === 'zh' ? '目标字（本字）' : 'Core character' },
+        ...presentTypes.map((rt) => ({ color: RELATION_META[rt].color, label: RELATION_META[rt][lang] })),
+      ];
+
+      return { nodes: allNodes, links: allLinks, legendItems };
     }
-  }, [character, cognates, isComponentMode, selectedComponent, dataVersion]);
+  }, [character, cognates, isComponentMode, selectedComponent, dataVersion, lang]);
 
   const handleZoomIn = useCallback(() => {
     if (!svgRef.current || !zoomRef.current) return;
@@ -291,10 +315,10 @@ const CognateGraph = memo(function CognateGraph({
       .enter()
       .append('line')
       .attr('class', 'link')
-      .attr('stroke', (d) => d.relationType ? RELATION_COLORS[d.relationType] : '#A39E93')
+      .attr('stroke', (d) => d.relationType ? RELATION_META[d.relationType].color : '#A39E93')
       .attr('stroke-width', (d) => 1 + d.sharedCount * 0.5)
       .attr('stroke-opacity', 0.6)
-      .attr('stroke-dasharray', (d) => d.relationType === 'antonym' ? '4,2' : null)
+      .attr('stroke-dasharray', (d) => (d.relationType ? RELATION_META[d.relationType].dash : null))
       .attr('opacity', 0);
 
     // Draw node groups
@@ -326,9 +350,9 @@ const CognateGraph = memo(function CognateGraph({
     nodeGroup.append('circle')
       .attr('r', 0) // start at 0 for animation
       .attr('fill', (d) => {
-        if (d.type === 'component') return '#C23B2A';
-        if (d.type === 'center') return '#C23B2A';
-        if (d.relationType) return RELATION_COLORS[d.relationType];
+        if (d.type === 'component') return COMPONENT_CORE_COLOR;
+        if (d.type === 'center') return CORE_COLOR;
+        if (d.relationType) return RELATION_META[d.relationType].color;
         return '#8B6914';
       })
       .attr('stroke', '#1A1A18')
@@ -411,7 +435,8 @@ const CognateGraph = memo(function CognateGraph({
           .attr('stroke', (linkD) => {
             const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
             const targetId = typeof linkD.target === 'string' ? linkD.target : linkD.target.id;
-            return sourceId === d.id || targetId === d.id ? '#C23B2A' : '#A39E93';
+            if (sourceId === d.id || targetId === d.id) return '#C23B2A';
+            return linkD.relationType ? RELATION_META[linkD.relationType].color : '#A39E93';
           })
           .attr('stroke-width', (linkD) => {
             const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
@@ -459,9 +484,10 @@ const CognateGraph = memo(function CognateGraph({
           .attr('r', d.radius);
 
         linkSelection
-          .attr('stroke', '#A39E93')
+          .attr('stroke', (linkD) => linkD.relationType ? RELATION_META[linkD.relationType].color : '#A39E93')
           .attr('stroke-width', (linkD) => 1 + linkD.sharedCount * 0.5)
-          .attr('stroke-opacity', 0.6);
+          .attr('stroke-opacity', 0.6)
+          .attr('stroke-dasharray', (linkD) => (linkD.relationType ? RELATION_META[linkD.relationType].dash : null));
 
         (nodeGroup.selectAll('circle') as d3.Selection<SVGCircleElement, SimNode, SVGGElement, unknown>)
           .transition().duration(200)

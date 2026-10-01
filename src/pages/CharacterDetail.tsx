@@ -34,6 +34,7 @@ import GlyphEvolution from '../components/GlyphEvolution';
 import SimpTradTimeline from '../components/SimpTradTimeline';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
+import CognateGraph from '../components/CognateGraph';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
 import { getLocalizedAnnotationName, getLocalizedAnnotationDescription } from '../data/componentAnnotations.bilingual';
 import { getSimpTradOrigin } from '../data/simpTradOrigins';
@@ -437,9 +438,9 @@ export default function CharacterDetail() {
             <span style={{ color: '#F5F0E8' }}>{char}</span>
           </div>
 
+          <SimpTradTimeline character={char} onNavigate={goToDetail} />
+
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center">
-            {/* 简繁溯源时间线：现行规范简体在上方大字展示，其上有先后线索 */}
-            <SimpTradTimeline character={char} onNavigate={goToDetail} />
             <span className="font-display-cn leading-none block" style={{ fontSize: 'clamp(5rem, 12vw, 8rem)', color: '#F5F0E8', fontFamily: '"Ma Shan Zheng", cursive', textShadow: '0 4px 30px rgba(194,59,42,0.2)' }}>
               {char}
             </span>
@@ -474,6 +475,19 @@ export default function CharacterDetail() {
                 title={hasInWordBook(char) ? t('common.removeFromWordBook') : t('common.addToWordBook')}
               >
                 {hasInWordBook(char) ? '📗' : '📖'} {hasInWordBook(char) ? t('common.wordBook') : t('common.addToWordBook')}
+              </button>
+              <button
+                onClick={() => navigate(`/explore?char=${encodeURIComponent(char)}`)}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all hover:scale-105"
+                style={{
+                  background: 'rgba(196,162,101,0.16)',
+                  color: '#E9D6A8',
+                  fontFamily: 'Inter',
+                }}
+                title={t('detail.viewNetwork')}
+              >
+                <Globe size={12} />
+                {t('detail.viewNetwork')}
               </button>
             </div>
             <p className="mt-3 text-base max-w-lg mx-auto" style={{ color: 'rgba(245,240,232,0.75)', fontFamily: 'Inter' }}>
@@ -636,7 +650,7 @@ export default function CharacterDetail() {
           {/* ── Tab: 知识卡片 ── */}
           {activeTab === 'card' && (
             <motion.div key="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Stroke Order */}
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.strokeOrder')}</h2>
@@ -646,8 +660,8 @@ export default function CharacterDetail() {
                 </div>
 
                 {/* Words & Allusions */}
-                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.wordsAndAllusions')}</h2>
+              <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.wordsAndAllusions')}</h2>
 
                   {cultural?.words && cultural.words.length > 0 && (
                     <div className="mb-5">
@@ -675,6 +689,41 @@ export default function CharacterDetail() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* 拆字 / 联字网络 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {activeDecomposition && (
+                  <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                    <div className="flex items-center gap-2 mb-2 px-2">
+                      <GitBranch size={16} className="text-cinnabar" />
+                      <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('detail.charDecomposition')}</span>
+                      <span className="ml-auto text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
+                    </div>
+                    <div className="h-[380px]">
+                      <DecompositionGraph
+                        key={decompMode}
+                        decomposition={activeDecomposition}
+                        onNodeClick={navigateToChar}
+                        onNodeDoubleClick={navigateToExploreChar}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                  <div className="flex items-center gap-2 mb-2 px-2">
+                    <Globe size={16} className="text-cinnabar" />
+                    <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('explore.charRelated', { c: char })}</span>
+                    <span className="ml-auto text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
+                  </div>
+                  <div className="h-[380px]">
+                    <CognateGraph
+                      character={char}
+                      onNodeClick={navigateToChar}
+                      onNodeDoubleClick={navigateToExploreChar}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -817,9 +866,7 @@ export default function CharacterDetail() {
                     <div>
                       <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
                         {t('detail.componentAnalysis')}
-                        {lang === 'en' && (
-                          <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>Component Analysis</span>
-                        )}
+                        <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>Component Analysis</span>
                       </h3>
                       <div className="flex flex-col gap-2">
                         {modernTaxonomy.components.map((comp, i) => {
@@ -1156,7 +1203,8 @@ export default function CharacterDetail() {
               <CharPuzzleGame targetChar={char} onNavigate={goToDetail} />
             </motion.div>
           )}
-        </AnimatePresence>
+
+          </AnimatePresence>
       </div>
     </div>
   );

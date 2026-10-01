@@ -834,14 +834,18 @@ export async function loadCulturalData(): Promise<void> {
 
   culturalPromise = (async () => {
     try {
-      const [res, enRes] = await Promise.all([
+      const [res, enRes, wordsRes] = await Promise.all([
         fetch(`${import.meta.env.BASE_URL}cultural.json`),
         fetch(`${import.meta.env.BASE_URL}cultural-en.json`).catch(() => null),
+        fetch(`${import.meta.env.BASE_URL}cultural-words.json`).catch(() => null),
       ]);
       if (!res.ok) throw new Error(`cultural.json: ${res.status}`);
       const data = await res.json() as Record<string, CulturalData>;
       const enData = enRes?.ok
         ? (await enRes.json() as Record<string, { evolution?: string; allusions?: string[] }>)
+        : {};
+      const wordsData = wordsRes?.ok
+        ? (await wordsRes.json() as Record<string, { words?: string[]; allusions?: string[] }>)
         : {};
       culturalMap = new Map(
         Object.entries(data).map(([char, entry]) => {
@@ -852,6 +856,23 @@ export async function loadCulturalData(): Promise<void> {
           return [char, entry];
         }),
       );
+
+      // 合并开源成语数据集生成的「词语与典故」，人工词条优先
+      for (const [char, extra] of Object.entries(wordsData)) {
+        const existing = culturalMap.get(char);
+        if (existing) {
+          if (!existing.words?.length && extra.words?.length) existing.words = extra.words;
+          if (!existing.allusions?.length && extra.allusions?.length) {
+            existing.allusions = extra.allusions;
+          }
+        } else {
+          culturalMap.set(char, {
+            evolution: '',
+            words: extra.words ?? [],
+            allusions: extra.allusions ?? [],
+          });
+        }
+      }
     } catch (err) {
       console.error('Failed to load cultural data:', err);
       culturalMap = new Map();

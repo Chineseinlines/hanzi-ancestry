@@ -4,11 +4,13 @@ import { RotateCcw, Trophy, SkipForward } from 'lucide-react';
 import { getStrokeData } from '../../data/hanziData';
 import type { StrokeData } from '../../data/types';
 import { STROKE_COUNTS, shuffle } from '../../data/gameContent';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const TOTAL_ROUNDS = 8;
 const C = { ink: '#1A1A18', cinnabar: '#C23B2A', green: '#6B7F5E', gold: '#8B6914', rice: '#FDFBF6' };
 
 export default function StrokeOrderGame() {
+  const { t } = useLanguage();
   const [seed, setSeed] = useState(0);
   const chars = useMemo(() => shuffle(STROKE_COUNTS.map(s => s.char)).slice(0, TOTAL_ROUNDS), [seed]);
 
@@ -104,10 +106,10 @@ export default function StrokeOrderGame() {
         <Trophy size={40} className="mx-auto mb-3" style={{ color: '#C4A265' }} />
         <h2 className="font-display text-xl mb-2" style={{ color: C.ink, fontFamily: '"Playfair Display", serif' }}>{score} / {totalPossible}</h2>
         <p className="text-sm mb-6" style={{ color: C.gold, fontFamily: 'Inter' }}>
-          {pct >= 90 ? '笔顺掌握得很好！' : pct >= 70 ? '很不错，继续巩固易错笔顺！' : pct >= 50 ? '再多练练，注意笔顺规律！' : '建议先观察完整笔顺，再尝试书写。'}
+          {pct >= 90 ? t('game.strokeOrderGreat') : pct >= 70 ? t('game.strokeOrderGood') : pct >= 50 ? t('game.strokeOrderFair') : t('game.strokeOrderPoor')}
         </p>
         <button onClick={reset} className="inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium text-white transition-all hover:scale-105" style={{ background: C.cinnabar, fontFamily: 'Inter' }}>
-          <RotateCcw size={16} /> 再来一轮
+          <RotateCcw size={16} /> {t('game.playAgainRound')}
         </button>
       </div>
     );
@@ -118,7 +120,7 @@ export default function StrokeOrderGame() {
       <div className="flex min-h-[320px] items-center justify-center rounded-2xl" style={{ background: C.rice, boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: C.cinnabar, borderTopColor: 'transparent' }} />
-          <span className="text-sm" style={{ color: C.gold, fontFamily: 'Inter' }}>正在加载笔顺…</span>
+          <span className="text-sm" style={{ color: C.gold, fontFamily: 'Inter' }}>{t('game.loadingStrokes')}</span>
         </div>
       </div>
     );
@@ -127,9 +129,9 @@ export default function StrokeOrderGame() {
   if (error || !data) {
     return (
       <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl" style={{ background: C.rice, boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-        <p className="text-charcoal/60" style={{ fontFamily: 'Inter' }}>「{currentChar}」的笔顺数据加载失败</p>
+        <p className="text-charcoal/60" style={{ fontFamily: 'Inter' }}>{t('game.strokeLoadFailed', { char: currentChar })}</p>
         <button onClick={() => advance()} className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-white" style={{ background: C.cinnabar, fontFamily: 'Inter' }}>
-          <SkipForward size={14} /> 换一个字
+          <SkipForward size={14} /> {t('game.skipChar')}
         </button>
       </div>
     );
@@ -143,10 +145,10 @@ export default function StrokeOrderGame() {
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="text-xs font-medium" style={{ color: C.gold, fontFamily: 'Inter' }}>
-          第 {round + 1} / {chars.length} 字
-          {mistakes > 0 && <span className="ml-2" style={{ color: C.cinnabar }}>失误 ×{mistakes}</span>}
+          {t('game.charOf', { n: round + 1, total: chars.length })}
+          {mistakes > 0 && <span className="ml-2" style={{ color: C.cinnabar }}>{t('game.mistakes', { n: mistakes })}</span>}
         </div>
-        <div className="text-sm font-bold" style={{ color: C.cinnabar }}>{score} 笔</div>
+        <div className="text-sm font-bold" style={{ color: C.cinnabar }}>{t('game.strokesScore', { n: score })}</div>
       </div>
 
       <div className="mx-5 mb-4 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(26,26,24,0.06)' }}>
@@ -161,7 +163,7 @@ export default function StrokeOrderGame() {
       {/* Character reference */}
       <div className="px-5 text-center mb-2">
         <div className="flex items-baseline justify-center gap-3">
-          <span className="text-sm" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>请按正确笔顺依次点击笔画</span>
+          <span className="text-sm" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('game.clickStrokes')}</span>
           <span className="font-display-cn text-2xl" style={{ color: C.ink, fontFamily: '"Ma Shan Zheng", cursive' }}>{currentChar}</span>
         </div>
       </div>
@@ -217,19 +219,19 @@ export default function StrokeOrderGame() {
 
         {/* Progress line */}
         <div className="mt-3 flex items-center justify-between px-1">
-          <span className="text-xs" style={{ color: C.gold, fontFamily: 'Inter' }}>已写 {drawnCount} / {total} 笔</span>
+          <span className="text-xs" style={{ color: C.gold, fontFamily: 'Inter' }}>{t('game.written', { n: drawnCount, total })}</span>
           <button
             onClick={() => advance()}
             disabled={advancingRef.current}
             className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all hover:scale-105 disabled:opacity-40"
             style={{ background: 'rgba(26,26,24,0.05)', color: '#3D3D3B', fontFamily: 'Inter' }}
           >
-            <SkipForward size={13} /> 跳过
+            <SkipForward size={13} /> {t('game.skip')}
           </button>
         </div>
         {drawnCount === total && (
           <div className="mt-2 flex justify-center">
-            <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: 'rgba(107,127,94,0.15)', color: C.green, fontFamily: 'Inter' }}>✓ 「{currentChar}」笔顺完成</span>
+            <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: 'rgba(107,127,94,0.15)', color: C.green, fontFamily: 'Inter' }}>{t('game.strokeDone', { char: currentChar })}</span>
           </div>
         )}
       </div>

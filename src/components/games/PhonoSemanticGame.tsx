@@ -3,10 +3,11 @@ import QuizShell, { bigChar, type QuizQuestion } from './QuizShell';
 import { getAllCharacters } from '../../data/hanziData';
 import { COMMON_CHAR_SET } from '../../data/commonChars';
 import { sample, shuffle } from '../../data/gameContent';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const COMMON = new Set(COMMON_CHAR_SET);
 
-function buildQuestions(): QuizQuestion[] {
+function buildQuestions(t: (k: string, p?: Record<string, string | number>) => string): QuizQuestion[] {
   const all = getAllCharacters().filter(e =>
     COMMON.has(e.character) &&
     e.etymology?.type === 'pictophonetic' &&
@@ -40,18 +41,19 @@ function buildQuestions(): QuizQuestion[] {
     const options = shuffle([correct, ...distractors]);
     qs.push({
       prompt: bigChar(entry.character),
-      hint: askSemantic ? '这是个形声字，找出它的「形旁」（表意的部件）' : '这是个形声字，找出它的「声旁」（表音的部件）',
+      hint: askSemantic ? t('game.findSemantic') : t('game.findPhonetic'),
       options,
       correctIndex: options.indexOf(correct),
       answerKey: correct,
-      explain: `「${entry.character}」是形声字：${semantic} 表意（形旁），${phonetic} 表音（声旁）。`,
+      explain: t('game.phonoExplain', { char: entry.character, semantic, phonetic }),
     });
   }
   return qs;
 }
 
 export default function PhonoSemanticGame() {
+  const { t } = useLanguage();
   const [seed, setSeed] = useState(0);
-  const questions = useMemo(() => buildQuestions(), [seed]);
+  const questions = useMemo(() => buildQuestions(t), [seed, t]);
   return <QuizShell key={seed} gameId="phono-semantic" questions={questions} bigOptions onReplay={() => setSeed(s => s + 1)} />;
 }
