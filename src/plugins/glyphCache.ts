@@ -18,10 +18,12 @@ const CACHE_DIR = 'public/glyphs';
 
 /** Map our script keys → zdic.net /zy/ directory names (tried in order) */
 const SCRIPT_TO_ZDIC: Record<string, string[]> = {
-  oracle:   ['jiaguwen'],
-  bronze:   ['jinwen'],
-  seal:     ['xiaozhuan'],
-  clerical: ['lishu', 'qinwenzi'],
+  oracle:       ['jiaguwen'],
+  bronze:       ['jinwen'],
+  // 字形库无独立「大篆」类目，以「秦系文字」为其代表（籀文一脉，小篆前身）
+  'large-seal': ['qinwenzi'],
+  seal:         ['xiaozhuan'],
+  clerical:     ['lishu'],
 };
 
 export function glyphCachePlugin(): Plugin {

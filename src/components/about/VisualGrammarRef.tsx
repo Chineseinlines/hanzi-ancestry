@@ -3,9 +3,10 @@
  * Explains the spatial rules governing Chinese character component combination.
  */
 import { motion } from 'framer-motion';
-import { Layout, Grid3X3, CheckCircle2, XCircle } from 'lucide-react';
+import { Layout, Grid3X3, CheckCircle2, XCircle, BookMarked } from 'lucide-react';
 import { fadeUp, viewportOnce } from './variants';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { TERMINOLOGY } from '../../data/terminology';
 
 const EXAMPLE_STRUCTURES = [
   { ids: '⿰', label: '左右', en: 'Left-Right', example: '明 = 日 + 月' },
@@ -153,6 +154,52 @@ export default function VisualGrammarRef() {
                 {t('cmp.visualGrammar.invalidDesc')}
               </p>
             </div>
+          </div>
+        </motion.div>
+
+        {/* Terminology glossary */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          className="mt-8 rounded-2xl p-6 bg-white shadow-md"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <BookMarked size={18} className="text-cinnabar" />
+            <span className="font-serif-cn text-lg font-semibold text-ink-black">{t('cmp.visualGrammar.terminology')}</span>
+            <span className="text-[0.625rem] text-charcoal/40 ml-auto" style={{ fontFamily: 'Inter' }}>Terminology</span>
+          </div>
+          <p className="text-sm text-charcoal/70 mb-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {t('cmp.visualGrammar.terminologyDesc')}
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-border-light">
+                  <th className="py-2 pr-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-charcoal/50" style={{ fontFamily: 'Inter' }}>{t('cmp.visualGrammar.colTerm')}</th>
+                  <th className="py-2 pr-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-charcoal/50" style={{ fontFamily: 'Inter' }}>{t('cmp.visualGrammar.colEnglish')}</th>
+                  <th className="py-2 pr-3 text-[0.6875rem] font-semibold uppercase tracking-wider text-charcoal/50" style={{ fontFamily: 'Inter' }}>{t('cmp.visualGrammar.colAvoid')}</th>
+                  <th className="py-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-charcoal/50" style={{ fontFamily: 'Inter' }}>{t('cmp.visualGrammar.colNote')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TERMINOLOGY.map(term => (
+                  <tr key={term.zh} className="border-b border-border-light/60 align-top">
+                    <td className="py-2.5 pr-3 text-sm font-serif-cn text-ink-black whitespace-nowrap">{term.zh}</td>
+                    <td className="py-2.5 pr-3 text-sm" style={{ color: '#2D5F8A', fontFamily: 'Inter' }}>{term.en}</td>
+                    <td className="py-2.5 pr-3 text-xs" style={{ fontFamily: 'Inter' }}>
+                      {term.avoid
+                        ? <span style={{ color: '#C23B2A', textDecoration: 'line-through' }}>{term.avoid}</span>
+                        : <span className="text-charcoal/25">—</span>}
+                    </td>
+                    <td className="py-2.5 text-xs leading-relaxed text-charcoal/60" style={{ fontFamily: 'Inter' }}>
+                      {lang === 'zh' ? term.note : term.noteEn}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </motion.div>
       </div>

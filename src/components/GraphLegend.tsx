@@ -15,7 +15,7 @@ interface GraphLegendProps {
 
 const GraphLegend = memo(function GraphLegend({ items, className = '' }: GraphLegendProps) {
   const { t } = useLanguage();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <div

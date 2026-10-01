@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ShuowenEntry } from '../data/types';
+import { getScriptBackground } from '../data/scriptBackground';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface GlyphEvolutionProps {
@@ -16,15 +17,21 @@ interface ScriptStyle {
   period: string;
   font: string;
   useLocalGlyph: boolean;
+  /** 无字形图片时的兜底说明 i18n key（缺省用通用文案） */
+  fallbackNoteKey?: string;
 }
 
 const SCRIPT_STYLES: ScriptStyle[] = [
-  { key: 'oracle',   label: '甲骨文', en: 'Oracle Bone',  period: 'c. 1250 BCE', font: '"Noto Serif SC", serif', useLocalGlyph: true },
-  { key: 'bronze',   label: '金文',   en: 'Bronze',       period: 'c. 1046 BCE', font: '"Noto Serif SC", serif', useLocalGlyph: true },
-  { key: 'seal',     label: '小篆',   en: 'Seal Script',  period: 'c. 221 BCE',  font: '"Noto Serif SC", serif', useLocalGlyph: true },
-  { key: 'clerical', label: '隶书',   en: 'Clerical',     period: 'c. 200 CE',   font: '"LiSu", "隶书", "STLiti", "华文隶书", "Noto Serif SC", serif', useLocalGlyph: true },
-  { key: 'regular',  label: '楷书',   en: 'Regular',      period: 'c. 400 CE',   font: '"Ma Shan Zheng", "Noto Serif SC", serif', useLocalGlyph: false },
+  { key: 'oracle',     label: '甲骨文', en: 'Oracle Bone',  period: 'c. 1250 BCE', font: '"Noto Serif SC", serif', useLocalGlyph: true },
+  { key: 'bronze',     label: '金文',   en: 'Bronze',       period: 'c. 1046 BCE', font: '"Noto Serif SC", serif', useLocalGlyph: true },
+  { key: 'large-seal', label: '大篆',   en: 'Large Seal',   period: 'c. 700 BCE',  font: '"Noto Serif SC", serif', useLocalGlyph: true, fallbackNoteKey: 'cmp.glyphEvo.largeSealFallback' },
+  { key: 'seal',       label: '小篆',   en: 'Seal Script',  period: 'c. 221 BCE',  font: '"Noto Serif SC", serif', useLocalGlyph: true },
+  { key: 'clerical',   label: '隶书',   en: 'Clerical',     period: 'c. 200 CE',   font: '"LiSu", "隶书", "STLiti", "华文隶书", "Noto Serif SC", serif', useLocalGlyph: true, fallbackNoteKey: 'cmp.glyphEvo.clericalFallback' },
+  { key: 'regular',    label: '楷书',   en: 'Regular',      period: 'c. 400 CE',   font: '"Ma Shan Zheng", "Noto Serif SC", serif', useLocalGlyph: false },
 ];
+
+/** 默认展示的阶段（现行规范字形） */
+const DEFAULT_STYLE_KEY = 'regular';
 
 const EASING = [0.25, 0.1, 0.25, 1] as [number, number, number, number];
 
@@ -68,7 +75,10 @@ const SIX_BOOKS_LABEL_KEYS: Record<string, string> = {
 
 export default function GlyphEvolution({ character, traditional, shuowen }: GlyphEvolutionProps) {
   const { lang, t } = useLanguage();
-  const [active, setActive] = useState(4);
+  const [active, setActive] = useState(() => {
+    const i = SCRIPT_STYLES.findIndex((s) => s.key === DEFAULT_STYLE_KEY);
+    return i >= 0 ? i : SCRIPT_STYLES.length - 1;
+  });
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, string | null>>({});
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
@@ -133,6 +143,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
   const isLoading = loadingKeys.has(currentStyle.key);
   const isAncient = currentStyle.key !== 'regular';
   const imgErrored = imgErrors.has(currentStyle.key);
+  const scriptBg = getScriptBackground(currentStyle.key);
 
   const handlePrev = useCallback(() => {
     setActive((a) => (a > 0 ? a - 1 : SCRIPT_STYLES.length - 1));
@@ -215,8 +226,9 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
             />
           ) : (() => {
             const isClerical = currentStyle.key === 'clerical';
+            const noteKey = currentStyle.fallbackNoteKey ?? 'cmp.glyphEvo.noGlyphImage';
             return (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center px-6">
               <span
                 className="font-display-cn leading-none"
                 style={{
@@ -228,20 +240,12 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
               >
                 {displayChar}
               </span>
-              {isAncient && !isClerical && (
+              {isAncient && (
                 <span
-                  className="text-xs mt-1"
+                  className="text-[11px] mt-1 text-center"
                   style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
                 >
-                  {t('cmp.glyphEvo.noGlyphImage')}
-                </span>
-              )}
-              {isClerical && (
-                <span
-                  className="text-[11px] mt-1"
-                  style={{ color: 'rgba(26,26,24,0.25)', fontFamily: 'Inter' }}
-                >
-                  {t('cmp.glyphEvo.clericalFallback')}
+                  {t(noteKey)}
                 </span>
               )}
             </div>
@@ -351,6 +355,46 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
           </motion.div>
         )}
       </div>
+
+      {/* Script-stage cultural background */}
+      {scriptBg && (
+        <motion.div
+          key={currentStyle.key}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: EASING }}
+          className="mb-4 rounded-2xl px-4 py-3"
+          style={{ background: 'rgba(245,240,232,0.55)', border: '1px solid rgba(139,105,20,0.12)' }}
+        >
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8B6914" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+            <span
+              className="text-[0.625rem] font-semibold uppercase tracking-wider"
+              style={{ color: '#8B6914', fontFamily: 'Inter' }}
+            >
+              {t('cmp.glyphEvo.scriptBackground')}
+            </span>
+            <span className="text-[0.6875rem] font-medium font-serif-cn" style={{ color: '#1A1A18' }}>
+              {lang === 'zh' ? currentStyle.label : currentStyle.en}
+            </span>
+            <span className="text-[0.625rem]" style={{ color: 'rgba(26,26,24,0.35)', fontFamily: 'Inter' }}>
+              {lang === 'zh' ? currentStyle.en : currentStyle.label}
+            </span>
+            <span
+              className="ml-auto text-[0.625rem]"
+              style={{ color: 'rgba(139,105,20,0.7)', fontFamily: 'Inter' }}
+            >
+              {lang === 'zh' ? scriptBg.period : scriptBg.periodEn}
+            </span>
+          </div>
+          <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
+            {lang === 'zh' ? scriptBg.background : scriptBg.backgroundEn}
+          </p>
+        </motion.div>
+      )}
 
       {/* Timeline selector */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

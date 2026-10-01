@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Pencil, Puzzle, Eye, ScrollText, Brain, Trophy, ArrowLeft, Shuffle,
+  Pencil, Puzzle, Eye, ScrollText, Brain, Trophy, ArrowLeft, Shuffle, Sparkles,
 } from 'lucide-react';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import AncientGlyphGame from '../components/AncientGlyphGame';
@@ -10,6 +10,8 @@ import StrokeQuizGame from '../components/games/StrokeQuizGame';
 import StrokeOrderGame from '../components/games/StrokeOrderGame';
 import TrickyStrokesGame from '../components/games/TrickyStrokesGame';
 import PhonoSemanticGame from '../components/games/PhonoSemanticGame';
+import CharacterForge from '../components/games/CharacterForge';
+import PseudoCharGame from '../components/games/PseudoCharGame';
 import VariantRadicalGame from '../components/games/VariantRadicalGame';
 import LookalikeGame from '../components/games/LookalikeGame';
 import PronunciationGame from '../components/games/PronunciationGame';
@@ -117,6 +119,24 @@ export default function Games() {
           available: true,
         },
         {
+          id: 'character-forge',
+          icon: <Puzzle size={24} />,
+          title: '造字工坊',
+          en: 'Character Forge',
+          category: '部件',
+          desc: '自由拼装构件，由视觉语法引擎实时判定组合是否合乎构字规律。',
+          available: true,
+        },
+        {
+          id: 'pseudo-char',
+          icon: <Sparkles size={24} />,
+          title: '假字猜义猜音',
+          en: 'Invented Character',
+          category: '部件',
+          desc: '用真实的形旁与声旁拼出虚构「假字」，猜它的意义与读音。',
+          available: true,
+        },
+        {
           id: 'variant-radicals',
           icon: <Eye size={24} />,
           title: '变形部件辨识',
@@ -221,6 +241,8 @@ export default function Games() {
         case 'stroke-order': return <StrokeOrderGame key={activeGame} />;
         case 'tricky-strokes': return <TrickyStrokesGame key={activeGame} />;
         case 'phono-semantic': return <PhonoSemanticGame key={activeGame} />;
+        case 'character-forge': return <CharacterForge key={activeGame} />;
+        case 'pseudo-char': return <PseudoCharGame key={activeGame} />;
         case 'variant-radicals': return <VariantRadicalGame key={activeGame} />;
         case 'lookalike': return <LookalikeGame key={activeGame} />;
         case 'pronunciation': return <PronunciationGame key={activeGame} />;

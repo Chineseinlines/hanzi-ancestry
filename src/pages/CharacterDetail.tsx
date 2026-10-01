@@ -696,10 +696,31 @@ export default function CharacterDetail() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {activeDecomposition && (
                   <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                    <div className="flex items-center gap-2 mb-2 px-2">
+                    <div className="flex items-center gap-2 mb-1 px-2 flex-wrap">
                       <GitBranch size={16} className="text-cinnabar" />
                       <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('detail.charDecomposition')}</span>
-                      <span className="ml-auto text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
+                      {/* 简/繁拆法切换（与探索页一致） */}
+                      {tradTarget && tradTarget !== char && tradDecomposition && decomposition && (
+                        <div className="ml-auto flex items-center gap-1 rounded-xl p-1" style={{ background: 'rgba(245,240,232,0.8)', border: '1px solid rgba(26,26,24,0.08)' }}>
+                          <button
+                            onClick={() => setDecompMode('simp')}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                            style={decompMode === 'simp' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
+                          >
+                            {t('common.simplified')} <span className="font-serif-cn text-sm">{char}</span>
+                          </button>
+                          <button
+                            onClick={() => setDecompMode('trad')}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
+                            style={decompMode === 'trad' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
+                          >
+                            {t('common.traditional')} <span className="font-serif-cn text-sm">{tradTarget}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="px-2 mb-1">
+                      <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
                     </div>
                     <div className="h-[380px]">
                       <DecompositionGraph
