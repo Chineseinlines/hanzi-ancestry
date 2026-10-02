@@ -33,6 +33,7 @@ import {
 import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations, ScoredRelation, WordFamilies as WordFamiliesData } from '../data/types';
 import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
+import GlyphEvolutionTimeline from '../components/GlyphEvolutionTimeline';
 import SimpTradTimeline from '../components/SimpTradTimeline';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
@@ -712,16 +713,26 @@ export default function CharacterDetail() {
           {/* ── Tab: 知识卡片 ── */}
           {activeTab === 'card' && (
             <motion.div key="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Stroke Order */}
-                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.strokeOrder')}</h2>
-                  <div className="flex justify-center">
-                    <StrokeOrder character={char} size={260} />
+              {/* 字形演变脉络 与 笔画动画 并置 */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_1fr] gap-6 items-stretch">
+                {/* 字形演变 */}
+                <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.tabs.glyph')}</h2>
+                  <div className="flex flex-1 flex-col justify-center">
+                    <GlyphEvolutionTimeline character={char} traditional={entry?.traditional} />
                   </div>
                 </div>
 
-                {/* 词语与典故 */}
+                {/* 笔画动画 */}
+                <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                  <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.strokeOrder')}</h2>
+                  <div className="flex flex-1 items-center justify-center">
+                    <StrokeOrder character={char} size={300} />
+                  </div>
+                </div>
+              </div>
+
+              {/* 词语搭配组合 */}
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                 <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                   <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.wordsAndAllusions')}</h2>
@@ -729,7 +740,7 @@ export default function CharacterDetail() {
                 </div>
 
                 {wordFamilies ? (
-                  <WordFamilies data={wordFamilies} />
+                  <WordFamilies data={wordFamilies} char={char} />
                 ) : (
                   <>
                     {cultural?.words && cultural.words.length > 0 && (
@@ -767,7 +778,6 @@ export default function CharacterDetail() {
                     )}
                   </>
                 )}
-                </div>
               </div>
 
               {/* 拆字 / 联字网络 */}

@@ -11,7 +11,7 @@ interface GlyphEvolutionProps {
   shuowen?: ShuowenEntry | null;
 }
 
-interface ScriptStyle {
+export interface ScriptStyle {
   key: string;
   label: string;
   en: string;
@@ -22,7 +22,7 @@ interface ScriptStyle {
   fallbackNoteKey?: string;
 }
 
-const SCRIPT_STYLES: ScriptStyle[] = [
+export const SCRIPT_STYLES: ScriptStyle[] = [
   { key: 'oracle',     label: '甲骨文', en: 'Oracle Bone',  period: 'c. 1250 BCE', font: '"Noto Serif SC", serif', useLocalGlyph: true },
   { key: 'bronze',     label: '金文',   en: 'Bronze',       period: 'c. 1046 BCE', font: '"Noto Serif SC", serif', useLocalGlyph: true },
   { key: 'large-seal', label: '大篆',   en: 'Large Seal',   period: 'c. 700 BCE',  font: '"Noto Serif SC", serif', useLocalGlyph: true, fallbackNoteKey: 'cmp.glyphEvo.largeSealFallback' },
@@ -54,7 +54,7 @@ function buildEnglishSummary(shuowen: ShuowenEntry): string {
   return parts.join('. ') + (parts.length > 0 ? '.' : '');
 }
 
-function buildImageUrls(_char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
+export function buildImageUrls(_char: string, hex: string, hexUpper: string, style: ScriptStyle): string[] {
   if (style.useLocalGlyph) {
     return [`${import.meta.env.BASE_URL}glyphs/${style.key}/${hexUpper}.svg`];
   }
@@ -506,7 +506,7 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
   );
 }
 
-function tryLoadImage(url: string, timeoutMs = 5000): Promise<boolean> {
+export function tryLoadImage(url: string, timeoutMs = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     const img = new Image();
     img.referrerPolicy = 'no-referrer';
