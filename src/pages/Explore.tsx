@@ -28,6 +28,7 @@ import {
   searchByEnglish,
   searchByChineseMeaning,
   hasCJK,
+  getCharactersWithComponent,
   getLocalizedDefinition,
   getLocalizedEtymologyHint,
 } from '../data/hanziData';
@@ -47,6 +48,32 @@ function extractHanzi(raw: string): string[] {
     if (cp && cp >= 0x4E00 && cp <= 0x9FFF) result.push(ch);
   }
   return result;
+}
+
+/** 部件模式提取：额外接受部首区字符（⺍ 冖 亻 等 CJK Radicals / Kangxi Radicals）。 */
+function extractComponents(raw: string): string[] {
+  const result: string[] = [];
+  for (const ch of raw) {
+    const cp = ch.codePointAt(0);
+    if (!cp) continue;
+    if (
+      (cp >= 0x4E00 && cp <= 0x9FFF) ||
+      (cp >= 0x2E80 && cp <= 0x2FDF) ||
+      cp === 0x3007
+    ) {
+      result.push(ch);
+    }
+  }
+  return result;
+}
+
+/** 统计某部件在拆解树中出现的次数（支持「木木」= 至少含两个木）。 */
+function countInTree(node: DecompositionNode, comp: string): number {
+  let n = node.character === comp ? 1 : 0;
+  if (node.children) {
+    for (const child of node.children) n += countInTree(child, comp);
+  }
+  return n;
 }
 
 const EASE_INK = [0.25, 0.1, 0.25, 1.0] as [number, number, number, number];
@@ -100,13 +127,14 @@ function collectIDSLines(
 /*  Explore Page                                                       */
 /* ------------------------------------------------------------------ */
 
-type SearchMode = 'auto' | 'hanzi' | 'pinyin' | 'english';
+type SearchMode = 'auto' | 'hanzi' | 'pinyin' | 'english' | 'components';
 
 const SEARCH_MODES_EXPLORE: { key: SearchMode; labelKey: string }[] = [
   { key: 'auto', labelKey: 'explore.modeAuto' },
   { key: 'hanzi', labelKey: 'explore.modeHanzi' },
   { key: 'pinyin', labelKey: 'explore.modePinyin' },
   { key: 'english', labelKey: 'explore.modeEn' },
+  { key: 'components', labelKey: 'explore.modeComponents' },
 ];
 
 export default function Explore() {
@@ -119,6 +147,7 @@ export default function Explore() {
   const [query, setQuery] = useState(charParam);
   const [searchMode, setSearchMode] = useState<SearchMode>('auto');
   const [enResults, setEnResults] = useState<EnglishSearchResult | null>(null);
+  const [compResults, setCompResults] = useState<{ comps: string[]; chars: string[] } | null>(null);
   const [currentChar, setCurrentChar] = useState(charParam);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'decomposition' | 'cognate'>('decomposition');
@@ -228,6 +257,33 @@ export default function Explore() {
         return false;
       };
 
+      // 部件模式：按输入顺序统计各部件的需求次数（重复即要求多次），求交集
+      const runComponentSearch = (): boolean => {
+        const rawComps = extractComponents(trimmed).slice(0, 6);
+        if (rawComps.length === 0) return false;
+        const need = new Map<string, number>();
+        for (const c of rawComps) need.set(c, (need.get(c) ?? 0) + 1);
+        const comps = Array.from(need.keys());
+
+        let chars = getCharactersWithComponent(comps[0]);
+        for (const [comp, n] of need) {
+          if (n <= 1) {
+            const set = new Set(getCharactersWithComponent(comp));
+            chars = chars.filter(c => set.has(c));
+          } else {
+            chars = chars.filter(c => {
+              const node = decomposeCharacter(c);
+              return node ? countInTree(node, comp) >= n : false;
+            });
+          }
+        }
+        setCompResults({ comps: rawComps, chars });
+        setEnResults(null);
+        setCurrentChar('');
+        setSelectedComponent(null);
+        return true;
+      };
+
       switch (searchMode) {
         case 'hanzi':
           first = tryHanzi();
@@ -239,6 +295,10 @@ export default function Explore() {
           const found = await tryMeaningSearch();
           if (!found) return;
           return; // Show results panel
+        }
+        case 'components': {
+          if (!runComponentSearch()) return;
+          return; // Show component results panel
         }
         case 'auto':
         default:
@@ -258,6 +318,7 @@ export default function Explore() {
 
       if (!first) return;
       setEnResults(null);
+      setCompResults(null);
       setQuery(first);
       setCurrentChar(first);
       setSelectedComponent(null);
@@ -400,9 +461,9 @@ export default function Explore() {
                 ref={searchInputRef}
                 type="text"
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); setEnResults(null); }}
+                onChange={(e) => { setQuery(e.target.value); setEnResults(null); setCompResults(null); }}
                 maxLength={20}
-                placeholder={t('explore.placeholder')}
+                placeholder={searchMode === 'components' ? t('explore.componentsPlaceholder') : t('explore.placeholder')}
                 className="h-14 w-full rounded-full border border-border-light bg-white px-6 text-center text-2xl text-ink-black shadow-sm transition-all duration-300 placeholder:text-charcoal/30 focus:border-cinnabar focus:shadow-cinnabar focus:outline-none"
               />
               <button
@@ -513,6 +574,85 @@ export default function Explore() {
                     </div>
                   </div>
                 )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Component combination results panel */}
+          <AnimatePresence>
+            {compResults && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mt-4 mx-auto max-w-[540px] rounded-2xl bg-white p-5 text-left shadow-md border border-border-light"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[0.6875rem] font-medium uppercase tracking-wider text-charcoal/40">
+                    {t('explore.componentsHeading')}
+                  </p>
+                  <span
+                    className="text-xs font-medium whitespace-nowrap"
+                    style={{ color: '#8B6914', fontFamily: 'Inter' }}
+                  >
+                    {t('explore.componentsResultCount', { n: compResults.chars.length })}
+                  </span>
+                </div>
+
+                <div className="mt-2.5 mb-3 flex flex-wrap items-center gap-1.5">
+                  {compResults.comps.map((c, i) => (
+                    <span key={`${c}-${i}`} className="inline-flex items-center gap-1.5">
+                      {i > 0 && <span className="text-charcoal/30 text-xs">+</span>}
+                      <span
+                        className="rounded-full px-2.5 py-0.5 font-serif-cn text-base text-cinnabar"
+                        style={{ background: 'rgba(194,59,42,0.08)' }}
+                      >
+                        {c}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+
+                {compResults.chars.length === 0 ? (
+                  <p
+                    className="text-sm text-charcoal/60"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {t('explore.componentsNone')}
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {compResults.chars.slice(0, 48).map((ch) => {
+                      const entry = getCharacter(ch);
+                      return (
+                        <button
+                          key={ch}
+                          onClick={() => {
+                            setCompResults(null);
+                            setQuery(ch);
+                            setCurrentChar(ch);
+                            setSearchParams({ char: ch });
+                          }}
+                          className="rounded-lg px-3 py-1.5 text-lg font-serif-cn text-ink-black hover:bg-cinnabar hover:text-white transition-all hover:scale-110"
+                          style={{ background: 'rgba(26,26,24,0.04)' }}
+                          title={entry ? `${entry.pinyin[0]}: ${getLocalizedDefinition(entry, lang)}` : ch}
+                        >
+                          {ch}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {compResults.chars.length > 48 && (
+                  <p className="mt-2.5 text-[0.625rem] text-charcoal/30" style={{ fontFamily: 'Inter' }}>
+                    {t('explore.componentsMore', { n: compResults.chars.length - 48 })}
+                  </p>
+                )}
+
+                <p className="mt-3 border-t border-border-light pt-2.5 text-[0.625rem] text-charcoal/30" style={{ fontFamily: 'Inter' }}>
+                  {t('explore.componentsHint')}
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HashRouter 单页应用：主入口为唯一可索引 URL。
+  路由级内容由 SPA 渲染，此处仅声明规范地址，避免重复内容判定。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://chineseinlines.github.io/hanzi-ancestry/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

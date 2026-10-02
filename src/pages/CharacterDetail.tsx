@@ -48,6 +48,9 @@ import { getModernClassification, getFormationModeInfo, getComponentTypeInfo, ge
 import { PHONETIC_LEVEL_DESCRIPTIONS_EN } from '../data/phoneticLevels.en';
 import { SEMANTIC_LEVEL_DESCRIPTIONS_EN } from '../data/semanticLevels.en';
 import { FORMATION_DESCRIPTIONS_EN, COMPONENT_ROLE_DESCRIPTIONS_EN } from '../data/modernTaxonomy.en';
+import SpeakButton from '../components/SpeakButton';
+import { loadCharMeta, getCharMeta, FREQ_TOTAL, hsk3Band, hsk3LevelLabel } from '../data/charMeta';
+import { setPageMeta } from '../lib/seo';
 
 const TAG_COLORS: Record<string, string> = {
   '源流分化': '#C23B2A',
@@ -171,6 +174,7 @@ export default function CharacterDetail() {
       await loadShuowen();
       await loadSimpTradMap();
       await loadRelations();
+      await loadCharMeta();
       if (cancelled) return;
       const e = getCharacterEnriched(char);
       setEntry(e ?? null);
@@ -181,6 +185,23 @@ export default function CharacterDetail() {
     })();
     return () => { cancelled = true; };
   }, [char]);
+
+  // SEO：动态标题与描述（覆盖 RouteMeta 的通用标题）
+  useEffect(() => {
+    if (!entry) return;
+    setPageMeta({
+      title: t('detail.metaTitle', {
+        char,
+        pinyin: entry.pinyin.join(' / '),
+      }),
+      description: t('detail.metaDesc', {
+        char,
+        definition: getLocalizedDefinition(entry, lang).slice(0, 80),
+      }),
+    });
+  }, [entry, char, lang, t]);
+
+  const charMeta = useMemo(() => (char ? getCharMeta(char) : undefined), [char, entry]);
 
   // entry 在数据加载完成后才 set —— 以它为依赖，避免首次渲染（charMap 未就绪）时把 null 缓存住
   const decomposition = useMemo(() => (char && entry ? decomposeCharacter(char) : null), [char, entry]);
@@ -448,9 +469,44 @@ export default function CharacterDetail() {
               {entry.pinyin.map((p, i) => (
                 <span key={i} className="text-lg tracking-wide" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{p}</span>
               ))}
+              <SpeakButton text={char} title={t('detail.speak')} onDark />
               <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: 'rgba(107,127,94,0.2)', color: '#6B7F5E', fontFamily: 'Inter' }}>
                 {t('detail.radical')}: {entry.radical}
               </span>
+              {charMeta?.hsk3 !== undefined && (
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-semibold"
+                  title={t('detail.hsk3Tooltip')}
+                  style={{
+                    background: hsk3Band(charMeta.hsk3) === 'advanced' ? 'rgba(194,59,42,0.2)' : hsk3Band(charMeta.hsk3) === 'intermediate' ? 'rgba(45,95,138,0.22)' : 'rgba(107,127,94,0.22)',
+                    color: hsk3Band(charMeta.hsk3) === 'advanced' ? '#E8836F' : hsk3Band(charMeta.hsk3) === 'intermediate' ? '#8FB4D9' : '#9CB48A',
+                    fontFamily: 'Inter',
+                  }}
+                >
+                  {t('detail.hsk3Badge', { level: hsk3LevelLabel(charMeta.hsk3) })}
+                  <span className="ml-1 opacity-75">
+                    {hsk3Band(charMeta.hsk3) === 'advanced' ? t('detail.bandAdvanced') : hsk3Band(charMeta.hsk3) === 'intermediate' ? t('detail.bandIntermediate') : t('detail.bandElementary')}
+                  </span>
+                </span>
+              )}
+              {charMeta?.hsk2 !== undefined && charMeta.hsk2 !== charMeta?.hsk3 && (
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-medium"
+                  title={t('detail.hsk2Tooltip')}
+                  style={{ background: 'rgba(245,240,232,0.1)', color: 'rgba(245,240,232,0.55)', fontFamily: 'Inter' }}
+                >
+                  {t('detail.hsk2Badge', { level: charMeta.hsk2 })}
+                </span>
+              )}
+              {charMeta?.freqRank !== undefined && (
+                <span
+                  className="rounded-full px-3 py-1 text-xs font-medium"
+                  title={t('detail.freqTooltip', { total: FREQ_TOTAL.toLocaleString() })}
+                  style={{ background: 'rgba(196,162,101,0.14)', color: '#C4A265', fontFamily: 'Inter' }}
+                >
+                  {t('detail.freqBadge', { rank: charMeta.freqRank, total: FREQ_TOTAL.toLocaleString() })}
+                </span>
+              )}
               <button
                 onClick={() => toggleFavorite(char)}
                 className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all hover:scale-105"
@@ -668,7 +724,10 @@ export default function CharacterDetail() {
                       <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.commonWords')}</h3>
                       <div className="flex flex-wrap gap-2">
                         {cultural.words.map((w, i) => (
-                          <span key={i} className="rounded-lg px-3 py-1.5 text-sm font-serif-cn" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: '"Noto Serif SC", serif' }}>{w}</span>
+                          <span key={i} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-serif-cn" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: '"Noto Serif SC", serif' }}>
+                            {w}
+                            <SpeakButton text={w} size={12} />
+                          </span>
                         ))}
                       </div>
                     </div>

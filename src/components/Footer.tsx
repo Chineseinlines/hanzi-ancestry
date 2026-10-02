@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Github } from 'lucide-react';
+import { Github, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Footer() {
@@ -76,6 +76,13 @@ export default function Footer() {
               {' · '}
               {t('footer.dataDesc')}
             </p>
+            <Link
+              to="/sources"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-rice-paper/60 transition-colors duration-200 hover:text-rice-paper"
+            >
+              <ShieldCheck size={14} />
+              {t('footer.sourcesLink')}
+            </Link>
           </div>
         </div>
 

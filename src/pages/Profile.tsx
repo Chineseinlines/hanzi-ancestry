@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getUserStats, type UserStats, type GameTypeStats } from '../lib/database';
+import ProficiencyMap from '../components/ProficiencyMap';
 
 export default function Profile() {
   const { user, profile, configured } = useAuth();
@@ -71,6 +72,9 @@ export default function Profile() {
               ? `${Math.round(Object.values(stats.byType).filter(t => t.attempts > 0).reduce((s, t) => s + t.averageScore, 0) / Math.max(1, Object.values(stats.byType).filter(t => t.attempts > 0).length))}%`
               : '—'} icon="📊" />
           </div>
+
+          {/* GF 0025 Proficiency Map */}
+          <ProficiencyMap stats={stats} />
 
           {/* Per Game Type */}
           <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>

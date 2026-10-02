@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ShuowenEntry } from '../data/types';
 import { getScriptBackground } from '../data/scriptBackground';
@@ -198,6 +199,18 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
               style={{ background: 'rgba(139,105,20,0.12)', color: '#8B6914', fontFamily: 'Inter' }}
             >
               {currentStyle.period}
+            </span>
+          </div>
+
+          {/* 逐阶段来源标注 */}
+          <div className="absolute bottom-2 left-3 right-3 z-10 text-center pointer-events-none">
+            <span
+              className="text-[0.5625rem]"
+              style={{ color: 'rgba(139,105,20,0.55)', fontFamily: 'Inter' }}
+            >
+              {currentStyle.key === 'regular'
+                ? t('cmp.glyphEvo.glyphSourceFont')
+                : t('cmp.glyphEvo.glyphSourceZdic')}
             </span>
           </div>
 
@@ -474,6 +487,13 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
         >
           {t('cmp.glyphEvo.viewCtext')}
         </a>
+        <Link
+          to="/sources"
+          className="text-[0.6875rem] inline-flex items-center gap-1 rounded-full px-3 py-1 transition-colors hover:underline"
+          style={{ background: 'rgba(139,105,20,0.08)', color: '#8B6914', fontFamily: 'Inter' }}
+        >
+          {t('cmp.glyphEvo.allSources')}
+        </Link>
       </div>
 
       {/* No shuowen data at all */}
