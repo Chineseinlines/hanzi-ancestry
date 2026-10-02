@@ -718,9 +718,49 @@ export default function CharacterDetail() {
                 {/* 字形演变 */}
                 <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.tabs.glyph')}</h2>
-                  <div className="flex flex-1 flex-col justify-center">
+                  <div className="flex flex-col justify-center">
                     <GlyphEvolutionTimeline character={char} traditional={entry?.traditional} />
                   </div>
+
+                  {/* 演变说明（说文解字） */}
+                  {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.shuowen) && (
+                    <div className="mt-5 pt-5 border-t" style={{ borderColor: 'rgba(26,26,24,0.08)' }}>
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className="text-sm font-semibold" style={{ color: '#C23B2A', fontFamily: '"Noto Serif SC", serif' }}>{t('detail.shuowenTitle')}</span>
+                        <span className="text-[0.5625rem] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}>Shuowen Jiezi</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {shuowen.structure && (
+                          <span className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium" style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}>
+                            {t('detail.structure')}: {shuowen.structure}
+                          </span>
+                        )}
+                        {shuowen.sixBooks && (
+                          <span className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}>
+                            {t('detail.sixBooks')}: {shuowen.sixBooks}
+                          </span>
+                        )}
+                      </div>
+
+                      {lang === 'en' && shuowen.enShuowen ? (
+                        <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{shuowen.enShuowen}</p>
+                      ) : (
+                        <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{getShuowenSummary(shuowen, entry, lang, t)}</p>
+                      )}
+
+                      {shuowen.shuowen && (
+                        <details className="mt-2">
+                          <summary className="text-[0.6875rem] font-medium cursor-pointer inline-flex items-center gap-1 select-none" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>
+                            {lang === 'en' ? t('detail.viewOriginalWenyan') : t('detail.viewOriginal')}
+                          </summary>
+                          <p className="mt-2 text-[0.6875rem] leading-relaxed font-serif-cn rounded-lg p-3 max-h-36 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
+                            {shuowen.shuowen}
+                          </p>
+                        </details>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* 笔画动画 */}
@@ -843,67 +883,6 @@ export default function CharacterDetail() {
                   <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
                     {lang === 'en' ? (cultural.enEvolution ?? cultural.evolution) : cultural.evolution}
                   </p>
-                </div>
-              )}
-
-              {/* Shuowen structure & classification */}
-              {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.shuowen) && (
-                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.shuowenTitle')}</h2>
-                    <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}>Shuowen</span>
-                    <a
-                      href={`https://ctext.org/dictionary.pl?if=en&char=${encodeURIComponent(char)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-auto text-[0.625rem] px-2 py-0.5 rounded-full inline-flex items-center gap-1 transition-colors hover:underline"
-                      style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter' }}
-                    >
-                      {t('detail.viewCtext')}
-                    </a>
-                  </div>
-                  <div className="flex flex-wrap gap-3 mb-3">
-                    {shuowen.structure && (
-                      <span className="text-sm px-3 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}>
-                        {t('detail.structure')}: {shuowen.structure}
-                      </span>
-                    )}
-                    {shuowen.sixBooks && (
-                      <span className="text-sm px-3 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}>
-                        {t('detail.sixBooks')}: {shuowen.sixBooks}
-                      </span>
-                    )}
-                  </div>
-                  {/* 英文版：英译为主文案，文言原文折叠；中文版：中文摘要 + 原文折叠 */}
-                  {lang === 'en' && shuowen.enShuowen ? (
-                    <>
-                      <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                        {shuowen.enShuowen}
-                      </p>
-                      {shuowen.shuowen && (
-                        <details className="mt-3">
-                          <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>{t('detail.viewOriginalWenyan')}</summary>
-                          <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
-                            {shuowen.shuowen}
-                          </p>
-                        </details>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                        {getShuowenSummary(shuowen, entry, lang, t)}
-                      </p>
-                      {shuowen.shuowen && (
-                        <details className="mt-3">
-                          <summary className="text-xs font-medium cursor-pointer" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>{t('detail.viewOriginal')}</summary>
-                          <p className="mt-2 text-xs leading-relaxed font-serif-cn rounded-lg p-3 max-h-40 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
-                            {shuowen.shuowen}
-                          </p>
-                        </details>
-                      )}
-                    </>
-                  )}
                 </div>
               )}
 
