@@ -77,6 +77,25 @@ export interface CulturalData {
   enAllusions?: string[];
 }
 
+/** 词条：[词语, 拼音, 中文释义, 英文释义] */
+export type WordEntry = [string, string, string, string];
+/** 成语词条：[成语, 拼音, 释义, 出处?, 例句?] */
+export type IdiomEntry = [string, string, string, string?, string?];
+
+/** 词语家族：按类别聚合的多字词语（word-families.json） */
+export interface WordFamilies {
+  /** 两字词，该字为首字 */
+  s2?: WordEntry[];
+  /** 两字词，该字为尾字 */
+  e2?: WordEntry[];
+  /** 三字词 */
+  s3?: WordEntry[];
+  /** 四字词（不含成语） */
+  s4?: WordEntry[];
+  /** 成语 */
+  id?: IdiomEntry[];
+}
+
 export interface ShuowenEntry {
   char: string;
   shuowen: string;

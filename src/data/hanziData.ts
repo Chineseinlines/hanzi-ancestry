@@ -1,4 +1,5 @@
-import type { HanziEntry, DecompositionNode, CognateResult, ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry, CharRelations, ScoredRelation } from './types';
+import type { HanziEntry, DecompositionNode, CognateResult,
+ComponentCognateResult, StrokeData, CulturalData, ShuowenEntry, CharRelations, ScoredRelation, WordFamilies } from './types';
 import type { Locale } from '../i18n';
 import { isCommonChar } from './commonChars';
 
@@ -883,6 +884,32 @@ export async function loadCulturalData(): Promise<void> {
 
 export function getCulturalData(char: string): CulturalData | undefined {
   return culturalMap?.get(char);
+}
+
+// ── Word families (按分类聚合的多字词语) ────────────────────────────
+let wordFamiliesMap: Map<string, WordFamilies> | null = null;
+let wordFamiliesPromise: Promise<void> | null = null;
+
+export async function loadWordFamilies(): Promise<void> {
+  if (wordFamiliesMap) return;
+  if (wordFamiliesPromise) return wordFamiliesPromise;
+
+  wordFamiliesPromise = (async () => {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}word-families.json`);
+      if (!res.ok) throw new Error(`word-families.json: ${res.status}`);
+      const data = await res.json() as Record<string, WordFamilies>;
+      wordFamiliesMap = new Map(Object.entries(data));
+    } catch (err) {
+      console.error('Failed to load word families:', err);
+      wordFamiliesMap = new Map();
+    }
+  })();
+  return wordFamiliesPromise;
+}
+
+export function getWordFamilies(char: string): WordFamilies | undefined {
+  return wordFamiliesMap?.get(char);
 }
 
 // ── Shuowen data ────────────────────────────────────────────────────

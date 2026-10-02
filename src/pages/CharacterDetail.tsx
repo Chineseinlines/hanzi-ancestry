@@ -20,6 +20,8 @@ import {
   loadShuowen,
   loadSimpTradMap,
   loadRelations,
+  loadWordFamilies,
+  getWordFamilies,
   getShuowen,
   scoreRelations,
   getTraditional,
@@ -28,13 +30,14 @@ import {
   getLocalizedDefinition,
   getLocalizedEtymologyHint,
 } from '../data/hanziData';
-import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations, ScoredRelation } from '../data/types';
+import type { HanziEntry, CulturalData, DecompositionNode, ShuowenEntry, CharRelations, ScoredRelation, WordFamilies as WordFamiliesData } from '../data/types';
 import StrokeOrder from '../components/StrokeOrder';
 import GlyphEvolution from '../components/GlyphEvolution';
 import SimpTradTimeline from '../components/SimpTradTimeline';
 import CharPuzzleGame from '../components/CharPuzzleGame';
 import DecompositionGraph from '../components/DecompositionGraph';
 import CognateGraph from '../components/CognateGraph';
+import WordFamilies from '../components/WordFamilies';
 import { getAnnotation, getMoonAnnotation, getMoonTrueAnnotation, type ComponentAnnotation } from '../data/componentAnnotations';
 import { getLocalizedAnnotationName, getLocalizedAnnotationDescription } from '../data/componentAnnotations.bilingual';
 import { getSimpTradOrigin } from '../data/simpTradOrigins';
@@ -155,6 +158,7 @@ export default function CharacterDetail() {
   const [entry, setEntry] = useState<HanziEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [cultural, setCultural] = useState<CulturalData | null>(null);
+  const [wordFamilies, setWordFamilies] = useState<WordFamiliesData | null>(null);
   const [relations, setRelations] = useState<CharRelations | null>(null);
   const [shuowen, setShuowen] = useState<ShuowenEntry | null>(null);
   const [expandedAllusion, setExpandedAllusion] = useState<number | null>(null);
@@ -175,10 +179,12 @@ export default function CharacterDetail() {
       await loadSimpTradMap();
       await loadRelations();
       await loadCharMeta();
+      await loadWordFamilies();
       if (cancelled) return;
       const e = getCharacterEnriched(char);
       setEntry(e ?? null);
       setCultural(getCulturalData(char) ?? null);
+      setWordFamilies(getWordFamilies(char) ?? null);
       setShuowen(getShuowen(char) ?? null);
       if (e) setRelations(getRelations(char) ?? null);
       setLoading(false);
@@ -715,39 +721,52 @@ export default function CharacterDetail() {
                   </div>
                 </div>
 
-                {/* Words & Allusions */}
+                {/* 词语与典故 */}
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.wordsAndAllusions')}</h2>
+                <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.wordsAndAllusions')}</h2>
+                  <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('detail.wordsSourceNote')}</span>
+                </div>
 
-                  {cultural?.words && cultural.words.length > 0 && (
-                    <div className="mb-5">
-                      <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.commonWords')}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {cultural.words.map((w, i) => (
-                          <span key={i} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-serif-cn" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: '"Noto Serif SC", serif' }}>
-                            {w}
-                            <SpeakButton text={w} size={12} />
-                          </span>
-                        ))}
+                {wordFamilies ? (
+                  <WordFamilies data={wordFamilies} />
+                ) : (
+                  <>
+                    {cultural?.words && cultural.words.length > 0 && (
+                      <div className="mb-5">
+                        <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.commonWords')}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {cultural.words.map((w, i) => (
+                            <span key={i} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-serif-cn" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: '"Noto Serif SC", serif' }}>
+                              {w}
+                              <SpeakButton text={w} size={12} />
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {cultural?.allusions && cultural.allusions.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.historicalAllusions')}</h3>
-                      <div className="flex flex-col gap-2">
-                        {cultural.allusions.map((a, i) => (
-                          <button key={i} onClick={() => setExpandedAllusion(expandedAllusion === i ? null : i)} className="text-left rounded-xl p-3 transition-all" style={{ background: expandedAllusion === i ? 'rgba(194,59,42,0.08)' : 'rgba(26,26,24,0.03)' }}>
-                            <div className="flex items-start gap-2">
-                              <span className="text-sm font-medium mt-0.5" style={{ color: '#C23B2A' }}>{i + 1}.</span>
-                              <span className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{a}</span>
-                            </div>
-                          </button>
-                        ))}
+                    {cultural?.allusions && cultural.allusions.length > 0 && (
+                      <div>
+                        <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.historicalAllusions')}</h3>
+                        <div className="flex flex-col gap-2">
+                          {cultural.allusions.map((a, i) => (
+                            <button key={i} onClick={() => setExpandedAllusion(expandedAllusion === i ? null : i)} className="text-left rounded-xl p-3 transition-all" style={{ background: expandedAllusion === i ? 'rgba(194,59,42,0.08)' : 'rgba(26,26,24,0.03)' }}>
+                              <div className="flex items-start gap-2">
+                                <span className="text-sm font-medium mt-0.5" style={{ color: '#C23B2A' }}>{i + 1}.</span>
+                                <span className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{a}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+
+                    {!cultural?.words?.length && !cultural?.allusions?.length && (
+                      <p className="text-sm" style={{ color: '#9CA3AF' }}>{t('detail.wordsEmpty')}</p>
+                    )}
+                  </>
+                )}
                 </div>
               </div>
 
