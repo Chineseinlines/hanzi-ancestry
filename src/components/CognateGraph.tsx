@@ -87,6 +87,9 @@ const CognateGraph = memo(function CognateGraph({
   const containerRef = useRef<HTMLDivElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const simulationRef = useRef<d3.Simulation<SimNode, SimLink> | null>(null);
+  // 回调存入 ref，避免父组件重渲染时引用变化触发 useEffect 重跑导致整图重建闪烁
+  const callbacksRef = useRef({ onNodeClick, onNodeDoubleClick });
+  callbacksRef.current = { onNodeClick, onNodeDoubleClick };
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -498,15 +501,11 @@ const CognateGraph = memo(function CognateGraph({
       .on('click', (_event, d) => {
         _event.stopPropagation();
         // Allow clicking any node including center and selected component
-        if (onNodeClick) {
-          onNodeClick(d.character);
-        }
+        callbacksRef.current.onNodeClick?.(d.character);
       })
       .on('dblclick', (_event, d) => {
         _event.stopPropagation();
-        if (onNodeDoubleClick) {
-          onNodeDoubleClick(d.character);
-        }
+        callbacksRef.current.onNodeDoubleClick?.(d.character);
       });
 
     // Disable zoom double-click to allow node double-click
@@ -518,7 +517,7 @@ const CognateGraph = memo(function CognateGraph({
       svg.selectAll('*').remove();
       svg.on('.zoom', null);
     };
-  }, [nodes, links, character, onNodeClick, onNodeDoubleClick, selectedComponent, lang]);
+  }, [nodes, links, character, selectedComponent, lang]);
 
   if (nodes.length <= 1) {
     return (
