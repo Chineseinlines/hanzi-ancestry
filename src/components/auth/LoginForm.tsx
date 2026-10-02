@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { AuthField } from './AuthField';
+import { authErrorKey } from '../../lib/authErrors';
 
 interface LoginFormProps {
   onSuccess: () => void;
@@ -20,53 +23,74 @@ export function LoginForm({ onSuccess, onMessage, onSwitchToRegister }: LoginFor
     setLoading(true);
     onMessage(null);
 
-    const { error } = await signIn(email, password);
-    if (error) {
-      onMessage({ type: 'error', text: error });
-    } else {
-      onSuccess();
+    try {
+      const { error } = await signIn(email.trim(), password);
+      if (error) {
+        onMessage({ type: 'error', text: t(authErrorKey(error)) });
+      } else {
+        onSuccess();
+      }
+    } catch (err) {
+      onMessage({ type: 'error', text: t(authErrorKey(err instanceof Error ? err.message : String(err))) });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: '#3D3D3B' }}>{t('auth.email')}</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          placeholder="you@example.com"
-          className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all"
-          style={{ borderColor: '#E5E0D8', background: '#FDFBF6' }}
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1.5" style={{ color: '#3D3D3B' }}>{t('auth.password')}</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={6}
-          placeholder="••••••"
-          className="w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 transition-all"
-          style={{ borderColor: '#E5E0D8', background: '#FDFBF6' }}
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-3.5">
+      <AuthField
+        id="auth-login-email"
+        label={t('auth.email')}
+        icon={<Mail size={16} />}
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        autoComplete="email"
+        placeholder={t('auth.emailPlaceholder')}
+      />
+      <AuthField
+        id="auth-login-password"
+        label={t('auth.password')}
+        icon={<Lock size={16} />}
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        minLength={6}
+        autoComplete="current-password"
+        placeholder={t('auth.passwordPlaceholder')}
+        revealLabels={{ show: t('auth.showPassword'), hide: t('auth.hidePassword') }}
+      />
+
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-50"
-        style={{ background: '#C23B2A' }}
+        className="group mt-1 flex w-full items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-semibold text-white transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        style={{ background: 'linear-gradient(135deg,#C23B2A,#A62E1F)', boxShadow: '0 10px 22px -10px rgba(194,59,42,0.75)' }}
       >
-        {loading ? t('auth.signingIn') : t('auth.signIn')}
+        {loading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            {t('auth.signingIn')}
+          </>
+        ) : (
+          <>
+            {t('auth.signIn')}
+            <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+          </>
+        )}
       </button>
-      <p className="text-center text-xs" style={{ color: '#9CA3AF' }}>
+
+      <p className="pt-1 text-center text-[13px]" style={{ color: '#8A8577' }}>
         {t('auth.noAccount')}{' '}
-        <button type="button" onClick={onSwitchToRegister} className="underline hover:text-current" style={{ color: '#C23B2A' }}>
+        <button
+          type="button"
+          onClick={onSwitchToRegister}
+          className="font-medium underline-offset-4 hover:underline"
+          style={{ color: '#C23B2A' }}
+        >
           {t('auth.register')}
         </button>
       </p>
