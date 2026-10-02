@@ -73,10 +73,13 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
   relationType?: RelationType;
 }
 
+// 稳定的空数组默认值：避免每次渲染都生成新引用，导致 useMemo 重建 nodes/links 进而整图重绘闪烁
+const EMPTY_COGNATES: CognateResult[] = [];
+
 const CognateGraph = memo(function CognateGraph({
   character,
   selectedComponent = null,
-  cognates = [],
+  cognates = EMPTY_COGNATES,
   onNodeClick,
   onNodeDoubleClick,
   onComponentSelect,
