@@ -457,7 +457,7 @@ export default function CharacterDetail() {
       {/* ── Hero ── */}
       <section className="relative px-4 pt-8 pb-10" style={{ background: 'linear-gradient(180deg, #1A1A18 0%, #2D2D2B 100%)' }}>
         <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 50% 100%, #C23B2A 0%, transparent 60%)' }} />
-        <div className="relative max-w-5xl mx-auto">
+        <div className="relative max-w-7xl mx-auto">
           <div className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'rgba(245,240,232,0.5)', fontFamily: 'Inter' }}>
             <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/')}>{t('nav.home')}</span>
             <span>/</span>
@@ -669,7 +669,7 @@ export default function CharacterDetail() {
 
       {/* ── Tab Bar ── */}
       <div className="sticky top-16 z-30 border-b shadow-sm" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
-        <div className="max-w-5xl mx-auto px-4 flex items-center">
+        <div className="max-w-7xl mx-auto px-4 flex items-center">
           <div className="flex min-w-max gap-0 flex-1 overflow-x-auto">
             {TABS.map((tab) => {
               const Icon = tab.icon;
@@ -708,7 +708,7 @@ export default function CharacterDetail() {
       </div>
 
       {/* ── Tab Content ── */}
-      <div className="max-w-5xl mx-auto px-4 pt-6">
+      <div className="max-w-7xl mx-auto px-4 pt-6">
         <AnimatePresence mode="wait">
           {/* ── Tab: 知识卡片 ── */}
           {activeTab === 'card' && (

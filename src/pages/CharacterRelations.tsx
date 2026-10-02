@@ -112,7 +112,7 @@ export default function CharacterRelations() {
       {/* ── Hero ── */}
       <section className="relative px-4 pt-8 pb-10" style={{ background: 'linear-gradient(180deg, #1A1A18 0%, #2D2D2B 100%)' }}>
         <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(circle at 50% 100%, #C23B2A 0%, transparent 60%)' }} />
-        <div className="relative max-w-5xl mx-auto">
+        <div className="relative max-w-7xl mx-auto">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-6 text-xs" style={{ color: 'rgba(245,240,232,0.5)', fontFamily: 'Inter' }}>
             <span className="cursor-pointer hover:text-rice-paper transition-colors" onClick={() => navigate('/')}>{t('nav.home')}</span>
@@ -153,7 +153,7 @@ export default function CharacterRelations() {
 
       {/* ── Controls Bar ── */}
       <div className="sticky top-16 z-30 border-b" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
               {t('relations.relatedCount', { n: relations.length })}
@@ -192,7 +192,7 @@ export default function CharacterRelations() {
       {/* ── Legend Panel ── */}
       {showLegend && (
         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="overflow-hidden border-b" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
-          <div className="max-w-5xl mx-auto px-4 py-4 flex flex-wrap gap-5 text-xs" style={{ fontFamily: 'Inter' }}>
+          <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap gap-5 text-xs" style={{ fontFamily: 'Inter' }}>
             <div className="flex items-start gap-2">
               <div className="w-3 h-3 rounded-sm mt-0.5 flex-shrink-0" style={{ background: '#2D5F8A' }} />
               <div>
@@ -219,7 +219,7 @@ export default function CharacterRelations() {
       )}
 
       {/* ── Relation Cards ── */}
-      <div className="max-w-5xl mx-auto px-4 pt-6">
+      <div className="max-w-7xl mx-auto px-4 pt-6">
         {sorted.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {sorted.map((rel, i) => {

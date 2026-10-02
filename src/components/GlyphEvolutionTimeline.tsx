@@ -77,10 +77,10 @@ export default function GlyphEvolutionTimeline({ character, traditional }: Glyph
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.05 }}
-                className="flex w-[80px] flex-shrink-0 flex-col items-center rounded-xl px-1.5 py-2"
+                className="flex min-w-[96px] flex-1 flex-col items-center rounded-xl px-2 py-3"
                 style={{ background: 'rgba(245,240,232,0.8)', border: '1px solid rgba(139,105,20,0.14)' }}
               >
-                <div className="flex h-[64px] w-full items-center justify-center">
+                <div className="flex h-[88px] w-full items-center justify-center">
                   {isLoading ? (
                     <div
                       className="h-5 w-5 animate-spin rounded-full border-2"
@@ -91,13 +91,13 @@ export default function GlyphEvolutionTimeline({ character, traditional }: Glyph
                       src={url}
                       alt={`${displayChar} ${style.en}`}
                       referrerPolicy="no-referrer"
-                      className="max-h-[60px] max-w-[60px] object-contain"
+                      className="max-h-[84px] max-w-[84px] object-contain"
                     />
                   ) : (
                     <span
                       style={{
                         fontFamily: style.font,
-                        fontSize: '2.25rem',
+                        fontSize: '3rem',
                         lineHeight: 1,
                         color: '#1A1A18',
                         opacity: style.key === 'regular' ? 0.9 : 0.45,
@@ -108,13 +108,13 @@ export default function GlyphEvolutionTimeline({ character, traditional }: Glyph
                   )}
                 </div>
                 <div
-                  className="mt-1.5 text-center text-[11px] font-medium leading-tight"
+                  className="mt-2 text-center text-[13px] font-medium leading-tight"
                   style={{ color: '#1A1A18', fontFamily: '"Noto Serif SC", serif' }}
                 >
                   {lang === 'zh' ? style.label : style.en}
                 </div>
                 <div
-                  className="mt-0.5 text-center text-[9px] leading-tight"
+                  className="mt-0.5 text-center text-[11px] leading-tight"
                   style={{ color: 'rgba(139,105,20,0.7)', fontFamily: 'Inter' }}
                 >
                   {style.period}
