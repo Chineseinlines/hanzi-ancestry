@@ -210,7 +210,9 @@ export default function GlyphEvolution({ character, traditional, shuowen }: Glyp
             >
               {currentStyle.key === 'regular'
                 ? t('cmp.glyphEvo.glyphSourceFont')
-                : t('cmp.glyphEvo.glyphSourceZdic')}
+                : currentStyle.key === 'clerical'
+                  ? t('cmp.glyphEvo.glyphSourceLishuFont')
+                  : t('cmp.glyphEvo.glyphSourceZdic')}
             </span>
           </div>
 

@@ -126,7 +126,7 @@ export default function GlyphEvolutionTimeline({ character, traditional }: Glyph
       </div>
 
       <p className="mt-3 text-[10px] text-center" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>
-        {t('cmp.glyphEvo.glyphSourceZdic')}
+        {t('cmp.glyphEvo.glyphSourceMixed')}
       </p>
     </div>
   );

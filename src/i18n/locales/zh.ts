@@ -605,7 +605,7 @@ export const zh = {
     glyphEvo: {
       loading: '加载中…',
       noGlyphImage: '暂无字形图片',
-      clericalFallback: '未找到真实隶书图片，为您显示的是现代仿隶书字体',
+      clericalFallback: '字形库暂无此字的隶书字形，为您显示系统隶书字体',
       largeSealFallback: '字形库暂无此字的秦系文字字形（大篆样本取自秦系文字）',
       scriptBackground: '字形背景',
       shuowenTitle: '说文解字',
@@ -623,7 +623,9 @@ export const zh = {
       viewHanziyuan: '查看汉字源字形 →',
       viewCtext: '查看 ctext.org →',
       glyphSourceZdic: '字形来源：汉典 zdic.net（学习参考用）',
+      glyphSourceLishuFont: '隶书来源：开源隶书字体渲染（阿里妈妈刀隶体 / 教育部隸書）',
       glyphSourceFont: '现行规范字形（字体渲染）',
+      glyphSourceMixed: '甲骨文—小篆：汉典 zdic.net（学习参考用）· 隶书：开源隶书字体渲染（阿里妈妈刀隶体 / 教育部隸書）· 楷书：现行规范字体',
       allSources: '全部数据来源与许可 →',
     },
     visualGrammar: {

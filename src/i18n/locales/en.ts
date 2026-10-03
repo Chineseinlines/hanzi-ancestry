@@ -612,7 +612,7 @@ export const en: Messages = {
     glyphEvo: {
       loading: 'Loading…',
       noGlyphImage: 'No glyph image available',
-      clericalFallback: 'No authentic clerical script image found; showing a modern clerical-style font',
+      clericalFallback: 'No clerical glyph for this character yet; showing a system clerical font',
       largeSealFallback: 'No Qin-script glyph found for this character (large-seal samples are drawn from Qin script)',
       scriptBackground: 'Script background',
       shuowenTitle: 'Shuowen',
@@ -630,7 +630,9 @@ export const en: Messages = {
       viewHanziyuan: 'View glyph origins →',
       viewCtext: 'View on ctext.org →',
       glyphSourceZdic: 'Glyph source: zdic.net (reference use)',
+      glyphSourceLishuFont: 'Clerical source: rendered from open-source 隶书 fonts (Alimama DaoLiTi / MOE Li)',
       glyphSourceFont: 'Standard modern form (font rendering)',
+      glyphSourceMixed: 'Oracle–Seal: zdic.net (reference use) · Clerical: open-source 隶书 fonts (Alimama DaoLiTi / MOE Li) · Regular: standard modern font',
       allSources: 'All data sources & licensing →',
     },
     visualGrammar: {
