@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#F5F0E8"/>
+  <rect x="8" y="8" width="496" height="496" rx="88" fill="none" stroke="#1A1A18" stroke-opacity="0.08" stroke-width="6"/>
+  <text x="256" y="352" text-anchor="middle" font-family="'Noto Serif SC','STSong','SimSun','Songti SC',serif" font-size="300" font-weight="700" fill="#C23B2A">字</text>
+</svg>

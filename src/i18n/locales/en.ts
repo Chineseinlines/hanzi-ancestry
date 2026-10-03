@@ -50,6 +50,7 @@ export const en: Messages = {
     games: 'Games',
     studio: 'AI Studio',
     about: 'About',
+    profile: 'Profile',
     language: 'Switch language',
   },
   footer: {

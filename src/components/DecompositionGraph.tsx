@@ -232,6 +232,18 @@ const DecompositionGraph = memo(function DecompositionGraph({
     isGhost?: boolean;
   }>({ visible: false, x: 0, y: 0, entry: null, nodeRadius: 22 });
 
+  // 触屏设备（无 hover）检测：用于 tap 显示 tooltip、长按代替双击
+  const [isTouch] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches,
+  );
+
+  const handleViewDetails = useCallback((char: string) => {
+    const { onNodeClick: clk, onComponentClick: compClk } = callbacksRef.current;
+    const isComponentNode = tooltip.nodeType !== undefined && tooltip.nodeType !== 'core';
+    if (isComponentNode && compClk) compClk(char);
+    else clk?.(char);
+  }, [tooltip.nodeType]);
+
   const handleZoomIn = useCallback(() => {
     if (!svgRef.current || !zoomRef.current) return;
     d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 1.4);
@@ -256,6 +268,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
 
     const width = container.clientWidth;
     const height = container.clientHeight;
+    const isSmall = width < 640;
 
     svg.attr('width', width).attr('height', height);
 
@@ -319,7 +332,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
           .attr('y', 48)
           .attr('text-anchor', 'middle')
           .attr('font-family', 'Inter, sans-serif')
-          .attr('font-size', '10px')
+          .attr('font-size', isSmall ? '11px' : '10px')
           .attr('fill', '#A39E93')
           .text(hint.length > 40 ? hint.slice(0, 40) + '...' : hint);
       }
@@ -407,7 +420,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .attr('dy', (d) => -getNodeRadius(d.type) - 8)
       .attr('font-family', 'Inter, sans-serif')
       .attr('font-weight', '600')
-      .attr('font-size', '10px')
+      .attr('font-size', isSmall ? '11px' : '10px')
       .attr('fill', (d) => {
         if (d.type === 'phonetic' && d.phoneticRating) {
           return PHONETIC_COLORS[d.phoneticRating].text;
@@ -422,7 +435,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .attr('dy', (d) => getNodeRadius(d.type) + 16)
       .attr('font-family', 'Inter, sans-serif')
       .attr('font-weight', '500')
-      .attr('font-size', '9px')
+      .attr('font-size', isSmall ? '11px' : '9px')
       .attr('fill', (d) => d.isGhost ? '#A39E93' : '#3D3D3B')
       .attr('pointer-events', 'none')
       .text((d) => {
@@ -443,63 +456,102 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .delay(300)
       .attr('opacity', 1);
 
-    // Interactivity
-    nodeGroup
-      .on('mouseenter', function (_event, d) {
-        const r = getNodeRadius(d.type);
-        const shapeEl = d3.select(this).select('circle, polygon');
-        if (d.type === 'phonetic') {
-          shapeEl.transition().duration(200)
-            .attr('points', `0,${-r * 1.15} ${r * 1.15},0 0,${r * 1.15} ${-r * 1.15},0`);
-        } else {
-          shapeEl.transition().duration(200)
-            .attr('r', r * 1.15);
-        }
+    // Interactivity: desktop 使用 hover/click/dblclick；触屏使用 tap 显示 tooltip、长按代替双击
+    const showTooltip = (groupEl: SVGGElement, d: TreeNode) => {
+      const r = getNodeRadius(d.type);
+      const shapeEl = d3.select(groupEl).select('circle, polygon');
+      if (d.type === 'phonetic') {
+        shapeEl.transition().duration(200)
+          .attr('points', `0,${-r * 1.15} ${r * 1.15},0 0,${r * 1.15} ${-r * 1.15},0`);
+      } else {
+        shapeEl.transition().duration(200)
+          .attr('r', r * 1.15);
+      }
 
-        const shapeNode = d3.select(this).select('circle, polygon').node() as SVGCircleElement | SVGPolygonElement | null;
-        if (shapeNode && d.entry) {
-          const cr = shapeNode.getBoundingClientRect();
-          setTooltip({
-            visible: true,
-            x: cr.left + cr.width / 2,
-            y: cr.top + cr.height / 2,
-            entry: d.entry,
-            nodeRadius: r + 4,
-            nodeType: d.type,
-            phoneticRating: d.phoneticRating ?? null,
-            phoneticLevel: d.phoneticLevel ?? null,
-            phoneticBestMatch: d.phoneticBestMatch ?? null,
-            semanticLevel: d.semanticLevel ?? null,
-            semanticNote: d.semanticNote ?? null,
-            isGhost: d.isGhost ?? false,
-          });
-        }
-      })
-      .on('mouseleave', function (_event, d) {
-        const r = getNodeRadius(d.type);
-        const shapeEl = d3.select(this).select('circle, polygon');
-        if (d.type === 'phonetic') {
-          shapeEl.transition().duration(200)
-            .attr('points', `0,${-r} ${r},0 0,${r} ${-r},0`);
-        } else {
-          shapeEl.transition().duration(200)
-            .attr('r', r);
-        }
-        setTooltip({ visible: false, x: 0, y: 0, entry: null, nodeRadius: 22 });
-      })
-      .on('click', (_event, d) => {
-        _event.stopPropagation();
-        const { onNodeClick: clk, onComponentClick: compClk } = callbacksRef.current;
-        if (d.depth > 0 && compClk) {
-          compClk(d.character);
-        } else if (clk) {
-          clk(d.character);
-        }
-      })
-      .on('dblclick', (_event, d) => {
-        _event.stopPropagation();
-        callbacksRef.current.onNodeDoubleClick?.(d.character);
-      });
+      const shapeNode = shapeEl.node() as SVGCircleElement | SVGPolygonElement | null;
+      if (shapeNode && d.entry) {
+        const cr = shapeNode.getBoundingClientRect();
+        setTooltip({
+          visible: true,
+          x: cr.left + cr.width / 2,
+          y: cr.top + cr.height / 2,
+          entry: d.entry,
+          nodeRadius: r + 4,
+          nodeType: d.type,
+          phoneticRating: d.phoneticRating ?? null,
+          phoneticLevel: d.phoneticLevel ?? null,
+          phoneticBestMatch: d.phoneticBestMatch ?? null,
+          semanticLevel: d.semanticLevel ?? null,
+          semanticNote: d.semanticNote ?? null,
+          isGhost: d.isGhost ?? false,
+        });
+      }
+    };
+
+    const hideTooltip = (groupEl: SVGGElement, d: TreeNode) => {
+      const r = getNodeRadius(d.type);
+      const shapeEl = d3.select(groupEl).select('circle, polygon');
+      if (d.type === 'phonetic') {
+        shapeEl.transition().duration(200)
+          .attr('points', `0,${-r} ${r},0 0,${r} ${-r},0`);
+      } else {
+        shapeEl.transition().duration(200)
+          .attr('r', r);
+      }
+      setTooltip({ visible: false, x: 0, y: 0, entry: null, nodeRadius: 22 });
+    };
+
+    if (isTouch) {
+      let pressTimer: ReturnType<typeof setTimeout> | null = null;
+      let longPressed = false;
+      nodeGroup
+        .on('pointerdown', function (_event, d) {
+          longPressed = false;
+          if (pressTimer) clearTimeout(pressTimer);
+          pressTimer = setTimeout(() => {
+            longPressed = true;
+            callbacksRef.current.onNodeDoubleClick?.(d.character);
+          }, 600);
+        })
+        .on('pointerup', () => {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        })
+        .on('pointercancel', () => {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        })
+        .on('pointerleave', () => {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        })
+        .on('click', function (event, d) {
+          event.stopPropagation();
+          if (longPressed) { longPressed = false; return; }
+          showTooltip(this as SVGGElement, d);
+        })
+        .on('mouseenter', null)
+        .on('mouseleave', null)
+        .on('dblclick', null);
+    } else {
+      nodeGroup
+        .on('mouseenter', function (_event, d) {
+          showTooltip(this as SVGGElement, d);
+        })
+        .on('mouseleave', function (_event, d) {
+          hideTooltip(this as SVGGElement, d);
+        })
+        .on('click', (_event, d) => {
+          _event.stopPropagation();
+          const { onNodeClick: clk, onComponentClick: compClk } = callbacksRef.current;
+          if (d.depth > 0 && compClk) {
+            compClk(d.character);
+          } else if (clk) {
+            clk(d.character);
+          }
+        })
+        .on('dblclick', (_event, d) => {
+          _event.stopPropagation();
+          callbacksRef.current.onNodeDoubleClick?.(d.character);
+        });
+    }
 
     svg.on('dblclick.zoom', () => {
       svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
@@ -509,20 +561,20 @@ const DecompositionGraph = memo(function DecompositionGraph({
       svg.selectAll('*').remove();
       svg.on('.zoom', null);
     };
-  }, [decomposition, lang, t]);
+  }, [decomposition, lang, t, isTouch]);
 
   return (
     <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded-lg bg-white ${className}`}>
       <svg ref={svgRef} style={{ width: '100%', height: '100%', display: 'block' }} />
       <GraphLegend items={LEGEND_ITEMS} />
       <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1">
-        <button onClick={handleZoomIn} className="flex h-8 w-8 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm" style={{ border: '1px solid var(--border-light)' }} aria-label="Zoom in">
+        <button onClick={handleZoomIn} className="flex h-11 w-11 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm sm:h-8 sm:w-8" style={{ border: '1px solid var(--border-light)' }} aria-label="Zoom in">
           <ZoomIn size={16} className="text-charcoal" />
         </button>
-        <button onClick={handleZoomOut} className="flex h-8 w-8 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm" style={{ border: '1px solid var(--border-light)' }} aria-label="Zoom out">
+        <button onClick={handleZoomOut} className="flex h-11 w-11 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm sm:h-8 sm:w-8" style={{ border: '1px solid var(--border-light)' }} aria-label="Zoom out">
           <ZoomOut size={16} className="text-charcoal" />
         </button>
-        <button onClick={handleReset} className="flex h-8 w-8 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm" style={{ border: '1px solid var(--border-light)' }} aria-label="Reset view">
+        <button onClick={handleReset} className="flex h-11 w-11 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm sm:h-8 sm:w-8" style={{ border: '1px solid var(--border-light)' }} aria-label="Reset view">
           <RotateCcw size={16} className="text-charcoal" />
         </button>
       </div>
@@ -539,6 +591,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
         semanticLevel={tooltip.semanticLevel}
         semanticNote={tooltip.semanticNote}
         isGhost={tooltip.isGhost}
+        onViewDetails={isTouch ? handleViewDetails : undefined}
       />
     </div>
   );

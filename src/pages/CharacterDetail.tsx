@@ -850,7 +850,7 @@ export default function CharacterDetail() {
                     <div className="px-2 mb-1">
                       <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
                     </div>
-                    <div className="h-[380px]">
+                    <div className="h-[460px] sm:h-[380px]">
                       <DecompositionGraph
                         key={decompMode}
                         decomposition={activeDecomposition}
@@ -866,7 +866,7 @@ export default function CharacterDetail() {
                     <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('explore.charRelated', { c: char })}</span>
                     <span className="ml-auto text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
                   </div>
-                  <div className="h-[380px]">
+                  <div className="h-[460px] sm:h-[380px]">
                     <CognateGraph
                       character={char}
                       onNodeClick={navigateToChar}
@@ -1045,7 +1045,7 @@ export default function CharacterDetail() {
                     )}
                   </div>
                   <span className="text-[10px] px-2" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
-                  <div className="h-[380px]">
+                  <div className="h-[460px] sm:h-[380px]">
                     <DecompositionGraph
                       key={decompMode}
                       decomposition={activeDecomposition}

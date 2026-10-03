@@ -27,6 +27,7 @@ interface GraphTooltipProps {
   semanticLevel?: SemanticLevel | null;
   semanticNote?: string | null;
   isGhost?: boolean;
+  onViewDetails?: (char: string) => void;
 }
 
 const TOOLTIP_W = 260;
@@ -48,6 +49,7 @@ const GraphTooltip = memo(function GraphTooltip({
   semanticLevel,
   semanticNote,
   isGhost: _isGhost,
+  onViewDetails,
 }: GraphTooltipProps) {
   const { lang, t } = useLanguage();
   const [pos, setPos] = useState({ left: 0, top: 0 });
@@ -230,6 +232,26 @@ const GraphTooltip = memo(function GraphTooltip({
           <div className="mt-2 pt-2 border-t" style={{ borderColor: 'rgba(26,26,24,0.08)' }}>
             <MiniStrokePreview character={entry.character} />
           </div>
+
+          {/* 触屏：查看详情入口（桌面 hover 保持原样，无此按钮） */}
+          {onViewDetails && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails(entry.character);
+              }}
+              className="pointer-events-auto mt-2 w-full rounded-md px-2 py-1.5 text-center text-[0.75rem] font-semibold transition-colors"
+              style={{
+                background: 'rgba(194,59,42,0.08)',
+                color: '#C23B2A',
+                border: '1px solid rgba(194,59,42,0.25)',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              {t('common.viewDetails')} →
+            </button>
+          )}
 
         </motion.div>
       )}

@@ -35,7 +35,7 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      className="fixed top-0 left-0 right-0 z-50 pt-safe transition-all duration-300"
       style={{
         backgroundColor: scrolled
           ? 'rgba(245, 240, 232, 0.97)'

@@ -102,6 +102,15 @@ const CognateGraph = memo(function CognateGraph({
     nodeRadius: number;
   }>({ visible: false, x: 0, y: 0, entry: null, sharedComponents: [], nodeRadius: 22 });
 
+  // 触屏设备（无 hover）检测：用于 tap 显示 tooltip、长按代替双击
+  const [isTouch] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches,
+  );
+
+  const handleViewDetails = useCallback((char: string) => {
+    callbacksRef.current.onNodeClick?.(char);
+  }, []);
+
   const isComponentMode = !!selectedComponent;
 
   // Track relations data version so useMemo rebuilds when relations load
@@ -282,6 +291,7 @@ const CognateGraph = memo(function CognateGraph({
 
     const width = container.clientWidth;
     const height = container.clientHeight;
+    const isSmall = width < 640;
 
     svg.attr('width', width).attr('height', height);
 
@@ -371,7 +381,7 @@ const CognateGraph = memo(function CognateGraph({
       .attr('dy', '0.35em')
       .attr('font-family', '"Noto Serif SC", serif')
       .attr('font-weight', '700')
-      .attr('font-size', (d) => `${Math.max(d.radius * 0.8, 10)}px`)
+      .attr('font-size', (d) => `${Math.max(d.radius * 0.8, isSmall ? 12 : 10)}px`)
       .attr('fill', '#FFFFFF')
       .attr('pointer-events', 'none')
       .attr('opacity', 0)
@@ -383,7 +393,7 @@ const CognateGraph = memo(function CognateGraph({
       .attr('dy', (d) => d.radius + 14)
       .attr('font-family', 'Inter, sans-serif')
       .attr('font-weight', '500')
-      .attr('font-size', '9px')
+      .attr('font-size', isSmall ? '11px' : '9px')
       .attr('fill', '#3D3D3B')
       .attr('pointer-events', 'none')
       .attr('opacity', 0)
@@ -429,87 +439,121 @@ const CognateGraph = memo(function CognateGraph({
       simulation.stop();
     }, 3000);
 
-    // Interactivity
-    nodeGroup
-      .on('mouseenter', function (_event, d) {
-        d3.select(this).select('circle')
-          .transition().duration(200)
-          .attr('r', d.radius * 1.15);
+    // Interactivity: desktop 使用 hover/click/dblclick；触屏使用 tap 显示 tooltip、长按代替双击
+    const showTooltip = (groupEl: SVGGElement, d: SimNode) => {
+      d3.select(groupEl).select('circle')
+        .transition().duration(200)
+        .attr('r', d.radius * 1.15);
 
-        // Highlight connected links
-        linkSelection
-          .attr('stroke', (linkD) => {
-            const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
-            const targetId = typeof linkD.target === 'string' ? linkD.target : linkD.target.id;
-            if (sourceId === d.id || targetId === d.id) return '#C23B2A';
-            return linkD.relationType ? RELATION_META[linkD.relationType].color : '#A39E93';
-          })
-          .attr('stroke-width', (linkD) => {
-            const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
-            const targetId = typeof linkD.target === 'string' ? linkD.target : linkD.target.id;
-            return sourceId === d.id || targetId === d.id ? 2.5 : 1 + linkD.sharedCount * 0.5;
-          })
-          .attr('stroke-opacity', (linkD) => {
-            const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
-            const targetId = typeof linkD.target === 'string' ? linkD.target : linkD.target.id;
-            return sourceId === d.id || targetId === d.id ? 1 : 0.3;
+      linkSelection
+        .attr('stroke', (linkD) => {
+          const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
+          const targetId = typeof linkD.target === 'string' ? linkD.target : linkD.target.id;
+          if (sourceId === d.id || targetId === d.id) return '#C23B2A';
+          return linkD.relationType ? RELATION_META[linkD.relationType].color : '#A39E93';
+        })
+        .attr('stroke-width', (linkD) => {
+          const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
+          const targetId = typeof linkD.target === 'string' ? linkD.target : linkD.target.id;
+          return sourceId === d.id || targetId === d.id ? 2.5 : 1 + linkD.sharedCount * 0.5;
+        })
+        .attr('stroke-opacity', (linkD) => {
+          const sourceId = typeof linkD.source === 'string' ? linkD.source : linkD.source.id;
+          const targetId = typeof linkD.target === 'string' ? linkD.target : linkD.target.id;
+          return sourceId === d.id || targetId === d.id ? 1 : 0.3;
+        });
+
+      (nodeGroup.selectAll('circle') as d3.Selection<SVGCircleElement, SimNode, SVGGElement, unknown>)
+        .transition().duration(200)
+        .attr('opacity', (nd) => {
+          if (nd.id === d.id) return 1;
+          const isConnected = links.some((l) => {
+            const sId = typeof l.source === 'string' ? l.source : (l.source as SimNode).id;
+            const tId = typeof l.target === 'string' ? l.target : (l.target as SimNode).id;
+            return (sId === d.id && tId === nd.id) || (tId === d.id && sId === nd.id);
           });
+          return isConnected ? 1 : 0.4;
+        });
 
-        // Dim other nodes
-        (nodeGroup.selectAll('circle') as d3.Selection<SVGCircleElement, SimNode, SVGGElement, unknown>)
-          .transition().duration(200)
-          .attr('opacity', (nd) => {
-            if (nd.id === d.id) return 1;
-            const isConnected = links.some((l) => {
-              const sId = typeof l.source === 'string' ? l.source : (l.source as SimNode).id;
-              const tId = typeof l.target === 'string' ? l.target : (l.target as SimNode).id;
-              return (sId === d.id && tId === nd.id) || (tId === d.id && sId === nd.id);
-            });
-            return isConnected ? 1 : 0.4;
-          });
+      const circleEl = d3.select(groupEl).select('circle').node() as SVGCircleElement | null;
+      if (circleEl && d.entry) {
+        const cr = circleEl.getBoundingClientRect();
+        setTooltip({
+          visible: true,
+          x: cr.left + cr.width / 2,
+          y: cr.top + cr.height / 2,
+          entry: d.entry,
+          sharedComponents: d.sharedComponents,
+          nodeRadius: d.radius + 4,
+        });
+      }
+    };
 
-        // Use circle element's viewport position for tooltip
-        const circleEl = d3.select(this).select('circle').node() as SVGCircleElement | null;
-        if (circleEl && d.entry) {
-          const cr = circleEl.getBoundingClientRect();
-          const cx = cr.left + cr.width / 2;
-          const cy = cr.top + cr.height / 2;
-          setTooltip({
-            visible: true,
-            x: cx,
-            y: cy,
-            entry: d.entry,
-            sharedComponents: d.sharedComponents,
-            nodeRadius: d.radius + 4,
-          });
-        }
-      })
-      .on('mouseleave', function (_event, d) {
-        d3.select(this).select('circle')
-          .transition().duration(200)
-          .attr('r', d.radius);
+    const hideTooltip = (groupEl: SVGGElement, d: SimNode) => {
+      d3.select(groupEl).select('circle')
+        .transition().duration(200)
+        .attr('r', d.radius);
 
-        linkSelection
-          .attr('stroke', (linkD) => linkD.relationType ? RELATION_META[linkD.relationType].color : '#A39E93')
-          .attr('stroke-width', (linkD) => 1 + linkD.sharedCount * 0.5)
-          .attr('stroke-opacity', 0.6)
-          .attr('stroke-dasharray', (linkD) => (linkD.relationType ? RELATION_META[linkD.relationType].dash : null));
+      linkSelection
+        .attr('stroke', (linkD) => linkD.relationType ? RELATION_META[linkD.relationType].color : '#A39E93')
+        .attr('stroke-width', (linkD) => 1 + linkD.sharedCount * 0.5)
+        .attr('stroke-opacity', 0.6)
+        .attr('stroke-dasharray', (linkD) => (linkD.relationType ? RELATION_META[linkD.relationType].dash : null));
 
-        (nodeGroup.selectAll('circle') as d3.Selection<SVGCircleElement, SimNode, SVGGElement, unknown>)
-          .transition().duration(200)
-          .attr('opacity', 1);
+      (nodeGroup.selectAll('circle') as d3.Selection<SVGCircleElement, SimNode, SVGGElement, unknown>)
+        .transition().duration(200)
+        .attr('opacity', 1);
 
-        setTooltip({ visible: false, x: 0, y: 0, entry: null, sharedComponents: [], nodeRadius: 22 });
-      })
-      .on('click', (_event, d) => {
-        _event.stopPropagation();
-        // Allow clicking any node including center and selected component
-        callbacksRef.current.onNodeClick?.(d.character);
-      })
-      .on('dblclick', (_event, d) => {
-        _event.stopPropagation();
-        callbacksRef.current.onNodeDoubleClick?.(d.character);
-      });
+      setTooltip({ visible: false, x: 0, y: 0, entry: null, sharedComponents: [], nodeRadius: 22 });
+    };
+
+    if (isTouch) {
+      let pressTimer: ReturnType<typeof setTimeout> | null = null;
+      let longPressed = false;
+      nodeGroup
+        .on('pointerdown', function (_event, d) {
+          longPressed = false;
+          if (pressTimer) clearTimeout(pressTimer);
+          pressTimer = setTimeout(() => {
+            longPressed = true;
+            callbacksRef.current.onNodeDoubleClick?.(d.character);
+          }, 600);
+        })
+        .on('pointerup', () => {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        })
+        .on('pointercancel', () => {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        })
+        .on('pointerleave', () => {
+          if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        })
+        .on('click', function (event, d) {
+          event.stopPropagation();
+          if (longPressed) { longPressed = false; return; }
+          showTooltip(this as SVGGElement, d);
+        })
+        .on('mouseenter', null)
+        .on('mouseleave', null)
+        .on('dblclick', null);
+    } else {
+      nodeGroup
+        .on('mouseenter', function (_event, d) {
+          showTooltip(this as SVGGElement, d);
+        })
+        .on('mouseleave', function (_event, d) {
+          hideTooltip(this as SVGGElement, d);
+        })
+        .on('click', (_event, d) => {
+          _event.stopPropagation();
+          // Allow clicking any node including center and selected component
+          callbacksRef.current.onNodeClick?.(d.character);
+        })
+        .on('dblclick', (_event, d) => {
+          _event.stopPropagation();
+          callbacksRef.current.onNodeDoubleClick?.(d.character);
+        });
+    }
 
     // Disable zoom double-click to allow node double-click
     (svg as any).on('dblclick.zoom', null);
@@ -520,7 +564,7 @@ const CognateGraph = memo(function CognateGraph({
       svg.selectAll('*').remove();
       svg.on('.zoom', null);
     };
-  }, [nodes, links, character, selectedComponent, lang]);
+  }, [nodes, links, character, selectedComponent, lang, isTouch]);
 
   if (nodes.length <= 1) {
     return (
@@ -566,7 +610,7 @@ const CognateGraph = memo(function CognateGraph({
       <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1">
         <button
           onClick={handleZoomIn}
-          className="flex h-8 w-8 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm"
+          className="flex h-11 w-11 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm sm:h-8 sm:w-8"
           style={{ border: '1px solid var(--border-light)' }}
           aria-label="Zoom in"
         >
@@ -574,7 +618,7 @@ const CognateGraph = memo(function CognateGraph({
         </button>
         <button
           onClick={handleZoomOut}
-          className="flex h-8 w-8 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm"
+          className="flex h-11 w-11 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm sm:h-8 sm:w-8"
           style={{ border: '1px solid var(--border-light)' }}
           aria-label="Zoom out"
         >
@@ -582,7 +626,7 @@ const CognateGraph = memo(function CognateGraph({
         </button>
         <button
           onClick={handleReset}
-          className="flex h-8 w-8 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm"
+          className="flex h-11 w-11 items-center justify-center rounded bg-white shadow-sm transition-colors hover:bg-bg-warm sm:h-8 sm:w-8"
           style={{ border: '1px solid var(--border-light)' }}
           aria-label="Reset view"
         >
@@ -596,6 +640,7 @@ const CognateGraph = memo(function CognateGraph({
         entry={tooltip.entry}
         sharedComponents={tooltip.sharedComponents}
         nodeRadius={tooltip.nodeRadius}
+        onViewDetails={isTouch ? handleViewDetails : undefined}
       />
     </div>
   );

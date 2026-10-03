@@ -85,4 +85,24 @@
     background-color: rgba(194, 59, 42, 0.2);
     color: var(--ink-black);
   }
+
+  /* 尊重系统“减弱动态效果”偏好：关闭动画与过渡 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* 刘海屏 / 底部指示条安全区 */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }

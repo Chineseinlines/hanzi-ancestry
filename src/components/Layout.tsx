@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import MobileBottomNav from './MobileBottomNav';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LayoutProps {
@@ -28,6 +29,9 @@ export default function Layout({ children }: LayoutProps) {
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
+      {/* 移动端底部导航占位，避免内容被遮挡 */}
+      <div className="h-16 pb-safe md:hidden" aria-hidden="true" />
+      <MobileBottomNav />
     </div>
   );
 }

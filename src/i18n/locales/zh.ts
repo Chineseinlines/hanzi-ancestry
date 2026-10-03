@@ -51,6 +51,7 @@ export const zh = {
     games: '游戏',
     studio: 'AI 创编',
     about: '关于',
+    profile: '我的',
     language: '切换语言',
   },
   footer: {
