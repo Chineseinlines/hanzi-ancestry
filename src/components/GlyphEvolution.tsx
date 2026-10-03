@@ -27,7 +27,7 @@ export const SCRIPT_STYLES: ScriptStyle[] = [
   { key: 'bronze',     label: '金文',   en: 'Bronze',       period: 'c. 1046 BCE', font: '"Noto Serif SC", serif', useLocalGlyph: true },
   { key: 'large-seal', label: '大篆',   en: 'Large Seal',   period: 'c. 700 BCE',  font: '"Noto Serif SC", serif', useLocalGlyph: true, fallbackNoteKey: 'cmp.glyphEvo.largeSealFallback' },
   { key: 'seal',       label: '小篆',   en: 'Seal Script',  period: 'c. 221 BCE',  font: '"Noto Serif SC", serif', useLocalGlyph: true },
-  { key: 'clerical',   label: '隶书',   en: 'Clerical',     period: 'c. 200 CE',   font: '"LiSu", "隶书", "STLiti", "华文隶书", "Noto Serif SC", serif', useLocalGlyph: true, fallbackNoteKey: 'cmp.glyphEvo.clericalFallback' },
+  { key: 'clerical',   label: '隶书',   en: 'Clerical',     period: 'c. 200 CE',   font: '"LiSu", "隶书", "STLiti", "华文隶书", "STLi", serif', useLocalGlyph: true, fallbackNoteKey: 'cmp.glyphEvo.clericalFallback' },
   { key: 'regular',    label: '楷书',   en: 'Regular',      period: 'c. 400 CE',   font: '"Ma Shan Zheng", "LXGW WenKai", "KaiTi", "楷体", "STKaiti", "Kaiti SC", "DFKai-SB", "TW-Kai", "AR PL UKai CN", serif', useLocalGlyph: false },
 ];
 

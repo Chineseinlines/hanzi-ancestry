@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  GitBranch, BookOpen, ScrollText, Globe, Puzzle, ChevronDown, Heart,
+  GitBranch, BookOpen, ScrollText, Globe, Puzzle, ChevronDown, Heart, Search,
 } from 'lucide-react';
 import { useFavorites } from '../hooks/useFavorites';
 import { useWordBook } from '../hooks/useWordBook';
@@ -27,6 +27,7 @@ import {
   getTraditional,
   getSimplifiedForm,
   hasCharacter,
+  searchByPinyin,
   getLocalizedDefinition,
   getLocalizedEtymologyHint,
 } from '../data/hanziData';
@@ -401,6 +402,39 @@ export default function CharacterDetail() {
     const simp = getSimplifiedForm(c);
     if (simp && hasCharacter(simp)) navigate(`/explore?char=${encodeURIComponent(simp)}`);
   };
+
+  /* ── Hero quick search: 汉字/拼音 → 跳转详情 ── */
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchError, setSearchError] = useState('');
+  const runSearch = async (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    setSearchError('');
+    await loadData();
+    let target: string | null = null;
+    const hanzi = Array.from(trimmed).filter((c) => {
+      const cp = c.codePointAt(0);
+      return cp != null && cp >= 0x4e00 && cp <= 0x9fff;
+    });
+    if (hanzi.length > 0) {
+      const c = hanzi[0];
+      if (hasCharacter(c)) target = c;
+      else {
+        const simp = getSimplifiedForm(c);
+        if (simp && hasCharacter(simp)) target = simp;
+      }
+    }
+    if (!target) {
+      const hits = searchByPinyin(trimmed);
+      if (hits.length > 0) target = hits[0].char;
+    }
+    if (target) {
+      setSearchQuery('');
+      goToDetail(target);
+    } else {
+      setSearchError(t('detail.searchNotFound'));
+    }
+  };
   /* ── Loading ── */
   if (loading) {
     return (
@@ -653,6 +687,42 @@ export default function CharacterDetail() {
           </motion.div>
         </div>
       </section>
+
+      {/* ── Hero quick search ── */}
+      <div className="border-b" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <form
+            onSubmit={(e) => { e.preventDefault(); runSearch(searchQuery); }}
+            className="flex items-center gap-2"
+          >
+            <div
+              className="flex flex-1 items-center gap-2 rounded-xl px-3 py-2"
+              style={{ background: '#F5F0E8', border: '1px solid rgba(26,26,24,0.1)' }}
+            >
+              <Search size={16} style={{ color: '#8B6914', flexShrink: 0 }} />
+              <input
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); if (searchError) setSearchError(''); }}
+                placeholder={t('detail.searchPlaceholder')}
+                aria-label={t('detail.searchPlaceholder')}
+                maxLength={12}
+                className="w-full bg-transparent text-sm outline-none"
+                style={{ color: '#1A1A18', fontFamily: 'Inter, sans-serif' }}
+              />
+            </div>
+            <button
+              type="submit"
+              className="flex-shrink-0 rounded-xl px-5 py-2 text-sm font-semibold transition-all hover:scale-105"
+              style={{ background: '#C23B2A', color: '#F5F0E8', fontFamily: 'Inter, sans-serif' }}
+            >
+              {t('detail.searchButton')}
+            </button>
+          </form>
+          {searchError && (
+            <p className="mt-1.5 text-xs" style={{ color: '#C23B2A', fontFamily: 'Inter, sans-serif' }}>{searchError}</p>
+          )}
+        </div>
+      </div>
 
       {/* ── Tab Bar ── */}
       <div className="sticky top-16 z-30 border-b shadow-sm" style={{ background: '#FDFBF6', borderColor: 'rgba(26,26,24,0.08)' }}>
