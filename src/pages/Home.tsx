@@ -72,10 +72,23 @@ function HeroSection() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    loadData(); // Pre-load character data before search
+    // 首屏渲染优先：把约 2MB 的字典数据预加载推迟到浏览器空闲时，
+    // 避免与首次绘制争抢带宽/主线程；搜索处理函数内仍会 await loadData() 兜底。
+    let timer: number | undefined;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (cb: IdleRequestCallback, opts?: IdleRequestOptions) => number;
+    };
+    if (typeof idleWindow.requestIdleCallback === 'function') {
+      idleWindow.requestIdleCallback(() => { void loadData(); }, { timeout: 3000 });
+    } else {
+      timer = window.setTimeout(() => { void loadData(); }, 1200);
+    }
     const onScroll = () => setScrolled(window.scrollY > 100);
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, []);
 
   const handleSearch = async () => {
