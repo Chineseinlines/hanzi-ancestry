@@ -630,9 +630,8 @@ export const en: Messages = {
       viewHanziyuan: 'View glyph origins →',
       viewCtext: 'View on ctext.org →',
       glyphSourceZdic: 'Glyph source: zdic.net (reference use)',
-      glyphSourceLishuFont: 'Clerical source: rendered from open-source 隶书 fonts (Alimama DaoLiTi / MOE Li)',
+      glyphSourceLishuFont: 'Clerical source: rendered from HanWang LiSu Medium',
       glyphSourceFont: 'Standard modern form (font rendering)',
-      glyphSourceMixed: 'Oracle–Seal: zdic.net (reference use) · Clerical: open-source 隶书 fonts (Alimama DaoLiTi / MOE Li) · Regular: standard modern font',
       allSources: 'All data sources & licensing →',
     },
     visualGrammar: {

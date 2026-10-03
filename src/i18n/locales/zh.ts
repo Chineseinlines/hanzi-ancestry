@@ -623,9 +623,8 @@ export const zh = {
       viewHanziyuan: '查看汉字源字形 →',
       viewCtext: '查看 ctext.org →',
       glyphSourceZdic: '字形来源：汉典 zdic.net（学习参考用）',
-      glyphSourceLishuFont: '隶书来源：开源隶书字体渲染（阿里妈妈刀隶体 / 教育部隸書）',
+      glyphSourceLishuFont: '隶书来源：王汉宗隶书体渲染',
       glyphSourceFont: '现行规范字形（字体渲染）',
-      glyphSourceMixed: '甲骨文—小篆：汉典 zdic.net（学习参考用）· 隶书：开源隶书字体渲染（阿里妈妈刀隶体 / 教育部隸書）· 楷书：现行规范字体',
       allSources: '全部数据来源与许可 →',
     },
     visualGrammar: {

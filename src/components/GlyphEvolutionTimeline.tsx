@@ -13,7 +13,7 @@ interface GlyphEvolutionTimelineProps {
  * 甲骨/金文/大篆/小篆/隶书取本地字形库 SVG；楷书以现行规范字体渲染。
  */
 export default function GlyphEvolutionTimeline({ character, traditional }: GlyphEvolutionTimelineProps) {
-  const { lang, t } = useLanguage();
+  const { lang } = useLanguage();
   const displayChar = traditional || character;
 
   const hex = (() => {
@@ -124,10 +124,6 @@ export default function GlyphEvolutionTimeline({ character, traditional }: Glyph
           );
         })}
       </div>
-
-      <p className="mt-3 text-[10px] text-center" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>
-        {t('cmp.glyphEvo.glyphSourceMixed')}
-      </p>
     </div>
   );
 }
