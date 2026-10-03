@@ -821,6 +821,22 @@ export default function CharacterDetail() {
                 )}
               </div>
 
+              {/* 系联网络 */}
+              <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <div className="flex items-center gap-2 mb-2 px-2">
+                  <Globe size={16} className="text-cinnabar" />
+                  <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('detail.cognateNetwork')}</span>
+                  <span className="ml-auto text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
+                </div>
+                <div className="h-[460px] sm:h-[380px]">
+                  <CognateGraph
+                    character={char}
+                    onNodeClick={navigateToChar}
+                    onNodeDoubleClick={navigateToExploreChar}
+                  />
+                </div>
+              </div>
+
               {/* Etymology text */}
               {cultural?.evolution && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
