@@ -48,10 +48,8 @@ import { getGhostSuggestion } from '../data/ghostComponents';
 import { getLocalizedGhostSuggestion } from '../data/ghostComponents.bilingual';
 import { computePhoneticLevelMulti, getPhoneticLevelInfo, type PhoneticLevel } from '../data/phoneticLevels';
 import { getCuratedSemanticLevel, guessSemanticLevel, getSemanticLevelInfo, type SemanticLevel } from '../data/semanticLevels';
-import { getModernClassification, getFormationModeInfo, getComponentTypeInfo, getStructureModeInfo, COMPONENT_TYPES, type ModernClassification } from '../data/modernTaxonomy';
 import { PHONETIC_LEVEL_DESCRIPTIONS_EN } from '../data/phoneticLevels.en';
 import { SEMANTIC_LEVEL_DESCRIPTIONS_EN } from '../data/semanticLevels.en';
-import { FORMATION_DESCRIPTIONS_EN, COMPONENT_ROLE_DESCRIPTIONS_EN } from '../data/modernTaxonomy.en';
 import SpeakButton from '../components/SpeakButton';
 import { loadCharMeta, getCharMeta, FREQ_TOTAL, hsk3Band, hsk3LevelLabel } from '../data/charMeta';
 import { setPageMeta } from '../lib/seo';
@@ -304,18 +302,6 @@ export default function CharacterDetail() {
     if (!semanticEntry?.definition) return null;
     const level = guessSemanticLevel(entry.definition, semanticEntry.definition);
     return { level, note: `基于定义自动推断 (${semantic}: ${semanticEntry.definition.slice(0, 30)}...)` };
-  }, [entry, char]);
-
-  // Modern taxonomy (Wang Ning) classification
-  const modernTaxonomy = useMemo((): ModernClassification | null => {
-    if (!entry?.etymology?.type) return null;
-    return getModernClassification(
-      entry.etymology.type,
-      entry.etymology.phonetic,
-      entry.etymology.semantic,
-      entry.decomposition,
-      char,
-    );
   }, [entry, char]);
 
   // Ghost component detection for the current character
@@ -862,121 +848,6 @@ export default function CharacterDetail() {
                   <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
                     {lang === 'en' ? (cultural.enEvolution ?? cultural.evolution) : cultural.evolution}
                   </p>
-                </div>
-              )}
-
-              {/* Modern Taxonomy (Wang Ning) — dual classification panel */}
-              {modernTaxonomy && (
-                <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)', border: '1px solid rgba(106,27,154,0.12)' }}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.modernTaxonomy')}</h2>
-                    <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'rgba(106,27,154,0.1)', color: '#6A1B9A', fontFamily: 'Inter' }}>{t('detail.wangNing')}</span>
-                    {modernTaxonomy.curated && (
-                      <span className="text-[0.5625rem] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(45,95,138,0.1)', color: '#2D5F8A', fontFamily: 'Inter' }}>{t('detail.curated')}</span>
-                    )}
-                  </div>
-
-                  {/* Formation mode + Structure mode */}
-                  <div className="flex flex-wrap gap-3 mb-4">
-                    <span
-                      className="text-sm px-3 py-1.5 rounded-lg font-medium"
-                      style={{
-                        background: getFormationModeInfo(modernTaxonomy.formationMode).color + '14',
-                        color: getFormationModeInfo(modernTaxonomy.formationMode).color,
-                        border: `1px solid ${getFormationModeInfo(modernTaxonomy.formationMode).color}30`,
-                        fontFamily: 'Inter',
-                      }}
-                    >
-                      {t('detail.formationMode')}: {lang === 'zh' ? getFormationModeInfo(modernTaxonomy.formationMode).label : getFormationModeInfo(modernTaxonomy.formationMode).enLabel}
-                      <span className="ml-1.5 text-[0.625rem] opacity-60">
-                        ({lang === 'zh' ? getFormationModeInfo(modernTaxonomy.formationMode).enLabel : getFormationModeInfo(modernTaxonomy.formationMode).label})
-                      </span>
-                    </span>
-                    <span
-                      className="text-sm px-3 py-1.5 rounded-lg font-medium"
-                      style={{
-                        background: 'rgba(45,95,138,0.08)',
-                        color: '#2D5F8A',
-                        border: '1px solid rgba(45,95,138,0.15)',
-                        fontFamily: 'Inter',
-                      }}
-                    >
-                      {t('detail.structureMode')}: {lang === 'zh' ? getStructureModeInfo(modernTaxonomy.structure).label : getStructureModeInfo(modernTaxonomy.structure).enLabel}
-                      <span className="ml-1.5 text-[0.625rem] opacity-60">
-                        ({lang === 'zh' ? getStructureModeInfo(modernTaxonomy.structure).enLabel : getStructureModeInfo(modernTaxonomy.structure).label})
-                      </span>
-                    </span>
-                    {getFormationModeInfo(modernTaxonomy.formationMode).sixBookEquivalent && (
-                      <span
-                        className="text-sm px-3 py-1.5 rounded-lg font-medium"
-                        style={{
-                          background: 'rgba(107,127,94,0.08)',
-                          color: '#6B7F5E',
-                          border: '1px solid rgba(107,127,94,0.15)',
-                          fontFamily: 'Inter',
-                        }}
-                      >
-                        {t('detail.sixBookEquivalent')}: {getFormationModeInfo(modernTaxonomy.formationMode).sixBookEquivalent}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-sm leading-relaxed mb-4" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>
-                    {lang === 'zh'
-                      ? getFormationModeInfo(modernTaxonomy.formationMode).description
-                      : FORMATION_DESCRIPTIONS_EN[modernTaxonomy.formationMode] ?? getFormationModeInfo(modernTaxonomy.formationMode).description}
-                  </p>
-
-                  {/* Component breakdown */}
-                  {modernTaxonomy.components.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                        {t('detail.componentAnalysis')}
-                        <span className="ml-2 font-serif-cn text-xs font-normal normal-case" style={{ color: 'rgba(139,105,20,0.6)' }}>Component Analysis</span>
-                      </h3>
-                      <div className="flex flex-col gap-2">
-                        {modernTaxonomy.components.map((comp, i) => {
-                          const typeInfo = getComponentTypeInfo(comp.componentType);
-                          return (
-                            <div key={i} className="flex items-start gap-3 rounded-xl p-3 transition-all" style={{ background: typeInfo.color + '0A', border: `1px solid ${typeInfo.color}20` }}>
-                              <span className="text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: typeInfo.color + '20', color: typeInfo.color, fontFamily: 'Inter' }}>
-                                {typeInfo.icon}
-                              </span>
-                              <div className="flex flex-col gap-0.5 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-semibold" style={{ color: '#1A1A18', fontFamily: 'Inter' }}>
-                                    {lang === 'zh' ? typeInfo.label : typeInfo.enLabel}
-                                  </span>
-                                  <span className="text-xs px-1.5 py-0.5 rounded font-mono" style={{ background: typeInfo.color + '14', color: typeInfo.color }}>
-                                    {comp.character}
-                                  </span>
-                                </div>
-                                <p className="text-xs leading-relaxed" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                                  {lang === 'zh' ? comp.role : COMPONENT_ROLE_DESCRIPTIONS_EN[comp.role] ?? comp.role}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Legend for component type colors */}
-                  <details className="mt-4 pt-3 border-t" style={{ borderColor: 'rgba(26,26,24,0.06)' }}>
-                    <summary className="text-[0.625rem] font-medium cursor-pointer" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
-                      {t('detail.componentTypeLegend')}
-                    </summary>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {COMPONENT_TYPES.map(ct => (
-                        <span key={ct.key} className="text-[0.625rem] px-2 py-1 rounded-full inline-flex items-center gap-1"
-                          style={{ background: ct.color + '12', color: ct.color, border: `1px solid ${ct.color}30`, fontFamily: 'Inter' }}>
-                          <span className="font-bold">{ct.icon}</span> {lang === 'zh' ? ct.label : ct.enLabel}
-                        </span>
-                      ))}
-                    </div>
-                  </details>
                 </div>
               )}
             </motion.div>
