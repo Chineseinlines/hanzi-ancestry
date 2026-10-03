@@ -161,8 +161,8 @@ const CognateGraph = memo(function CognateGraph({
       }));
 
       const legendItems = [
-        { color: COMPONENT_CORE_COLOR, label: lang === 'zh' ? '构件' : 'Component' },
-        { color: '#8B6914', label: lang === 'zh' ? '含此构件的字' : 'Characters containing it' },
+        { color: COMPONENT_CORE_COLOR, label: lang === 'zh' ? '构件' : 'Component', shape: 'circle' as const },
+        { color: '#8B6914', label: lang === 'zh' ? '含此构件的字' : 'Characters containing it', shape: 'ring' as const },
       ];
       return { nodes: allNodes, links: allLinks, legendItems };
     } else {
@@ -248,8 +248,8 @@ const CognateGraph = memo(function CognateGraph({
       // 图例只列出本网络真实出现的系联方式，并首项标注中心字
       const presentTypes = RELATION_ORDER.filter((rt) => allLinks.some((l) => l.relationType === rt));
       const legendItems = [
-        { color: CORE_COLOR, label: lang === 'zh' ? '目标字（本字）' : 'Core character' },
-        ...presentTypes.map((rt) => ({ color: RELATION_META[rt].color, label: RELATION_META[rt][lang] })),
+        { color: CORE_COLOR, label: lang === 'zh' ? '目标字（本字）' : 'Core character', shape: 'circle' as const },
+        ...presentTypes.map((rt) => ({ color: RELATION_META[rt].color, label: RELATION_META[rt][lang], shape: 'ring' as const })),
       ];
 
       return { nodes: allNodes, links: allLinks, legendItems };
@@ -366,14 +366,17 @@ const CognateGraph = memo(function CognateGraph({
     nodeGroup.append('circle')
       .attr('r', 0) // start at 0 for animation
       .attr('fill', (d) => {
-        if (d.type === 'component') return COMPONENT_CORE_COLOR;
-        if (d.type === 'center') return CORE_COLOR;
-        if (d.relationType) return RELATION_META[d.relationType].color;
+        if (d.type === 'component') return COMPONENT_CORE_COLOR; // 构件核心 → 孳乳蓝印章
+        if (d.type === 'center') return CORE_COLOR;               // 目标字 → 朱砂印章
+        return '#FDFBF6';                                        // 系联字 → 宣纸白描边（留白）
+      })
+      .attr('stroke', (d) => {
+        if (d.type === 'center' || d.type === 'component') return '#1A1A18';
+        if (d.relationType) return RELATION_META[d.relationType].color; // 关系色描边
         return '#8B6914';
       })
-      .attr('stroke', '#1A1A18')
       .attr('stroke-width', (d) => (d.type === 'center' || d.type === 'component' ? 3 : 2))
-      .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.2))');
+      .style('filter', 'drop-shadow(0 2px 5px rgba(26,26,24,0.14))');
 
     // Node labels (character)
     nodeGroup.append('text')
@@ -382,7 +385,7 @@ const CognateGraph = memo(function CognateGraph({
       .attr('font-family', '"Noto Serif SC", serif')
       .attr('font-weight', '700')
       .attr('font-size', (d) => `${Math.max(d.radius * 0.8, isSmall ? 12 : 10)}px`)
-      .attr('fill', '#FFFFFF')
+      .attr('fill', (d) => (d.type === 'center' || d.type === 'component' ? '#FFFFFF' : '#1A1A18'))
       .attr('pointer-events', 'none')
       .attr('opacity', 0)
       .text((d) => d.character);
@@ -568,7 +571,7 @@ const CognateGraph = memo(function CognateGraph({
 
   if (nodes.length <= 1) {
     return (
-      <div className={`flex h-full w-full flex-col items-center justify-center rounded-lg bg-white ${className}`}>
+      <div className={`flex h-full w-full flex-col items-center justify-center rounded-lg graph-paper ${className}`}>
         <p className="text-sm text-charcoal/60" style={{ fontFamily: 'Inter, sans-serif' }}>
           {isComponentMode
             ? `No characters found containing ${selectedComponent}.`
@@ -589,7 +592,7 @@ const CognateGraph = memo(function CognateGraph({
   }
 
   return (
-    <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded-lg bg-white ${className}`}>
+    <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded-lg graph-paper ${className}`}>
       {/* Back button for component mode */}
       {isComponentMode && (
         <button

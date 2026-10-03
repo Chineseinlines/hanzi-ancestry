@@ -179,10 +179,11 @@ export const en: Messages = {
     tabs: {
       card: 'Overview',
       glyph: 'Glyph Evolution',
-      decomp: 'Decomposition',
-      cognates: 'Related Characters',
+      decompLink: 'Decompose & Relate',
       game: 'Mini Game',
     },
+    decompNetwork: 'Decomposition',
+    cognateNetwork: 'Cognates',
     radical: 'Radical',
     phoneticReliability: 'Phonetic Reliability',
     phoneticRelation: 'Phonetic Relation',

@@ -105,4 +105,13 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
+
+  /* 宣纸底纹（古风水墨晕染，朱砂/赭金/石青三层淡墨晕开） */
+  .graph-paper {
+    background-color: #FDFBF6;
+    background-image:
+      radial-gradient(1200px 600px at 50% 0%, rgba(194, 59, 42, 0.05), transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, rgba(139, 105, 20, 0.07), transparent 60%),
+      radial-gradient(720px 420px at 0% 82%, rgba(45, 95, 138, 0.05), transparent 55%);
+  }
 }

@@ -5,7 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 interface LegendItem {
   color: string;
   label: string;
-  shape?: 'circle' | 'diamond';
+  shape?: 'circle' | 'diamond' | 'ring';
 }
 
 interface GraphLegendProps {
@@ -56,6 +56,11 @@ const GraphLegend = memo(function GraphLegend({ items, className = '' }: GraphLe
                     transform: 'rotate(45deg)',
                     borderRadius: '1px',
                   }}
+                />
+              ) : item.shape === 'ring' ? (
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full"
+                  style={{ border: `2px solid ${item.color}`, backgroundColor: 'transparent' }}
                 />
               ) : (
                 <span

@@ -179,10 +179,11 @@ export const zh = {
     tabs: {
       card: '知识卡片',
       glyph: '字形演变',
-      decomp: '部件拆解',
-      cognates: '关联汉字',
+      decompLink: '拆解系联',
       game: '趣味练习',
     },
+    decompNetwork: '拆解网络',
+    cognateNetwork: '系联网络',
     radical: '部首',
     phoneticReliability: '声旁可靠性',
     phoneticRelation: '声旁关系',

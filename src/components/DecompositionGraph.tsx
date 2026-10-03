@@ -52,10 +52,10 @@ const GHOST_COLOR = '#B0ADA5';
 
 const LEGEND_ITEMS = [
   { color: CORE_COLOR, label: '目标字', shape: 'circle' as const },
-  { color: SEMANTIC_COLOR, label: '形符（义符）', shape: 'circle' as const },
+  { color: SEMANTIC_COLOR, label: '形符（义符）', shape: 'ring' as const },
   { color: PHONETIC_COLOR, label: '声符', shape: 'diamond' as const },
-  { color: IDEOGRAPHIC_COLOR, label: '会意部件', shape: 'circle' as const },
-  { color: GHOST_COLOR, label: '简体衍生', shape: 'circle' as const },
+  { color: IDEOGRAPHIC_COLOR, label: '会意部件', shape: 'ring' as const },
+  { color: GHOST_COLOR, label: '简体衍生', shape: 'ring' as const },
 ];
 
 function decompToTree(node: DecompositionNode, depth = 0): TreeNode {
@@ -151,13 +151,9 @@ function getNodeRadius(type: TreeNode['type']): number {
 function getNodeColor(type: TreeNode['type'], isHighlighted: boolean): string {
   if (isHighlighted) return '#C23B2A';
   switch (type) {
-    case 'core': return CORE_COLOR;
-    case 'semantic': return SEMANTIC_COLOR;
-    case 'phonetic': return PHONETIC_COLOR;
-    case 'ideographic': return IDEOGRAPHIC_COLOR;
-    case 'ghost': return GHOST_COLOR;
-    case 'leaf': return '#EDE6D8';
-    default: return '#A39E93';
+    case 'core': return CORE_COLOR;   // 目标字 → 朱砂印章
+    case 'leaf': return '#EDE6D8';    // 基础偏旁 → 牙色
+    default: return '#FDFBF6';        // 形符/声符/会意/简体衍生 → 宣纸白描边
   }
 }
 
@@ -167,7 +163,11 @@ function getNodeStrokeColor(type: TreeNode['type'], phoneticRating?: PhoneticRat
     const colors = PHONETIC_COLORS[phoneticRating];
     return colors.text;
   }
-  return '#1A1A18';
+  if (type === 'phonetic') return PHONETIC_COLOR;
+  if (type === 'semantic') return SEMANTIC_COLOR;
+  if (type === 'ideographic') return IDEOGRAPHIC_COLOR;
+  if (type === 'core') return '#1A1A18';
+  return '#B0ADA5'; // leaf → 淡墨描边
 }
 
 function getNodeStrokeWidth(type: TreeNode['type'], phoneticRating?: PhoneticRating | null): number {
@@ -177,7 +177,9 @@ function getNodeStrokeWidth(type: TreeNode['type'], phoneticRating?: PhoneticRat
 }
 
 function getTextColor(type: TreeNode['type']): string {
-  return (type === 'leaf' || type === 'ghost') ? '#1A1A18' : '#FFFFFF';
+  if (type === 'core') return '#FFFFFF';
+  if (type === 'ghost') return '#A39E93';
+  return '#1A1A18';
 }
 
 function getNodeLabel(
@@ -345,8 +347,8 @@ const DecompositionGraph = memo(function DecompositionGraph({
       .append('path')
       .attr('class', 'link')
       .attr('fill', 'none')
-      .attr('stroke', '#A39E93')
-      .attr('stroke-width', 2)
+      .attr('stroke', '#B0ADA5')
+      .attr('stroke-width', 1.5)
       .attr('opacity', 0)
       .attr('d', (d) => {
         const sx = d.source.x ?? 0;
@@ -387,7 +389,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
           .attr('stroke', strokeClr)
           .attr('stroke-width', strokeW)
           .attr('stroke-dasharray', d.isGhost ? '4,3' : 'none')
-          .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.18))');
+          .style('filter', 'drop-shadow(0 2px 5px rgba(26,26,24,0.12))');
       } else {
         el.append('circle')
           .attr('r', r)
@@ -395,7 +397,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
           .attr('stroke', strokeClr)
           .attr('stroke-width', strokeW)
           .attr('stroke-dasharray', d.isGhost ? '4,3' : 'none')
-          .style('filter', 'drop-shadow(0 2px 6px rgba(26,26,24,0.18))');
+          .style('filter', 'drop-shadow(0 2px 5px rgba(26,26,24,0.12))');
       }
     });
 
@@ -409,7 +411,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
         const r = getNodeRadius(d.type);
         return `${Math.max(r * 0.65, 11)}px`;
       })
-      .attr('fill', (d) => getTextColor(d.type))
+      .attr('fill', (d) => (isNodeHighlighted(d) ? '#FFFFFF' : getTextColor(d.type)))
       .attr('pointer-events', 'none')
       .text((d) => d.character);
 
@@ -564,7 +566,7 @@ const DecompositionGraph = memo(function DecompositionGraph({
   }, [decomposition, lang, t, isTouch]);
 
   return (
-    <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded-lg bg-white ${className}`}>
+    <div ref={containerRef} className={`relative h-full w-full overflow-hidden rounded-lg graph-paper ${className}`}>
       <svg ref={svgRef} style={{ width: '100%', height: '100%', display: 'block' }} />
       <GraphLegend items={LEGEND_ITEMS} />
       <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1">

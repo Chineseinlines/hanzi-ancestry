@@ -71,8 +71,7 @@ const TAG_COLORS: Record<string, string> = {
 const TABS = [
   { id: 'card', labelKey: 'detail.tabs.card', icon: BookOpen },
   { id: 'glyph', labelKey: 'detail.tabs.glyph', icon: ScrollText },
-  { id: 'decomp', labelKey: 'detail.tabs.decomp', icon: GitBranch },
-  { id: 'cognates', labelKey: 'detail.tabs.cognates', icon: Globe },
+  { id: 'decomp-link', labelKey: 'detail.tabs.decompLink', icon: GitBranch },
   { id: 'game', labelKey: 'detail.tabs.game', icon: Puzzle },
 ] as const;
 
@@ -167,6 +166,8 @@ export default function CharacterDetail() {
   const [idsExpanded, setIdsExpanded] = useState(true);
   // 拆字 tab：简体拆法 / 繁体拆法
   const [decompMode, setDecompMode] = useState<'simp' | 'trad'>('simp');
+  // 「拆解系联」标签内的子视图：拆解网络 / 系联网络
+  const [netView, setNetView] = useState<'decomp' | 'cognate'>('decomp');
 
   useEffect(() => {
     let cancelled = false;
@@ -820,62 +821,6 @@ export default function CharacterDetail() {
                 )}
               </div>
 
-              {/* 拆字 / 联字网络 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {activeDecomposition && (
-                  <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                    <div className="flex items-center gap-2 mb-1 px-2 flex-wrap">
-                      <GitBranch size={16} className="text-cinnabar" />
-                      <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('detail.charDecomposition')}</span>
-                      {/* 简/繁拆法切换（与探索页一致） */}
-                      {tradTarget && tradTarget !== char && tradDecomposition && decomposition && (
-                        <div className="ml-auto flex items-center gap-1 rounded-xl p-1" style={{ background: 'rgba(245,240,232,0.8)', border: '1px solid rgba(26,26,24,0.08)' }}>
-                          <button
-                            onClick={() => setDecompMode('simp')}
-                            className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
-                            style={decompMode === 'simp' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
-                          >
-                            {t('common.simplified')} <span className="font-serif-cn text-sm">{char}</span>
-                          </button>
-                          <button
-                            onClick={() => setDecompMode('trad')}
-                            className="px-3 py-1 rounded-lg text-xs font-semibold transition-all"
-                            style={decompMode === 'trad' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}
-                          >
-                            {t('common.traditional')} <span className="font-serif-cn text-sm">{tradTarget}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="px-2 mb-1">
-                      <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
-                    </div>
-                    <div className="h-[460px] sm:h-[380px]">
-                      <DecompositionGraph
-                        key={decompMode}
-                        decomposition={activeDecomposition}
-                        onNodeClick={navigateToChar}
-                        onNodeDoubleClick={navigateToExploreChar}
-                      />
-                    </div>
-                  </div>
-                )}
-                <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
-                  <div className="flex items-center gap-2 mb-2 px-2">
-                    <Globe size={16} className="text-cinnabar" />
-                    <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('explore.charRelated', { c: char })}</span>
-                    <span className="ml-auto text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
-                  </div>
-                  <div className="h-[460px] sm:h-[380px]">
-                    <CognateGraph
-                      character={char}
-                      onNodeClick={navigateToChar}
-                      onNodeDoubleClick={navigateToExploreChar}
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Etymology text */}
               {cultural?.evolution && (
                 <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
@@ -1013,9 +958,21 @@ export default function CharacterDetail() {
             </motion.div>
           )}
 
-          {/* ── Tab: 部件拆解 ── */}
-          {activeTab === 'decomp' && (
-            <motion.div key="decomp" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-6">
+          {/* ── Tab: 拆解系联 ── */}
+          {activeTab === 'decomp-link' && (
+            <motion.div key="decomp-link" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-6">
+              {/* 子标签切换：拆解网络 / 系联网络 */}
+              <div className="flex w-fit items-center gap-1 rounded-xl p-1" style={{ background: 'rgba(245,240,232,0.8)', border: '1px solid rgba(26,26,24,0.08)' }}>
+                <button onClick={() => setNetView('decomp')} className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all" style={netView === 'decomp' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}>
+                  {t('detail.decompNetwork')}
+                </button>
+                <button onClick={() => setNetView('cognate')} className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all" style={netView === 'cognate' ? { background: '#1A1A18', color: '#F5F0E8' } : { background: 'transparent', color: '#8B6914' }}>
+                  {t('detail.cognateNetwork')}
+                </button>
+              </div>
+
+              {netView === 'decomp' && (
+                <>
               {/* Decomposition Graph（含简/繁拆法切换：整个板块一起切换） */}
               {activeDecomposition && (
                 <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
@@ -1184,12 +1141,27 @@ export default function CharacterDetail() {
                   </AnimatePresence>
                 </div>
               )}
-            </motion.div>
-          )}
+                </>
+              )}
 
-          {/* ── Tab: 关联汉字 ── */}
-          {activeTab === 'cognates' && (
-            <motion.div key="cognates" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-4">
+              {netView === 'cognate' && (
+                <>
+              {/* 系联网络 */}
+              <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <div className="flex items-center gap-2 mb-2 px-2">
+                  <Globe size={16} className="text-cinnabar" />
+                  <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('detail.cognateNetwork')}</span>
+                  <span className="ml-auto text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('common.clickForDetails')}</span>
+                </div>
+                <div className="h-[460px] sm:h-[380px]">
+                  <CognateGraph
+                    character={char}
+                    onNodeClick={navigateToChar}
+                    onNodeDoubleClick={navigateToExploreChar}
+                  />
+                </div>
+              </div>
+
               {/* Preview: Top 5 scored relations */}
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                 <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.characterRelations')}</h2>
@@ -1281,6 +1253,8 @@ export default function CharacterDetail() {
                     })}
                   </div>
                 </details>
+              )}
+                </>
               )}
             </motion.div>
           )}
