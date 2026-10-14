@@ -1,5 +1,5 @@
 export default function Studio() {
-  const studioUrl = 'https://cninlines.github.io/chineseinlines-hanzi-ai-studio/';
+  const studioUrl = 'https://chineseinlines.github.io/chineseinlines-hanzi-ai-studio/';
 
   return (
     <div className="relative min-h-[100dvh] pt-16">
