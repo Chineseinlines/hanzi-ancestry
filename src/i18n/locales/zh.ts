@@ -394,6 +394,20 @@ export const zh = {
     skip: '跳过',
     strokeDone: '✓ 「{char}」笔顺完成',
   },
+  pronunciation: {
+    controls: '发音播放',
+    normal: '常速',
+    slow: '慢速',
+    playNormal: '播放常速发音',
+    playSlow: '播放慢速发音',
+  },
+  practice: {
+    dailyGoal: '今日练习目标',
+    nextGame: '答对一题 +10 XP，完成 50 XP 即达标',
+    completed: '今日目标已完成',
+    streak: '连续 {n} 天',
+    sessionXp: '本轮获得 {n} XP',
+  },
   learn: {
     hubLabel: '字里行间 · 学习中心',
     heroTitle: '汉字是如何运作的',

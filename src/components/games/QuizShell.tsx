@@ -5,6 +5,8 @@ import { Check, X, RotateCcw, Trophy } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { saveQuizAttempt } from '../../lib/database';
+import DailyPracticeCard from '../DailyPracticeCard';
+import { recordPracticeAnswer, XP_PER_CORRECT_ANSWER } from '../../lib/dailyPractice';
 
 export interface QuizQuestion {
   prompt: ReactNode;      // 题干（大字、图片或文字）
@@ -68,13 +70,20 @@ export default function QuizShell({ gameId, questions, onReplay, bigOptions }: Q
 
   if (finished) {
     const pct = Math.round((score / total) * 100);
+    const sessionXp = score * XP_PER_CORRECT_ANSWER;
     return (
       <div className="rounded-2xl p-6 text-center" style={{ background: C.rice, boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
         <Trophy size={40} className="mx-auto mb-3" style={{ color: '#C4A265' }} />
         <h2 className="font-display text-xl mb-2" style={{ color: C.ink, fontFamily: '"Playfair Display", serif' }}>{score} / {total}</h2>
-        <p className="text-sm mb-6" style={{ color: C.gold, fontFamily: 'Inter' }}>
+        <p className="text-sm mb-2" style={{ color: C.gold, fontFamily: 'Inter' }}>
           {pct >= 80 ? t('quiz.excellent') : pct >= 60 ? t('quiz.great') : pct >= 40 ? t('quiz.decent') : t('quiz.keepGoing')}
         </p>
+        <p className="mb-5 text-sm font-semibold" style={{ color: C.cinnabar, fontFamily: 'Inter' }}>
+          {t('practice.sessionXp', { n: sessionXp })}
+        </p>
+        <div className="mb-6 text-left">
+          <DailyPracticeCard compact />
+        </div>
         <button onClick={onReplay} className="inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium text-white transition-all hover:scale-105" style={{ background: C.cinnabar, fontFamily: 'Inter' }}>
           <RotateCcw size={16} /> {t('quiz.playAgain')}
         </button>
@@ -86,6 +95,7 @@ export default function QuizShell({ gameId, questions, onReplay, bigOptions }: Q
     if (answered) return;
     setSelected(i);
     const isCorrect = i === q.correctIndex;
+    recordPracticeAnswer(isCorrect);
     if (isCorrect) {
       setScore(s => s + 1);
       setStreak(s => { const n = s + 1; setMaxStreak(m => Math.max(m, n)); return n; });

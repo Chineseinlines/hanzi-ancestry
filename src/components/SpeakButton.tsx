@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Volume2 } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
 
 interface SpeakButtonProps {
   text: string;
   lang?: 'zh-CN' | 'en-US';
+  /** 播放速率；1 为标准速度，低于 1 便于听辨声调。 */
+  rate?: number;
   size?: number;
   className?: string;
   /** 深色背景下使用浅色描边 */
@@ -12,9 +13,8 @@ interface SpeakButtonProps {
   title?: string;
 }
 
-/** Web Speech API 朗读按钮：浏览器内建 TTS，零网络依赖。 */
-export default function SpeakButton({ text, lang, size = 14, className = '', onDark = false, title }: SpeakButtonProps) {
-  const { lang: uiLang } = useLanguage();
+/** Web Speech API 朗读按钮：浏览器内建 TTS，零网络依赖；默认按中文普通话朗读。 */
+export default function SpeakButton({ text, lang = 'zh-CN', rate = 0.9, size = 14, className = '', onDark = false, title }: SpeakButtonProps) {
   const [supported, setSupported] = useState(true);
   const [speaking, setSpeaking] = useState(false);
   const timerRef = useRef<number | null>(null);
@@ -30,10 +30,13 @@ export default function SpeakButton({ text, lang, size = 14, className = '', onD
     if (!('speechSynthesis' in window) || !text) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = lang ?? (uiLang === 'en' ? 'en-US' : 'zh-CN');
-    utter.rate = 0.9;
+    utter.lang = lang;
+    utter.rate = rate;
     const voices = window.speechSynthesis.getVoices();
-    const match = voices.find((v) => v.lang.replace('_', '-').toLowerCase().startsWith(utter.lang.slice(0, 2).toLowerCase()));
+    const normalizedLang = lang.toLowerCase();
+    const exactMatch = voices.find((v) => v.lang.replace('_', '-').toLowerCase() === normalizedLang);
+    const languageMatch = voices.find((v) => v.lang.replace('_', '-').toLowerCase().startsWith(lang.slice(0, 2).toLowerCase()));
+    const match = exactMatch ?? languageMatch;
     if (match) utter.voice = match;
     setSpeaking(true);
     utter.onend = () => setSpeaking(false);
@@ -41,7 +44,7 @@ export default function SpeakButton({ text, lang, size = 14, className = '', onD
     window.speechSynthesis.speak(utter);
     if (timerRef.current) window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => setSpeaking(false), 4000);
-  }, [text, lang, uiLang]);
+  }, [text, lang, rate]);
 
   if (!supported) return null;
 

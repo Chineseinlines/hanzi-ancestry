@@ -18,6 +18,7 @@ import PronunciationGame from '../components/games/PronunciationGame';
 import HskGame from '../components/games/HskGame';
 import CharStoriesGame from '../components/games/CharStoriesGame';
 import FunFactsGame from '../components/games/FunFactsGame';
+import DailyPracticeCard from '../components/DailyPracticeCard';
 import { getAllCharacters, hasCharacter } from '../data/hanziData';
 import { COMMON_CHAR_SET } from '../data/commonChars';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -254,7 +255,7 @@ export default function Games() {
     };
 
     return (
-      <div className="min-h-screen bg-bg-primary pt-16 pb-20">
+      <div className="min-h-screen bg-bg-primary pt-16 pb-36 md:pb-20">
         {/* Top bar */}
         <div className="sticky top-16 z-30 bg-white/90 backdrop-blur-sm border-b border-border-light">
           <div className="mx-auto max-w-2xl flex items-center gap-3 px-4 py-3">
@@ -314,7 +315,7 @@ export default function Games() {
         </div>
 
         {/* Bottom navigation — jump between available games */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-border-light">
+        <div className="fixed bottom-16 left-0 right-0 z-30 bg-white/95 backdrop-blur-sm border-t border-border-light md:bottom-0">
           <div className="mx-auto max-w-2xl flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
             <span className="text-[0.625rem] font-medium text-charcoal/40 uppercase tracking-wider flex-shrink-0" style={{ fontFamily: 'Inter' }}>
               {t('games.switchGame')}
@@ -365,6 +366,14 @@ export default function Games() {
           >
             {t('games.heroSubtitle')}
           </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="mt-8 flex justify-center"
+          >
+            <DailyPracticeCard onDark />
+          </motion.div>
         </div>
       </section>
 

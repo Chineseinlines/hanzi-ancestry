@@ -52,6 +52,7 @@ import { getCuratedSemanticLevel, guessSemanticLevel, getSemanticLevelInfo, type
 import { PHONETIC_LEVEL_DESCRIPTIONS_EN } from '../data/phoneticLevels.en';
 import { SEMANTIC_LEVEL_DESCRIPTIONS_EN } from '../data/semanticLevels.en';
 import SpeakButton from '../components/SpeakButton';
+import PronunciationControls from '../components/PronunciationControls';
 import { loadCharMeta, getCharMeta, FREQ_TOTAL, hsk3Band, hsk3LevelLabel } from '../data/charMeta';
 import { setPageMeta } from '../lib/seo';
 
@@ -497,7 +498,7 @@ export default function CharacterDetail() {
               {entry.pinyin.map((p, i) => (
                 <span key={i} className="text-lg tracking-wide" style={{ color: '#C4A265', fontFamily: 'Inter' }}>{p}</span>
               ))}
-              <SpeakButton text={char} title={t('detail.speak')} onDark />
+              <PronunciationControls text={char} onDark />
               <span className="rounded-full px-3 py-1 text-xs font-medium" style={{ background: 'rgba(107,127,94,0.2)', color: '#6B7F5E', fontFamily: 'Inter' }}>
                 {t('detail.radical')}: {entry.radical}
               </span>

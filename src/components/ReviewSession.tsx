@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { getCharacter, getLocalizedDefinition, loadData, numberToMark } from '../data/hanziData';
 import { useLanguage } from '../contexts/LanguageContext';
-import SpeakButton from './SpeakButton';
+import PronunciationControls from './PronunciationControls';
 import type { Grade } from '../lib/srs';
 
 interface ReviewSessionProps {
@@ -143,7 +143,7 @@ export default function ReviewSession({ initialQueue, onGrade, onExit }: ReviewS
           <span className="font-display-cn text-7xl" style={{ color: '#1A1A18' }}>
             {char}
           </span>
-          <SpeakButton text={char} lang="zh-CN" size={18} />
+          <PronunciationControls text={char} size={18} />
         </div>
 
         {ready && pinyin && (

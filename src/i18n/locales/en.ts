@@ -395,6 +395,20 @@ export const en: Messages = {
     skip: 'Skip',
     strokeDone: '✓ {char} stroke order complete',
   },
+  pronunciation: {
+    controls: 'Pronunciation playback',
+    normal: 'Normal',
+    slow: 'Slow',
+    playNormal: 'Play at normal speed',
+    playSlow: 'Play slowly',
+  },
+  practice: {
+    dailyGoal: 'Daily practice goal',
+    nextGame: '+10 XP per correct answer · reach 50 XP today',
+    completed: 'Daily goal completed',
+    streak: '{n}-day streak',
+    sessionXp: '{n} XP earned this round',
+  },
   learn: {
     hubLabel: 'LINES · Learning Hub',
     heroTitle: 'How Chinese Characters Work',
