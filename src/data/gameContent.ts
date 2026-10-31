@@ -1,3 +1,5 @@
+import { isTop3500 } from './commonChars';
+
 // ────────────────────────────────────────────────────────────────
 // 汉字游戏静态题库
 // 集中存放变形部件、形近字、易错笔顺、汉字故事、冷知识、
@@ -27,7 +29,7 @@ export interface VariantRadical {
   glossEn: string;
 }
 
-export const VARIANT_RADICALS: VariantRadical[] = [
+const VARIANT_RADICALS_RAW: VariantRadical[] = [
   { variant: '忄', origin: '心', gloss: '竖心旁，与内心、情感有关', glossEn: 'Vertical heart radical; related to the heart, mind and emotions.' },
   { variant: '扌', origin: '手', gloss: '提手旁，与手的动作有关', glossEn: 'Hand radical; related to the actions of the hand.' },
   { variant: '氵', origin: '水', gloss: '三点水，与水有关', glossEn: 'Three-dot water radical; related to water.' },
@@ -48,6 +50,11 @@ export const VARIANT_RADICALS: VariantRadical[] = [
   { variant: '彳', origin: '行', gloss: '双人旁，与行走、道路有关', glossEn: 'Double-person radical; related to walking and roads.' },
 ];
 
+/** 出题池：仅保留一级常用字（通用规范汉字表前 3500） */
+export const VARIANT_RADICALS: VariantRadical[] = VARIANT_RADICALS_RAW.filter(x => isTop3500(x.origin));
+
+
+
 // ── 形近字：词语挖空 + 选项 ─────────────────────────────────
 export interface LookalikeItem {
   word: string;          // 含 "__" 挖空的词语，如 "__论"
@@ -58,7 +65,7 @@ export interface LookalikeItem {
   explainEn: string;
 }
 
-export const LOOKALIKES: LookalikeItem[] = [
+const LOOKALIKES_RAW: LookalikeItem[] = [
   { word: '__论', pinyin: 'biàn', options: ['辩', '辨', '辫', '瓣'], correct: '辩', explain: '辩＝用言语争论（辩论）；辨＝区分（分辨）；辫＝辫子（纟）；瓣＝花瓣（瓜）。', explainEn: '辩 (debate) uses speech 讠; 辨 (distinguish) splits with 刀; 辫 (braid) has thread 纟; 瓣 (petal) has melon 瓜.' },
   { word: '分__', pinyin: 'biàn', options: ['辨', '辩', '辫', '瓣'], correct: '辨', explain: '分辨＝区分开来，故用「辨」；辨中间从「刀」表剖分。', explainEn: '分辨 means to tell apart, hence 辨; its middle 刀 suggests splitting.' },
   { word: '本__倒置', pinyin: 'mò', options: ['末', '未'], correct: '末', explain: '末＝树梢、末端（本末）；未＝还没有（未来）。', explainEn: '末 = tip/end of a branch (本末); 未 = not yet (未来).' },
@@ -81,6 +88,11 @@ export const LOOKALIKES: LookalikeItem[] = [
   { word: '__要', pinyin: 'xū', options: ['需', '须'], correct: '需', explain: '需要、需求用「需」（从雨）。', explainEn: '需要 (need) and 需求 (demand) use 需 (from rain 雨).' },
 ];
 
+/** 出题池：仅保留一级常用字（通用规范汉字表前 3500） */
+export const LOOKALIKES: LookalikeItem[] = LOOKALIKES_RAW.filter(x => isTop3500(x.correct));
+
+
+
 // ── 易错笔顺字 ─────────────────────────────────────────────
 export interface TrickyStroke {
   char: string;
@@ -91,7 +103,7 @@ export interface TrickyStroke {
   tipEn: string;
 }
 
-export const TRICKY_STROKES: TrickyStroke[] = [
+const TRICKY_STROKES_RAW: TrickyStroke[] = [
   { char: '火', count: 4, order: '点、撇、撇、捺', orderEn: 'dot, left-falling, left-falling, right-falling', tip: '先写左右两点，再写中间的人（撇、捺）。', tipEn: 'Write the two side dots first, then the central 人 (left and right falling strokes).' },
   { char: '山', count: 3, order: '竖、竖折、竖', orderEn: 'vertical, vertical-turning, vertical', tip: '先写中间的竖，再写两边。', tipEn: 'Write the middle vertical stroke first, then the two sides.' },
   { char: '水', count: 4, order: '竖钩、横撇、撇、捺', orderEn: 'vertical hook, horizontal-then-left-falling, left-falling, right-falling', tip: '先写中间竖钩，再左右两边。', tipEn: 'Write the central vertical hook first, then the left and right sides.' },
@@ -112,10 +124,15 @@ export const TRICKY_STROKES: TrickyStroke[] = [
   { char: '凸', count: 5, tip: '共五画，起笔先写竖。', tipEn: 'Five strokes; begin with a vertical stroke.' },
 ];
 
+/** 出题池：仅保留一级常用字（通用规范汉字表前 3500） */
+export const TRICKY_STROKES: TrickyStroke[] = TRICKY_STROKES_RAW.filter(x => isTop3500(x.char));
+
+
+
 // ── 笔画数（常见字 → 笔画数） ───────────────────────────────
 export interface StrokeCount { char: string; count: number; }
 
-export const STROKE_COUNTS: StrokeCount[] = [
+const STROKE_COUNTS_RAW: StrokeCount[] = [
   { char: '一', count: 1 }, { char: '二', count: 2 }, { char: '三', count: 3 },
   { char: '四', count: 5 }, { char: '五', count: 4 }, { char: '六', count: 4 },
   { char: '七', count: 2 }, { char: '八', count: 2 }, { char: '九', count: 2 },
@@ -138,6 +155,11 @@ export const STROKE_COUNTS: StrokeCount[] = [
   { char: '土', count: 3 }, { char: '士', count: 3 }, { char: '工', count: 3 },
 ];
 
+/** 出题池：仅保留一级常用字（通用规范汉字表前 3500） */
+export const STROKE_COUNTS: StrokeCount[] = STROKE_COUNTS_RAW.filter(x => isTop3500(x.char));
+
+
+
 // ── 汉字故事：多选问答 ─────────────────────────────────────
 export interface StoryItem {
   char: string;
@@ -150,7 +172,7 @@ export interface StoryItem {
   explainEn: string;
 }
 
-export const CHAR_STORIES: StoryItem[] = [
+const CHAR_STORIES_RAW: StoryItem[] = [
   { char: '日', question: '「日」字的本义是什么？', options: ['太阳', '月亮', '眼睛', '种子'], correctIndex: 0, explain: '「日」是象形字，像圆圆的太阳，中间一点表示太阳的光芒或黑子。', questionEn: 'What is the original meaning of 日?', optionsEn: ['Sun', 'Moon', 'Eye', 'Seed'], explainEn: "日 is a pictograph of the round sun; the dot or line in the middle represents the sun's rays or sunspots." },
   { char: '月', question: '「月」字的本义是什么？', options: ['月亮', '肉', '船', '弓'], correctIndex: 0, explain: '「月」像一弯新月。作偏旁的「月」旁其实很多来自「肉」，故又叫「肉月旁」。', questionEn: 'What is the original meaning of 月?', optionsEn: ['Moon', 'Meat', 'Boat', 'Bow'], explainEn: "月 resembles a crescent moon. As a component, many '月' radicals actually derive from 肉 (meat), hence the 'flesh-moon radical'." },
   { char: '山', question: '「山」字像什么？', options: ['相连的山峰', '一块石头', '高大的楼房', '波浪'], correctIndex: 0, explain: '「山」是象形字，像三座相连的山峰。', questionEn: 'What does 山 resemble?', optionsEn: ['Connected peaks', 'A single rock', 'A tall building', 'Waves'], explainEn: '山 is a pictograph of three connected mountain peaks.' },
@@ -167,6 +189,11 @@ export const CHAR_STORIES: StoryItem[] = [
   { char: '末', question: '「末」在「木」的顶部加一横，指树的哪里？', options: ['树梢', '树根', '树皮', '种子'], correctIndex: 0, explain: '「末」在「木」上加指事符号，指树梢，引申为末端、末尾。', questionEn: '末 adds a line at the top of 木 (tree). Which part does it point to?', optionsEn: ['The treetop', 'The root', 'The bark', 'The seed'], explainEn: "末 adds a marker above 木 to point at the treetop — hence 'tip, end'." },
   { char: '刃', question: '「刃」在「刀」上加一点，指什么？', options: ['刀刃', '刀背', '刀柄', '刀鞘'], correctIndex: 0, explain: '「刃」在刀口处加指事符号，指锋利的刀刃。', questionEn: '刃 adds a dot on 刀 (knife). What does it point to?', optionsEn: ['The blade', 'The back of the knife', 'The handle', 'The sheath'], explainEn: '刃 places a marker on the cutting edge of 刀, pointing to the sharp blade.' },
 ];
+
+/** 出题池：仅保留一级常用字（通用规范汉字表前 3500） */
+export const CHAR_STORIES: StoryItem[] = CHAR_STORIES_RAW.filter(x => isTop3500(x.char));
+
+
 
 // ── 汉字冷知识：多选问答 ───────────────────────────────────
 export interface FactItem {

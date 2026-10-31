@@ -47,10 +47,11 @@ export default function Navbar({ onSearchClick }: NavbarProps) {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 no-underline">
-          <span className="font-display-cn text-2xl text-ink-black">字里行间</span>
-          <span className="hidden text-[0.625rem] font-semibold uppercase tracking-[0.15em] text-charcoal sm:inline">
-            LINES
-          </span>
+          <img
+            src={`${import.meta.env.BASE_URL}lines-logo.jpg`}
+            alt="字里行间 LINES"
+            className="h-9 w-auto rounded-md bg-white object-contain px-1.5 py-0.5 shadow-sm"
+          />
         </Link>
 
         {/* Desktop Nav Links */}

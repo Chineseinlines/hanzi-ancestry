@@ -20,10 +20,10 @@ import CharStoriesGame from '../components/games/CharStoriesGame';
 import FunFactsGame from '../components/games/FunFactsGame';
 import DailyPracticeCard from '../components/DailyPracticeCard';
 import { getAllCharacters, hasCharacter } from '../data/hanziData';
-import { COMMON_CHAR_SET } from '../data/commonChars';
+import { TOP3500_SET } from '../data/commonChars';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const COMMON_6500 = new Set(COMMON_CHAR_SET);
+const COMMON_6500 = TOP3500_SET;
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },

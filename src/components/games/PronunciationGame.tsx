@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import QuizShell, { bigChar, type QuizQuestion } from './QuizShell';
 import { getAllCharacters, numberToMark } from '../../data/hanziData';
-import { COMMON_CHAR_SET } from '../../data/commonChars';
+import { TOP3500_SET } from '../../data/commonChars';
 import { sample, shuffle } from '../../data/gameContent';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-const COMMON = new Set(COMMON_CHAR_SET);
+const COMMON = TOP3500_SET;
 
 function buildQuestions(t: (k: string, p?: Record<string, string | number>) => string): QuizQuestion[] {
   const entries = getAllCharacters().filter(e => COMMON.has(e.character) && e.pinyin.length > 0);

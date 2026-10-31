@@ -6506,3 +6506,16 @@ export const COMMON_CHAR_SET: Set<string> = new Set([
 export function isCommonChar(c: string): boolean {
   return COMMON_CHAR_SET.has(c);
 }
+
+/** 一级字表（前 3500 个常用字）集合 */
+export const TOP3500_SET: Set<string> = new Set(
+  [...COMMON_CHAR_SET].slice(0, 3500)
+);
+
+/**
+ * 是否为一级常用字（通用规范汉字表前 3500）。
+ * 游戏与题库的出字门槛：非常用字不进入答题池，只保留讲解性展示。
+ */
+export function isTop3500(ch: string): boolean {
+  return TOP3500_SET.has(ch);
+}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Check, X } from 'lucide-react';
 import { getCharacter } from '../data/hanziData';
-import { COMMON_CHAR_SET } from '../data/commonChars';
+import { TOP3500_SET, isTop3500 } from '../data/commonChars';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { saveQuizAttempt } from '../lib/database';
@@ -62,19 +62,21 @@ export default function AncientGlyphGame() {
       return;
     }
 
-    if (!glyphChars || glyphChars.length < 10) {
+    // 目标字只出一级常用字（3500 字表内）
+    const commonGlyphs = glyphChars.filter(gc => isTop3500(gc.c));
+    if (commonGlyphs.length < 10) {
       setLoading(false);
       return;
     }
 
     // Build distractor pool from 3500 common chars that have dict entries
     const distractors: string[] = [];
-    for (const ch of COMMON_CHAR_SET) {
+    for (const ch of TOP3500_SET) {
       if (getCharacter(ch)) distractors.push(ch);
       if (distractors.length >= 3500) break;
     }
 
-    const pool = shuffle([...glyphChars]);
+    const pool = shuffle([...commonGlyphs]);
     const qs: Question[] = [];
 
     for (const gc of pool) {

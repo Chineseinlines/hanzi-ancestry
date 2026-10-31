@@ -175,21 +175,27 @@ export default function CharacterDetail() {
       setLoading(true);
       setActiveTab('card');
       setIdsExpanded(true);
-      await loadData();
-      await loadCulturalData();
-      await loadShuowen();
-      await loadSimpTradMap();
-      await loadRelations();
-      await loadCharMeta();
-      await loadWordFamilies();
+      // 首屏关键路径只等核心字典 + 简繁映射；文化/说文/字族等大文件并发后台加载
+      const background = Promise.all([
+        loadCulturalData(),
+        loadShuowen(),
+        loadCharMeta(),
+        loadWordFamilies(),
+      ]);
+      await Promise.all([loadData(), loadSimpTradMap()]);
       if (cancelled) return;
       const e = getCharacterEnriched(char);
       setEntry(e ?? null);
+      setLoading(false);
+      // 附属数据就绪后补齐各区块（说文/文化/字族/relations）
+      await background;
+      if (cancelled) return;
+      await loadRelations();
+      if (cancelled) return;
       setCultural(getCulturalData(char) ?? null);
       setWordFamilies(getWordFamilies(char) ?? null);
       setShuowen(getShuowen(char) ?? null);
       if (e) setRelations(getRelations(char) ?? null);
-      setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [char]);

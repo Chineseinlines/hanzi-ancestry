@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, ArrowRight, Trophy, Sparkles } from 'lucide-react';
 import type { GameMode, GameState, PuzzleRound } from '../data/types';
 import { getCharacter, getCognates, getCharactersWithComponent, getAllCharacters } from '../data/hanziData';
-import { COMMON_CHAR_SET } from '../data/commonChars';
+import { TOP3500_SET } from '../data/commonChars';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { saveQuizAttempt } from '../lib/database';
 
-const COMMON_6500 = new Set(COMMON_CHAR_SET);
+const COMMON_6500 = TOP3500_SET;
 
 function filterCommon(chars: string[]): string[] {
   return chars.filter(c => COMMON_6500.has(c));
