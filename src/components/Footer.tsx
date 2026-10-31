@@ -21,11 +21,10 @@ export default function Footer() {
           {/* Column 1: Logo + tagline */}
           <div>
             <div className="mb-4 flex items-center gap-2">
-              <img
-                src={`${import.meta.env.BASE_URL}lines-logo.jpg`}
-                alt="字里行间 LINES"
-                className="h-9 w-auto rounded-md bg-white object-contain px-1.5 py-0.5"
-              />
+              <span className="font-display-cn text-2xl text-rice-paper">字里行间</span>
+              <span className="text-[0.625rem] font-semibold uppercase tracking-[0.15em] text-rice-paper/60">
+                LINES
+              </span>
             </div>
             <p className="text-sm leading-relaxed text-rice-paper/50">
               {t('footer.tagline')}

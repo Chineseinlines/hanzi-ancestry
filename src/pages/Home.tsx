@@ -34,6 +34,14 @@ const scaleIn = {
   }),
 };
 
+const brushReveal = {
+  hidden: { clipPath: 'inset(0 100% 0 0)' },
+  visible: (delay: number = 0) => ({
+    clipPath: 'inset(0 0% 0 0)',
+    transition: { duration: 1.2, delay, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  }),
+};
+
 const staggerContainer = {
   hidden: {},
   visible: (stagger: number = 0.12) => ({
@@ -208,27 +216,29 @@ function HeroSection() {
           {t('home.heroSubtitle')}
         </motion.p>
 
-        {/* Logo（品牌字标） */}
-        <motion.div
-          className="flex justify-center"
-          variants={fadeUp}
+        {/* Chinese title */}
+        <motion.h1
+          className="font-display-cn leading-[1.1] tracking-[0.02em] text-rice-paper"
+          style={{ fontSize: 'clamp(4rem, 10vw, 8rem)' }}
+          variants={brushReveal}
           initial="hidden"
           animate="visible"
           custom={0.6}
         >
-          <motion.img
-            src={`${import.meta.env.BASE_URL}lines-logo.jpg`}
-            alt="字里行间 LINES"
-            className="w-[min(540px,82vw)] rounded-2xl object-contain px-5 py-3"
-            style={{
-              background: 'rgba(253, 251, 246, 0.96)',
-              boxShadow: '0 10px 44px rgba(0, 0, 0, 0.35)',
-            }}
-            initial={{ opacity: 0, y: 24, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.5 }}
-          />
-        </motion.div>
+          字里行间
+        </motion.h1>
+
+        {/* English title */}
+        <motion.h2
+          className="mt-2 font-display font-bold leading-[1.15] tracking-[-0.02em] text-rice-paper"
+          style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)' }}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={1.0}
+        >
+          LINES
+        </motion.h2>
 
         {/* Tagline */}
         <motion.p

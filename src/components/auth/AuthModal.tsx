@@ -93,11 +93,20 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
             <div className="px-6 pb-6 pt-5 sm:px-8">
               {/* 品牌标识 */}
               <div className="mb-5 flex items-center gap-2.5">
-                <img
-                  src={`${import.meta.env.BASE_URL}lines-logo.jpg`}
-                  alt="字里行间 LINES"
-                  className="h-10 w-auto rounded-lg bg-white object-contain px-1.5 py-0.5 shadow-sm"
-                />
+                <span
+                  className="font-display-cn flex h-9 w-9 items-center justify-center rounded-[11px] text-[17px] leading-none text-white shadow-[0_4px_10px_-2px_rgba(194,59,42,0.5)]"
+                  style={{ background: '#C23B2A' }}
+                >
+                  字
+                </span>
+                <div className="leading-tight">
+                  <div className="text-[13px] font-semibold tracking-wide" style={{ color: '#1A1A18' }}>
+                    字里行间
+                  </div>
+                  <div className="text-[10px] tracking-[0.22em]" style={{ color: '#A39E93' }}>
+                    LINES
+                  </div>
+                </div>
               </div>
 
               {!configured ? (
