@@ -442,6 +442,14 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
     );
   }
 
+  // 拆字题的字面提示：拼音 · 部首 · 结构（吸收 Studio「部件拼字」的题面优点）
+  const targetEntry = getCharacter(puzzle.targetChar);
+  const targetHintParts = [
+    targetEntry?.pinyin?.[0] ? t('cmp.puzzle.hintPinyin', { p: targetEntry.pinyin[0] }) : '',
+    targetEntry?.radical ? t('cmp.puzzle.hintRadical', { r: targetEntry.radical }) : '',
+    targetEntry?.decomposition ? t('cmp.puzzle.hintStructure', { s: targetEntry.decomposition }) : '',
+  ].filter(Boolean);
+
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
       {/* Header */}
@@ -500,6 +508,11 @@ export default function CharPuzzleGame({ targetChar, onNavigate: _onNavigate, mo
                 >
                   {puzzle.targetChar}
                 </span>
+                {targetHintParts.length > 0 && (
+                  <p className="mt-1 text-xs" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                    {targetHintParts.join(' · ')}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2 justify-center mb-4">

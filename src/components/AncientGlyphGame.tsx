@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Check, X } from 'lucide-react';
-import { getCharacter } from '../data/hanziData';
+import { getCharacter, getAllCharacters, getShuowen, loadShuowen } from '../data/hanziData';
 import { TOP3500_SET, isTop3500 } from '../data/commonChars';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -47,6 +47,14 @@ export default function AncientGlyphGame() {
   const [answered, setAnswered] = useState(false);
   const [finished, setFinished] = useState(false);
   const [loading, setLoading] = useState(true);
+  // 《说文》数据惰性加载；加载完成后触发一次重渲染，让答后讲解块补上
+  const [, setShuowenTick] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    loadShuowen().then(() => { if (alive) setShuowenTick(v => v + 1); });
+    return () => { alive = false; };
+  }, []);
 
   const generateQuestions = useCallback(async () => {
     resultsRef.current = [];
@@ -76,6 +84,15 @@ export default function AncientGlyphGame() {
       if (distractors.length >= 3500) break;
     }
 
+    // 同部首索引：优先用同部首字作干扰项，避免答案一眼可排除
+    const byRadical = new Map<string, string[]>();
+    for (const entry of getAllCharacters()) {
+      if (!TOP3500_SET.has(entry.character) || !entry.radical) continue;
+      const list = byRadical.get(entry.radical);
+      if (list) list.push(entry.character);
+      else byRadical.set(entry.radical, [entry.character]);
+    }
+
     const pool = shuffle([...commonGlyphs]);
     const qs: Question[] = [];
 
@@ -91,9 +108,15 @@ export default function AncientGlyphGame() {
 
       // Build distractors: chars not already used, not the correct answer
       const usedChars = new Set(qs.map(q => q.char));
-      const distOpts = shuffle(distractors.filter(d =>
-        d !== ch && !usedChars.has(d)
-      )).slice(0, 3);
+      const sameRadical = shuffle(
+        (byRadical.get(getCharacter(ch)?.radical ?? '') ?? []).filter(d =>
+          d !== ch && !usedChars.has(d)
+        )
+      ).slice(0, 3);
+      const fallback = shuffle(distractors.filter(d =>
+        d !== ch && !usedChars.has(d) && !sameRadical.includes(d)
+      )).slice(0, 3 - sameRadical.length);
+      const distOpts = [...sameRadical, ...fallback];
       if (distOpts.length < 3) continue;
 
       const options = shuffle([ch, ...distOpts]);
@@ -188,6 +211,18 @@ export default function AncientGlyphGame() {
 
   const q = questions[currentQ];
 
+  // 答后讲解：拼音 / 部首 / 六书 / 《说文》节选（字典字段缺失时自动省略）
+  const answerEntry = getCharacter(q.char);
+  const answerShuowen = getShuowen(q.char);
+  const metaLine = [
+    answerEntry?.pinyin?.[0] ? t('cmp.glyph.metaPinyin', { p: answerEntry.pinyin[0] }) : '',
+    answerEntry?.radical ? t('cmp.glyph.metaRadical', { r: answerEntry.radical }) : '',
+    answerShuowen?.sixBooks ? t('cmp.glyph.metaSixBooks', { s: answerShuowen.sixBooks }) : '',
+  ].filter(Boolean).join(' · ');
+  const shuowenText = answerShuowen?.shuowen
+    ? `${answerShuowen.shuowen.slice(0, 60)}${answerShuowen.shuowen.length > 60 ? '…' : ''}`
+    : '';
+
   return (
     <div className="mx-auto max-w-2xl px-4">
       <div className="mb-8">
@@ -243,9 +278,15 @@ export default function AncientGlyphGame() {
 
       {answered && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-center">
-          <p className={`text-sm mb-3 ${selected === q.correctIndex ? 'text-green-600' : 'text-red-500'}`}>
+          <p className={`text-sm ${metaLine || shuowenText ? 'mb-1' : 'mb-3'} ${selected === q.correctIndex ? 'text-green-600' : 'text-red-500'}`}>
             {selected === q.correctIndex ? t('cmp.glyph.correct') : t('cmp.glyph.answer', { a: q.options[q.correctIndex] })}
           </p>
+          {metaLine && <p className="mb-1 text-xs text-charcoal/60">{metaLine}</p>}
+          {shuowenText && (
+            <p className="mx-auto mb-3 max-w-lg text-xs leading-relaxed text-charcoal/50">
+              {t('cmp.glyph.shuowen', { s: shuowenText })}
+            </p>
+          )}
           <button onClick={handleNext} className="rounded-full bg-ink-black px-6 py-2.5 text-sm font-medium text-white hover:bg-charcoal transition-colors">
             {currentQ + 1 >= questions.length ? t('cmp.glyph.viewResults') : t('cmp.glyph.next')}
           </button>

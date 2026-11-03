@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -10,6 +10,7 @@ import StrokeQuizGame from '../components/games/StrokeQuizGame';
 import StrokeOrderGame from '../components/games/StrokeOrderGame';
 import TrickyStrokesGame from '../components/games/TrickyStrokesGame';
 import PhonoSemanticGame from '../components/games/PhonoSemanticGame';
+import PhoneticFamilyGame from '../components/games/PhoneticFamilyGame';
 import CharacterForge from '../components/games/CharacterForge';
 import PseudoCharGame from '../components/games/PseudoCharGame';
 import VariantRadicalGame from '../components/games/VariantRadicalGame';
@@ -19,7 +20,7 @@ import HskGame from '../components/games/HskGame';
 import CharStoriesGame from '../components/games/CharStoriesGame';
 import FunFactsGame from '../components/games/FunFactsGame';
 import DailyPracticeCard from '../components/DailyPracticeCard';
-import { getAllCharacters, hasCharacter } from '../data/hanziData';
+import { getAllCharacters, hasCharacter, loadData } from '../data/hanziData';
 import { TOP3500_SET } from '../data/commonChars';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -51,6 +52,11 @@ export default function Games() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [gameChar, setGameChar] = useState('国');
   const [charInput, setCharInput] = useState('');
+
+  // 直接进入游戏页时先预热字典，避免依赖字库的小游戏出现空题库
+  useEffect(() => {
+    void loadData();
+  }, []);
 
   const categories = [
     {
@@ -117,6 +123,15 @@ export default function Games() {
           en: 'Phono-Semantic',
           category: '部件',
           desc: '区分形旁表意与声旁表音，强化形声字认知。',
+          available: true,
+        },
+        {
+          id: 'phonetic-family',
+          icon: <Brain size={24} />,
+          title: '声符字族',
+          en: 'Phonetic Family',
+          category: '部件',
+          desc: '给出一个声符，辨认哪些字由它孳乳而来，理解形声系统的同源关系。',
           available: true,
         },
         {
@@ -242,6 +257,7 @@ export default function Games() {
         case 'stroke-order': return <StrokeOrderGame key={activeGame} />;
         case 'tricky-strokes': return <TrickyStrokesGame key={activeGame} />;
         case 'phono-semantic': return <PhonoSemanticGame key={activeGame} />;
+        case 'phonetic-family': return <PhoneticFamilyGame key={activeGame} />;
         case 'character-forge': return <CharacterForge key={activeGame} />;
         case 'pseudo-char': return <PseudoCharGame key={activeGame} />;
         case 'variant-radicals': return <VariantRadicalGame key={activeGame} />;
