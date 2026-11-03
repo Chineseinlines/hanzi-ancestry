@@ -169,6 +169,21 @@ export default function CharacterDetail() {
   // 「拆解系联」标签内的子视图：拆解网络 / 系联网络
   const [netView, setNetView] = useState<'decomp' | 'cognate'>('decomp');
 
+  // 章节快速跳转：吸收 Studio 字源解析的「本页章节」导航
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const y = el.getBoundingClientRect().top + window.scrollY - 140;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  };
+  const SECTIONS = [
+    { id: 'sec-origin', label: t('detail.secOrigin') },
+    { id: 'sec-glyph', label: t('detail.secGlyph') },
+    { id: 'sec-stroke', label: t('detail.secStroke') },
+    { id: 'sec-meaning', label: t('detail.secMeaning') },
+    { id: 'sec-lineage', label: t('detail.secLineage') },
+  ];
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -777,63 +792,209 @@ export default function CharacterDetail() {
           {/* ── Tab: 知识卡片 ── */}
           {activeTab === 'card' && (
             <motion.div key="card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="space-y-6">
+              {/* 本页章节导航（合并自 Studio 字源解析） */}
+              <div className="rounded-2xl px-4 py-3 flex flex-wrap items-center gap-2" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <span className="text-[11px] font-medium uppercase tracking-wider mr-1" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                  {t('detail.sectionsTitle')}
+                </span>
+                {SECTIONS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => scrollToSection(s.id)}
+                    className="rounded-full border px-3 py-1 text-xs font-medium transition-all hover:scale-105"
+                    style={{ borderColor: 'rgba(139,105,20,0.25)', color: '#8B6914', background: 'rgba(245,240,232,0.7)', fontFamily: 'Inter' }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ① 正体溯源（合并自 Studio 字源解析） */}
+              <div id="sec-origin" className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.originTitle')}</h2>
+                  <span className="rounded-full px-2.5 py-0.5 text-[10px]" style={{ background: 'rgba(107,127,94,0.12)', color: '#6B7F5E', fontFamily: 'Inter' }}>{t('detail.originTag')}</span>
+                </div>
+                <div className="flex items-center justify-center gap-5">
+                  <span className="font-display-cn leading-none" style={{ fontSize: '3.25rem', color: '#1A1A18', fontFamily: '"Ma Shan Zheng", cursive' }}>{char}</span>
+                  {entry.traditional && (
+                    <>
+                      <span className="text-lg" style={{ color: '#C4A265' }}>→</span>
+                      <button
+                        onClick={() => goToDetail(entry.traditional!)}
+                        className="font-display-cn leading-none transition-all hover:scale-105"
+                        style={{ fontSize: '3.25rem', color: '#C23B2A', fontFamily: '"Ma Shan Zheng", cursive' }}
+                        title={t('common.viewDetails')}
+                      >
+                        {entry.traditional}
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="mt-4 text-center text-sm leading-relaxed" style={{ color: '#5A5548', fontFamily: 'Inter' }}>
+                  {entry.traditional
+                    ? t('detail.originSimp', { s: char, t: entry.traditional })
+                    : t('detail.originSame', { c: char })}
+                </p>
+                <p className="mt-2 text-center text-[11px] leading-relaxed" style={{ color: 'rgba(139,105,20,0.7)', fontFamily: 'Inter' }}>
+                  {t('detail.originRule')}
+                </p>
+              </div>
+
               {/* 字形演变脉络 与 笔画动画 并置 */}
               <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_1fr] gap-6 items-stretch">
                 {/* 字形演变 */}
-                <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <div id="sec-glyph" className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.tabs.glyph')}</h2>
                   <div className="flex flex-col justify-center">
                     <GlyphEvolutionTimeline character={char} traditional={entry?.traditional} />
                   </div>
-
-                  {/* 演变说明（说文解字） */}
-                  {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.shuowen) && (
-                    <div className="mt-5 pt-5 border-t" style={{ borderColor: 'rgba(26,26,24,0.08)' }}>
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="text-sm font-semibold" style={{ color: '#C23B2A', fontFamily: '"Noto Serif SC", serif' }}>{t('detail.shuowenTitle')}</span>
-                        <span className="text-[0.5625rem] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}>Shuowen Jiezi</span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {shuowen.structure && (
-                          <span className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium" style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}>
-                            {t('detail.structure')}: {shuowen.structure}
-                          </span>
-                        )}
-                        {shuowen.sixBooks && (
-                          <span className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}>
-                            {t('detail.sixBooks')}: {shuowen.sixBooks}
-                          </span>
-                        )}
-                      </div>
-
-                      {lang === 'en' && shuowen.enShuowen ? (
-                        <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{shuowen.enShuowen}</p>
-                      ) : (
-                        <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{getShuowenSummary(shuowen, entry, lang, t)}</p>
-                      )}
-
-                      {shuowen.shuowen && (
-                        <details className="mt-2">
-                          <summary className="text-[0.6875rem] font-medium cursor-pointer inline-flex items-center gap-1 select-none" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>
-                            {lang === 'en' ? t('detail.viewOriginalWenyan') : t('detail.viewOriginal')}
-                          </summary>
-                          <p className="mt-2 text-[0.6875rem] leading-relaxed font-serif-cn rounded-lg p-3 max-h-36 overflow-y-auto" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
-                            {shuowen.shuowen}
-                          </p>
-                        </details>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* 笔画动画 */}
-                <div className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <div id="sec-stroke" className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.strokeOrder')}</h2>
                   <div className="flex flex-1 items-center justify-center">
                     <StrokeOrder character={char} size={300} />
                   </div>
                 </div>
+              </div>
+
+              {/* ④ 本义与六书（合并自 Studio 字源解析，说文从字形卡移入） */}
+              <div id="sec-meaning" className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-xl font-display" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.meaningTitle')}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {shuowen?.sixBooks && (
+                      <span className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium" style={{ background: 'rgba(107,127,94,0.1)', color: '#6B7F5E', fontFamily: 'Inter', border: '1px solid rgba(107,127,94,0.2)' }}>
+                        {t('detail.sixBooks')}: {shuowen.sixBooks}
+                      </span>
+                    )}
+                    {(shuowen?.structure || entry.decomposition) && (
+                      <span className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium" style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: 'Inter', border: '1px solid rgba(45,95,138,0.15)' }}>
+                        {t('detail.structure')}: {shuowen?.structure || entry.decomposition}
+                      </span>
+                    )}
+                    {entry.radical && (
+                      <span className="text-[0.6875rem] px-2.5 py-1 rounded-lg font-medium" style={{ background: 'rgba(139,105,20,0.1)', color: '#8B6914', fontFamily: 'Inter', border: '1px solid rgba(139,105,20,0.2)' }}>
+                        {t('detail.radical')}: {entry.radical}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(245,240,232,0.55)' }}>
+                    <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.originalMeaning')}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{getLocalizedDefinition(entry, lang)}</p>
+                  </div>
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(245,240,232,0.55)' }}>
+                    <h3 className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.etymologyNote')}</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{getLocalizedEtymologyHint(entry, lang) || '—'}</p>
+                  </div>
+                </div>
+
+                {(entry.etymology?.semantic || entry.etymology?.phonetic) && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {entry.etymology?.semantic && (
+                      <span className="rounded-lg px-2.5 py-1 text-xs font-serif-cn" style={{ background: 'rgba(194,59,42,0.08)', color: '#C23B2A', fontFamily: '"Noto Serif SC", serif' }}>
+                        {t('detail.semanticComponent')}: {entry.etymology.semantic}
+                      </span>
+                    )}
+                    {entry.etymology?.phonetic && (
+                      <span className="rounded-lg px-2.5 py-1 text-xs font-serif-cn" style={{ background: 'rgba(45,95,138,0.08)', color: '#2D5F8A', fontFamily: '"Noto Serif SC", serif' }}>
+                        {t('detail.phoneticComponent')}: {entry.etymology.phonetic}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {entry.decomposition && (
+                  <div className="mt-5">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h3 className="text-xs font-medium uppercase tracking-wider" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.idsSequence')}</h3>
+                      <span className="text-[10px]" style={{ color: 'rgba(139,105,20,0.6)', fontFamily: 'Inter' }}>{t('detail.idsSequenceNote')}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 rounded-xl p-3" style={{ background: 'rgba(245,240,232,0.55)' }}>
+                      {Array.from(entry.decomposition).map((seg, i) => {
+                        const isOperator = /[\u2FF0-\u2FFB]/.test(seg);
+                        return (
+                          <span
+                            key={`${seg}-${i}`}
+                            className="rounded-lg px-2 py-1 text-sm"
+                            style={{
+                              background: isOperator ? 'rgba(45,95,138,0.1)' : '#FDFBF6',
+                              color: isOperator ? '#2D5F8A' : '#1A1A18',
+                              fontFamily: isOperator ? 'Inter, sans-serif' : '"Noto Serif SC", serif',
+                              border: '1px solid rgba(26,26,24,0.08)',
+                            }}
+                            title={isOperator ? t('detail.structure') : undefined}
+                          >
+                            {seg}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-5">
+                  <h3 className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: '#8B6914', fontFamily: 'Inter' }}>{t('detail.componentsBreakdown')}</h3>
+                  {entry.leafComponents && entry.leafComponents.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {entry.leafComponents.map((part, i) => {
+                        const ann = componentAnnotations.find((c) => c.component === part)?.annotation;
+                        const role = entry.etymology?.semantic === part
+                          ? t('detail.componentRoleSemantic')
+                          : entry.etymology?.phonetic === part
+                            ? t('detail.componentRolePhonetic')
+                            : t('detail.componentRolePlain');
+                        return (
+                          <div key={`${part}-${i}`} className="rounded-xl p-3" style={{ background: 'rgba(245,240,232,0.55)' }}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-serif-cn" style={{ color: '#1A1A18', fontFamily: '"Noto Serif SC", serif' }}>{part}</span>
+                              <span className="rounded-full px-2 py-0.5 text-[10px]" style={{ background: 'rgba(107,127,94,0.12)', color: '#6B7F5E', fontFamily: 'Inter' }}>{role}</span>
+                            </div>
+                            <p className="mt-1 text-[11px] leading-relaxed" style={{ color: '#8B6914', fontFamily: 'Inter' }}>
+                              {ann ? getLocalizedAnnotationName(ann, lang) : '—'}
+                            </p>
+                            {ann && (
+                              <p className="mt-0.5 text-[11px] leading-relaxed" style={{ color: 'rgba(26,26,24,0.55)', fontFamily: 'Inter' }}>
+                                {getLocalizedAnnotationDescription(ann, lang)}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#9CA3AF' }}>{t('detail.noComponentData')}</p>
+                  )}
+                </div>
+
+                {shuowen && (shuowen.structure || shuowen.sixBooks || shuowen.shuowen) && (
+                  <div className="mt-5 border-t pt-5" style={{ borderColor: 'rgba(26,26,24,0.08)' }}>
+                    <div className="mb-2 flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold" style={{ color: '#C23B2A', fontFamily: '"Noto Serif SC", serif' }}>{t('detail.shuowenTitle')}</span>
+                      <span className="rounded-full px-1.5 py-0.5 text-[0.5625rem]" style={{ background: 'rgba(194,59,42,0.1)', color: '#C23B2A', fontFamily: 'Inter' }}>Shuowen Jiezi</span>
+                    </div>
+                    {lang === 'en' && shuowen.enShuowen ? (
+                      <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{shuowen.enShuowen}</p>
+                    ) : (
+                      <p className="text-[0.75rem] leading-relaxed" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{getShuowenSummary(shuowen, entry, lang, t)}</p>
+                    )}
+                    {shuowen.shuowen && (
+                      <details className="mt-2">
+                        <summary className="inline-flex cursor-pointer select-none items-center gap-1 text-[0.6875rem] font-medium" style={{ color: '#C23B2A', fontFamily: 'Inter' }}>
+                          {lang === 'en' ? t('detail.viewOriginalWenyan') : t('detail.viewOriginal')}
+                        </summary>
+                        <p className="mt-2 max-h-36 overflow-y-auto rounded-lg p-3 text-[0.6875rem] leading-relaxed font-serif-cn" style={{ background: 'rgba(245,240,232,0.5)', color: '#5A5548' }}>
+                          {shuowen.shuowen}
+                        </p>
+                      </details>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 词语搭配组合 */}
@@ -886,7 +1047,7 @@ export default function CharacterDetail() {
 
               {/* 拆解网络 */}
               {decomposition && (
-                <div className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
+                <div id="sec-lineage" className="rounded-2xl p-4" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <div className="flex items-center gap-2 mb-2 px-2">
                     <GitBranch size={16} className="text-cinnabar" />
                     <span className="text-sm font-semibold uppercase tracking-[0.06em]" style={{ color: '#3D3D3B', fontFamily: 'Inter' }}>{t('detail.decompNetwork')}</span>

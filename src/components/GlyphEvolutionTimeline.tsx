@@ -13,7 +13,7 @@ interface GlyphEvolutionTimelineProps {
  * 甲骨/金文/大篆/小篆/隶书取本地字形库 SVG；楷书以现行规范字体渲染。
  */
 export default function GlyphEvolutionTimeline({ character, traditional }: GlyphEvolutionTimelineProps) {
-  const { lang } = useLanguage();
+  const { lang, t } = useLanguage();
   const displayChar = traditional || character;
 
   const hex = (() => {
@@ -93,17 +93,25 @@ export default function GlyphEvolutionTimeline({ character, traditional }: Glyph
                       referrerPolicy="no-referrer"
                       className="max-h-[84px] max-w-[84px] object-contain"
                     />
-                  ) : (
+                  ) : style.key === 'regular' ? (
                     <span
                       style={{
                         fontFamily: style.font,
                         fontSize: '3rem',
                         lineHeight: 1,
                         color: '#1A1A18',
-                        opacity: style.key === 'regular' ? 0.9 : 0.45,
+                        opacity: 0.9,
                       }}
                     >
                       {displayChar}
+                    </span>
+                  ) : (
+                    /* 缺字时不拿今字冒充古字形，按学术事实标注 */
+                    <span
+                      className="text-center text-[11px] leading-tight"
+                      style={{ color: 'rgba(26,26,24,0.35)', fontFamily: 'Inter' }}
+                    >
+                      {t('cmp.glyphEvo.missingGlyph')}
                     </span>
                   )}
                 </div>
@@ -119,11 +127,28 @@ export default function GlyphEvolutionTimeline({ character, traditional }: Glyph
                 >
                   {style.period}
                 </div>
+                <div
+                  className="mt-1 text-center text-[10px] leading-tight"
+                  style={{ color: 'rgba(26,26,24,0.32)', fontFamily: 'Inter' }}
+                >
+                  {isLoading
+                    ? ''
+                    : url
+                      ? t('cmp.glyphEvo.glyphSourceLocal')
+                      : style.key === 'regular'
+                        ? t('cmp.glyphEvo.glyphSourceFont')
+                        : t('cmp.glyphEvo.missingGlyph')}
+                </div>
               </motion.div>
             </Fragment>
           );
         })}
       </div>
+      {traditional && traditional !== character && (
+        <p className="mt-2 text-center text-[10px]" style={{ color: 'rgba(139,105,20,0.65)', fontFamily: 'Inter' }}>
+          {t('cmp.glyphEvo.tradGlyphNote', { t: traditional })}
+        </p>
+      )}
     </div>
   );
 }
