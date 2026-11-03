@@ -495,6 +495,10 @@ export default function CharacterDetail() {
   /* ================================================================ */
   /*  RENDER                                                           */
   /* ================================================================ */
+  // 正体（繁体）以 simp-trad 映射为准：getCharacterEnriched 对已有字源的常用字
+  // 不会回填 traditional，直接用映射避免「国」这类字被误判为无正体。
+  const traditionalForm = getTraditional(char) || entry.traditional || null;
+
   return (
     <div className="min-h-screen pb-20" style={{ background: '#F5F0E8' }}>
       {/* ── Hero ── */}
@@ -817,23 +821,23 @@ export default function CharacterDetail() {
                 </div>
                 <div className="flex items-center justify-center gap-5">
                   <span className="font-display-cn leading-none" style={{ fontSize: '3.25rem', color: '#1A1A18', fontFamily: '"Ma Shan Zheng", cursive' }}>{char}</span>
-                  {entry.traditional && (
+                  {traditionalForm && (
                     <>
                       <span className="text-lg" style={{ color: '#C4A265' }}>→</span>
                       <button
-                        onClick={() => goToDetail(entry.traditional!)}
+                        onClick={() => goToDetail(traditionalForm)}
                         className="font-display-cn leading-none transition-all hover:scale-105"
                         style={{ fontSize: '3.25rem', color: '#C23B2A', fontFamily: '"Ma Shan Zheng", cursive' }}
                         title={t('common.viewDetails')}
                       >
-                        {entry.traditional}
+                        {traditionalForm}
                       </button>
                     </>
                   )}
                 </div>
                 <p className="mt-4 text-center text-sm leading-relaxed" style={{ color: '#5A5548', fontFamily: 'Inter' }}>
-                  {entry.traditional
-                    ? t('detail.originSimp', { s: char, t: entry.traditional })
+                  {traditionalForm
+                    ? t('detail.originSimp', { s: char, t: traditionalForm })
                     : t('detail.originSame', { c: char })}
                 </p>
                 <p className="mt-2 text-center text-[11px] leading-relaxed" style={{ color: 'rgba(139,105,20,0.7)', fontFamily: 'Inter' }}>
@@ -847,7 +851,7 @@ export default function CharacterDetail() {
                 <div id="sec-glyph" className="rounded-2xl p-6 flex flex-col" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                   <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.tabs.glyph')}</h2>
                   <div className="flex flex-col justify-center">
-                    <GlyphEvolutionTimeline character={char} traditional={entry?.traditional} />
+                    <GlyphEvolutionTimeline character={char} traditional={traditionalForm ?? undefined} />
                   </div>
                 </div>
 
@@ -1096,7 +1100,7 @@ export default function CharacterDetail() {
             <motion.div key="glyph" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: '#FDFBF6', boxShadow: '0 4px 20px rgba(26,26,24,0.06)' }}>
                 <h2 className="text-xl font-display mb-4" style={{ color: '#1A1A18', fontFamily: '"Playfair Display", serif' }}>{t('detail.tabs.glyph')}</h2>
-                <GlyphEvolution character={char} traditional={entry?.traditional} shuowen={shuowen} />
+                <GlyphEvolution character={char} traditional={traditionalForm ?? undefined} shuowen={shuowen} />
               </div>
             </motion.div>
           )}
