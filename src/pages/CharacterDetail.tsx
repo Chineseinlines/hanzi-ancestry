@@ -495,9 +495,9 @@ export default function CharacterDetail() {
   /* ================================================================ */
   /*  RENDER                                                           */
   /* ================================================================ */
-  // 正体（繁体）以 simp-trad 映射为准：getCharacterEnriched 对已有字源的常用字
-  // 不会回填 traditional，直接用映射避免「国」这类字被误判为无正体。
-  const traditionalForm = getTraditional(char) || entry.traditional || null;
+  // 正体（繁体）沿用页面既有的同步解析（simpTradOrigins 静态表），
+  // 避免依赖异步加载的 simp-trad 映射而误判「国」这类字无正体。
+  const traditionalForm = tradTarget;
 
   return (
     <div className="min-h-screen pb-20" style={{ background: '#F5F0E8' }}>
