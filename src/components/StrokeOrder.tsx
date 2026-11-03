@@ -1,16 +1,45 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import type { StrokeData } from '../data/types';
 import { getStrokeData } from '../data/hanziData';
 import { useLanguage } from '../contexts/LanguageContext';
 
 type Speed = 'slow' | 'normal' | 'fast';
-const SPEED_DELAYS: Record<Speed, number> = { slow: 1500, normal: 900, fast: 500 };
 
-/** 描红判分：笔画中位点在 1024 坐标系内的命中半径 */
-const TRACE_HIT_RADIUS = 90;
-/** 描红判分：命中比例阈值 */
-const TRACE_PASS_RATIO = 0.6;
+/** 速度档位 → hanzi-writer 的笔画动画参数 */
+const SPEED: Record<Speed, { speed: number; delay: number }> = {
+  slow: { speed: 0.65, delay: 520 },
+  normal: { speed: 1, delay: 260 },
+  fast: { speed: 1.5, delay: 140 },
+};
+
+/**
+ * hanzi-writer 3.5.0
+ * 代码：MIT（允许商用，保留版权声明）
+ * 笔画数据：hanzi-writer-data，Arphic Public License（允许商用，需保留声明与许可副本）
+ */
+const HW_SRC = 'https://cdn.jsdelivr.net/npm/hanzi-writer@3.5.0/dist/hanzi-writer.min.js';
+
+declare global {
+  interface Window {
+    HanziWriter?: any;
+  }
+}
+
+let hwPromise: Promise<any> | null = null;
+
+function loadHanziWriter(): Promise<any> {
+  if (window.HanziWriter) return Promise.resolve(window.HanziWriter);
+  if (!hwPromise) {
+    hwPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = HW_SRC;
+      s.async = true;
+      s.onload = () => (window.HanziWriter ? resolve(window.HanziWriter) : reject(new Error('HanziWriter missing')));
+      s.onerror = () => reject(new Error('HanziWriter CDN failed'));
+      document.head.appendChild(s);
+    });
+  }
+  return hwPromise;
+}
 
 interface StrokeOrderProps {
   character: string;
@@ -19,235 +48,147 @@ interface StrokeOrderProps {
 
 export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps) {
   const { t } = useLanguage();
-  const [strokeData, setStrokeData] = useState<StrokeData | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<'ready' | 'nodata' | 'offline'>('ready');
+  const [strokeCount, setStrokeCount] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [currentStroke, setCurrentStroke] = useState(-1);
   const [speed, setSpeed] = useState<Speed>('normal');
   const [loop, setLoop] = useState(false);
-  const [mode, setMode] = useState<'play' | 'trace'>('play');
-  const [traceStroke, setTraceStroke] = useState(0);
-  const [traceMsg, setTraceMsg] = useState('');
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mode, setMode] = useState<'play' | 'quiz'>('play');
+  const [msg, setMsg] = useState('');
+
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const writerRef = useRef<any>(null);
   const playingRef = useRef(false);
   const loopRef = useRef(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const drawingRef = useRef<{ active: boolean; points: [number, number][] } | null>(null);
+  const modeRef = useRef<'play' | 'quiz'>('play');
 
-  useEffect(() => {
-    loopRef.current = loop;
-  }, [loop]);
+  useEffect(() => { loopRef.current = loop; }, [loop]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setStrokeData(undefined);
-    setCurrentStroke(-1);
-    setMode('play');
-    setLoop(false);
-    setTraceStroke(0);
-    setTraceMsg('');
-    getStrokeData(character).then((sd) => {
-      if (!cancelled) {
-        setStrokeData(sd);
-        setLoading(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [character]);
-
-  const hasData = strokeData && strokeData.strokes.length > 0;
-  const strokeCount = strokeData?.strokes.length ?? 0;
-
-  const stopAnimation = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    playingRef.current = false;
-    setPlaying(false);
-    setCurrentStroke(-1);
-  }, []);
-
-  const playAnimation = useCallback(() => {
-    if (!hasData || playingRef.current) return;
+  /** 逐笔播放；loop 开启时反复播放，直到开关关闭或退出描红 */
+  const runAnimation = useCallback(async () => {
+    const w = writerRef.current;
+    if (!w || playingRef.current) return;
     playingRef.current = true;
     setPlaying(true);
-    setCurrentStroke(-1);
-
-    let strokeIdx = 0;
-    const delay = SPEED_DELAYS[speed];
-    const step = () => {
-      if (strokeIdx >= strokeCount) {
-        if (loopRef.current) {
-          strokeIdx = 0;
-          setCurrentStroke(-1);
-          timerRef.current = setTimeout(step, 700);
-        } else {
-          playingRef.current = false;
-          setPlaying(false);
-          setCurrentStroke(-1);
-        }
-        return;
-      }
-      setCurrentStroke(strokeIdx);
-      strokeIdx++;
-      timerRef.current = setTimeout(step, delay);
-    };
-    timerRef.current = setTimeout(step, 300);
-  }, [hasData, strokeCount, speed]);
-
-  useEffect(() => {
-    if (hasData && !playingRef.current && mode === 'play') {
-      const timer = setTimeout(playAnimation, 600);
-      return () => clearTimeout(timer);
+    try {
+      do {
+        await w.animateCharacter();
+      } while (loopRef.current && modeRef.current === 'play' && writerRef.current === w);
+    } catch {
+      /* CDN 数据异常时静默降级 */
     }
-  }, [hasData, playAnimation, character, mode]);
+    playingRef.current = false;
+    setPlaying(false);
+  }, []);
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const clearCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }, []);
-
-  const enterTrace = useCallback(() => {
-    stopAnimation();
-    setMode('trace');
-    setLoop(false);
-    setTraceStroke(0);
-    setTraceMsg('');
-    setCurrentStroke(-1);
-    setTimeout(clearCanvas, 0);
-  }, [stopAnimation, clearCanvas]);
-
-  const exitTrace = useCallback(() => {
+    let disposed = false;
+    setLoading(true);
+    setStatus('ready');
+    setPlaying(false);
     setMode('play');
-    setTraceStroke(0);
-    setTraceMsg('');
-    clearCanvas();
-  }, [clearCanvas]);
+    modeRef.current = 'play';
+    setMsg('');
+    setLoop(false);
+    loopRef.current = false;
+    playingRef.current = false;
 
-  /** 画布坐标 → 字形 1024 坐标系（y 轴与原 SVG 变换一致） */
-  const toSourcePoint = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>): [number, number] => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
-      return [px * 1024 / size, 900 - py * 1024 / size];
-    },
-    [size],
-  );
-
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (mode !== 'trace' || traceStroke >= strokeCount) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const p = toSourcePoint(e);
-    drawingRef.current = { active: true, points: [p] };
-    setTraceMsg('');
-  }, [mode, traceStroke, strokeCount, toSourcePoint]);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    const drawing = drawingRef.current;
-    if (!drawing?.active) return;
-    const p = toSourcePoint(e);
-    const prev = drawing.points[drawing.points.length - 1];
-    drawing.points.push(p);
-
-    const ctx = e.currentTarget.getContext('2d');
-    if (!ctx) return;
-    ctx.strokeStyle = '#C23B2A';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(prev[0] / 1024 * size, (900 - prev[1]) / 1024 * size);
-    ctx.lineTo(p[0] / 1024 * size, (900 - p[1]) / 1024 * size);
-    ctx.stroke();
-  }, [size, toSourcePoint]);
-
-  const handlePointerUp = useCallback(() => {
-    const drawing = drawingRef.current;
-    drawingRef.current = null;
-    if (!drawing) return;
-
-    const median = strokeData?.medians[traceStroke] ?? [];
-    if (drawing.points.length < 2 || median.length === 0) {
-      // 数据不足时不阻断练习：直接进入下一笔
-      if (drawing.points.length < 2) {
-        setTraceMsg(t('cmp.strokeOrder.traceShort'));
-        setTimeout(clearCanvas, 200);
-        return;
-      }
-    }
-
-    let hit = 0;
-    for (const [mx, my] of median) {
-      if (drawing.points.some(([x, y]) => Math.hypot(x - mx, y - my) < TRACE_HIT_RADIUS)) hit++;
-    }
-    const ratio = median.length > 0 ? hit / median.length : 1;
-
-    if (ratio >= TRACE_PASS_RATIO) {
-      clearCanvas();
-      if (traceStroke + 1 >= strokeCount) {
-        setTraceStroke(strokeCount);
-        setTraceMsg(t('cmp.strokeOrder.traceDone'));
-      } else {
-        setTraceStroke((i) => i + 1);
-        setTraceMsg('');
-      }
-    } else {
-      setTraceMsg(t('cmp.strokeOrder.traceRetry'));
-      setTimeout(clearCanvas, 250);
-    }
-  }, [strokeData, traceStroke, strokeCount, t, clearCanvas]);
-
-  if (loading) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center rounded-xl"
-        style={{
+    Promise.all([loadHanziWriter(), getStrokeData(character)])
+      .then(([HW, sd]) => {
+        if (disposed || !hostRef.current) return;
+        if (!sd || sd.strokes.length === 0) {
+          setStatus('nodata');
+          setLoading(false);
+          return;
+        }
+        hostRef.current.innerHTML = '';
+        const writer = HW.create(hostRef.current, character, {
           width: size,
           height: size,
-          background: 'rgba(245,240,232,0.5)',
-        }}
-      >
-        <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#C23B2A', borderTopColor: 'transparent' }} />
-        <span className="mt-2 text-xs" style={{ color: 'rgba(26,26,24,0.4)', fontFamily: 'Inter' }}>
-          Loading strokes...
-        </span>
-      </div>
-    );
-  }
+          padding: 10,
+          showOutline: true,
+          showCharacter: true,
+          strokeColor: '#2F2A25',
+          outlineColor: '#DFD7C9',
+          radicalColor: '#C23B2A',
+          strokeAnimationSpeed: SPEED[speed].speed,
+          delayBetweenStrokes: SPEED[speed].delay,
+          charDataLoader: (_c: string, onComplete: (d: any) => void, onError: (e: any) => void) => {
+            getStrokeData(character).then((d) => (d ? onComplete(d) : onError(new Error('no strokes')))).catch(onError);
+          },
+        });
+        writerRef.current = writer;
+        setStrokeCount(sd.strokes.length);
+        setLoading(false);
+        void runAnimation();
+      })
+      .catch(() => {
+        if (disposed) return;
+        setStatus('offline');
+        setLoading(false);
+      });
 
-  if (!hasData) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed"
-        style={{
-          width: size,
-          height: size,
-          borderColor: 'rgba(26,26,24,0.15)',
-          background: 'rgba(245,240,232,0.5)',
-        }}
-      >
-        <span className="text-4xl font-display-cn" style={{ color: 'rgba(26,26,24,0.2)' }}>
-          {character}
-        </span>
-        <span className="mt-2 text-xs" style={{ color: 'rgba(26,26,24,0.4)', fontFamily: 'Inter' }}>
-          Stroke data not available
-        </span>
-      </div>
-    );
-  }
+    return () => {
+      disposed = true;
+      const w = writerRef.current;
+      writerRef.current = null;
+      playingRef.current = false;
+      if (w) {
+        try { w.cancelQuiz(); } catch { /* noop */ }
+      }
+    };
+  }, [character, size, speed, runAnimation]);
 
-  const viewSize = 1024;
-  const traceGuide = mode === 'trace' && traceStroke < strokeCount ? strokeData.medians[traceStroke] : undefined;
+  /** 进入描红：交给 hanzi-writer 的 quiz 逐笔判分 */
+  const startQuiz = useCallback(() => {
+    const w = writerRef.current;
+    if (!w) return;
+    setLoop(false);
+    loopRef.current = false;
+    setMode('quiz');
+    modeRef.current = 'quiz';
+    setMsg(t('cmp.strokeOrder.traceHint', { n: 1, total: strokeCount }));
+    w.quiz({
+      onMistake: () => setMsg(t('cmp.strokeOrder.traceRetry')),
+      onCorrectStroke: (d: { strokeNum?: number }) => {
+        const next = Math.min((d?.strokeNum ?? 0) + 2, strokeCount);
+        setMsg(
+          next >= strokeCount
+            ? t('cmp.strokeOrder.traceDone')
+            : t('cmp.strokeOrder.traceHint', { n: next, total: strokeCount }),
+        );
+      },
+      onComplete: () => setMsg(t('cmp.strokeOrder.traceDone')),
+    });
+  }, [strokeCount, t]);
 
-  // Coordinates are in 1024 space with inverted Y; flip and adjust
+  const exitQuiz = useCallback(() => {
+    const w = writerRef.current;
+    setMode('play');
+    modeRef.current = 'play';
+    setMsg('');
+    if (w) {
+      try { w.cancelQuiz(); } catch { /* noop */ }
+      try { w.showCharacter(); } catch { /* noop */ }
+    }
+  }, []);
+
+  const toggleLoop = () => {
+    const next = !loop;
+    setLoop(next);
+    loopRef.current = next;
+    if (next) { setMode('play'); modeRef.current = 'play'; void runAnimation(); }
+  };
+
+  const bgStyle = {
+    backgroundImage:
+      'linear-gradient(to right, rgba(196,162,101,0.12) 1px, transparent 1px), ' +
+      'linear-gradient(to bottom, rgba(196,162,101,0.12) 1px, transparent 1px)',
+    backgroundSize: `${size / 2}px ${size / 2}px, ${size / 2}px ${size / 2}px`,
+  };
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div
@@ -257,94 +198,41 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
           height: size,
           background: '#FDFBF6',
           boxShadow: 'inset 0 0 20px rgba(139,105,20,0.06)',
+          ...bgStyle,
         }}
       >
-        <svg className="absolute inset-0" width={size} height={size}>
-          <defs>
-            <pattern id={`grid-${character}`} width={size / 2} height={size / 2} patternUnits="userSpaceOnUse">
-              <path d={`M ${size / 2} 0 L ${size / 2} ${size / 2} M 0 ${size / 2} L ${size / 2} ${size / 2}`} stroke="rgba(196,162,101,0.12)" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width={size} height={size} fill={`url(#grid-${character})`} />
-          <line x1={0} y1={size / 2} x2={size} y2={size / 2} stroke="rgba(196,162,101,0.12)" strokeWidth="1" strokeDasharray="4 4" />
-          <line x1={size / 2} y1={0} x2={size / 2} y2={size} stroke="rgba(196,162,101,0.12)" strokeWidth="1" strokeDasharray="4 4" />
-        </svg>
+        <div ref={hostRef} className="absolute inset-0" />
 
-        <svg
-          className="absolute inset-0"
-          width={size}
-          height={size}
-          viewBox={`0 0 ${viewSize} ${viewSize}`}
-        >
-          {traceGuide && traceGuide.length > 1 && (
-            <g transform="scale(1, -1) translate(0, -900)">
-              <polyline
-                points={traceGuide.map(([x, y]) => `${x},${y}`).join(' ')}
-                fill="none"
-                stroke="rgba(196,162,101,0.55)"
-                strokeWidth={56}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </g>
-          )}
-          <g transform={`scale(1, -1) translate(0, -900)`}>
-            {strokeData.strokes.map((path, i) => {
-              const isDrawn = i <= currentStroke;
-              const isCurrent = i === currentStroke;
-              return (
-                <g key={i}>
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke={isCurrent ? '#C23B2A' : '#1A1A18'}
-                    strokeWidth={isCurrent ? 72 : 60}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ opacity: isDrawn ? 1 : 0.12, transition: 'opacity 0.3s ease' }}
-                  />
-                  {isDrawn && strokeData.medians[i]?.[0] && (
-                    <motion.text
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3 }}
-                      x={strokeData.medians[i][0][0]}
-                      y={-strokeData.medians[i][0][1]}
-                      fontSize="80"
-                      fill={isCurrent ? '#C23B2A' : '#8B6914'}
-                      fontFamily="Inter, sans-serif"
-                      fontWeight="600"
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      style={{ opacity: 0.7 }}
-                    >
-                      {i + 1}
-                    </motion.text>
-                  )}
-                </g>
-              );
-            })}
-          </g>
-        </svg>
+        {loading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ background: 'rgba(245,240,232,0.5)' }}>
+            <div
+              className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
+              style={{ borderColor: '#C23B2A', borderTopColor: 'transparent' }}
+            />
+            <span className="mt-2 text-xs" style={{ color: 'rgba(26,26,24,0.4)', fontFamily: 'Inter' }}>
+              Loading strokes...
+            </span>
+          </div>
+        )}
 
-        {mode === 'trace' && (
-          <canvas
-            ref={canvasRef}
-            width={size}
-            height={size}
-            className="absolute inset-0"
-            style={{ width: size, height: size, touchAction: 'none', cursor: 'crosshair' }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-          />
+        {!loading && status !== 'ready' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center" style={{ background: 'rgba(245,240,232,0.7)' }}>
+            <span className="text-4xl font-display-cn" style={{ color: 'rgba(26,26,24,0.2)' }}>
+              {character}
+            </span>
+            <span className="mt-2 text-xs" style={{ color: 'rgba(26,26,24,0.5)', fontFamily: 'Inter' }}>
+              {status === 'offline' ? t('cmp.strokeOrder.offline') : t('cmp.strokeOrder.noData')}
+            </span>
+          </div>
         )}
       </div>
 
-      {mode === 'trace' && (
-        <p className="text-center text-xs font-medium" style={{ color: traceMsg === t('cmp.strokeOrder.traceDone') ? '#6B7F5E' : '#8B6914', fontFamily: 'Inter' }}>
-          {traceMsg || t('cmp.strokeOrder.traceHint', { n: Math.min(traceStroke + 1, strokeCount), total: strokeCount })}
+      {mode === 'quiz' && status === 'ready' && (
+        <p
+          className="text-center text-xs font-medium"
+          style={{ color: msg === t('cmp.strokeOrder.traceDone') ? '#6B7F5E' : '#8B6914', fontFamily: 'Inter' }}
+        >
+          {msg || t('cmp.strokeOrder.traceHint', { n: 1, total: strokeCount })}
         </p>
       )}
 
@@ -354,8 +242,8 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
             {t('cmp.strokeOrder.strokes', { n: strokeCount })}
           </span>
           <button
-            onClick={playAnimation}
-            disabled={playing || mode === 'trace'}
+            onClick={() => { setMode('play'); modeRef.current = 'play'; void runAnimation(); }}
+            disabled={loading || playing || status !== 'ready' || mode === 'quiz'}
             className="rounded-full px-4 py-1.5 text-xs font-medium transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
             style={{
               background: playing ? 'rgba(26,26,24,0.08)' : '#C23B2A',
@@ -366,8 +254,8 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
             {playing ? t('cmp.strokeOrder.playing') : t('cmp.strokeOrder.replay')}
           </button>
           <button
-            onClick={() => { setLoop((v) => !v); }}
-            disabled={mode === 'trace'}
+            onClick={toggleLoop}
+            disabled={loading || status !== 'ready' || mode === 'quiz'}
             className="rounded-full border px-3 py-1.5 text-xs font-medium transition-all hover:scale-105 disabled:opacity-50"
             style={{
               borderColor: loop ? '#C23B2A' : 'rgba(26,26,24,0.15)',
@@ -379,16 +267,17 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
             {t('cmp.strokeOrder.loop')}
           </button>
           <button
-            onClick={mode === 'trace' ? exitTrace : enterTrace}
-            className="rounded-full border px-3 py-1.5 text-xs font-medium transition-all hover:scale-105"
+            onClick={mode === 'quiz' ? exitQuiz : startQuiz}
+            disabled={loading || status !== 'ready'}
+            className="rounded-full border px-3 py-1.5 text-xs font-medium transition-all hover:scale-105 disabled:opacity-50"
             style={{
-              borderColor: mode === 'trace' ? '#2D5F8A' : 'rgba(26,26,24,0.15)',
-              background: mode === 'trace' ? 'rgba(45,95,138,0.12)' : 'transparent',
-              color: mode === 'trace' ? '#2D5F8A' : '#8B6914',
+              borderColor: mode === 'quiz' ? '#2D5F8A' : 'rgba(26,26,24,0.15)',
+              background: mode === 'quiz' ? 'rgba(45,95,138,0.12)' : 'transparent',
+              color: mode === 'quiz' ? '#2D5F8A' : '#8B6914',
               fontFamily: 'Inter',
             }}
           >
-            {mode === 'trace' ? t('cmp.strokeOrder.exitTrace') : t('cmp.strokeOrder.trace')}
+            {mode === 'quiz' ? t('cmp.strokeOrder.exitTrace') : t('cmp.strokeOrder.trace')}
           </button>
         </div>
         {mode === 'play' && (
@@ -397,7 +286,7 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
               <button
                 key={s}
                 onClick={() => setSpeed(s)}
-                disabled={playing}
+                disabled={playing || status !== 'ready'}
                 className="rounded-full px-3 py-1 text-[0.625rem] font-medium transition-all disabled:opacity-50"
                 style={{
                   background: speed === s ? '#1A1A18' : 'transparent',
@@ -410,6 +299,9 @@ export default function StrokeOrder({ character, size = 220 }: StrokeOrderProps)
             ))}
           </div>
         )}
+        <p className="text-center text-[0.625rem]" style={{ color: 'rgba(26,26,24,0.4)', fontFamily: 'Inter' }}>
+          {t('cmp.strokeOrder.dataLicense')}
+        </p>
       </div>
     </div>
   );

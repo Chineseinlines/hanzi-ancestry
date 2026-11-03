@@ -715,7 +715,9 @@ export const en: Messages = {
       traceHint: 'Trace stroke {n} of {total}',
       traceDone: 'Tracing complete — correctly written.',
       traceRetry: 'Off track — please follow the grey stroke.',
-      traceShort: 'Press and drag along the stroke.',
+      noData: 'Stroke data not available',
+      offline: 'Stroke animation unavailable — check your connection and retry',
+      dataLicense: 'Stroke data hanzi-writer-data · Arphic Public License',
     },
   },
   sources: {

@@ -703,7 +703,9 @@ export const zh = {
       traceHint: '按笔顺描出第 {n} / {total} 笔',
       traceDone: '描红完成，书写正确。',
       traceRetry: '笔迹偏离，请沿灰色笔画重描。',
-      traceShort: '请按住并沿笔画描画。',
+      noData: '该字暂无笔顺数据',
+      offline: '笔顺动画暂不可用，请检查网络后重试',
+      dataLicense: '笔画数据 hanzi-writer-data · Arphic Public License',
     },
   },
   sources: {
